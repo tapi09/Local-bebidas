@@ -56,7 +56,7 @@
         <Label text="Factura:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
         <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="2">
             <Button text="Adjuntar Factura" onAction="#onAttachInvoice" styleClass="button"/>
-            <Label fx:id="lblPhotoName" text="" styleClass="info-label"/>
+            <Label fx:id="lblPhotoForm" text="" styleClass="info-label"/>
         </HBox>
 
         <Label text="Medio de Pago:" GridPane.columnIndex="2" GridPane.rowIndex="2"/>

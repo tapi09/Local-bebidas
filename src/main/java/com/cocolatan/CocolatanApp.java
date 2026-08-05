@@ -74,8 +74,12 @@ public class CocolatanApp extends Application {
 
         LoggingConfig.init(logDir.toString());
 
-        // Install global error handler
-        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+        // Install global error handler. The default handler only covers
+        // background threads: the JavaFX runtime installs its own handler on
+        // the FX Application Thread, so we must ALSO set the handler on the
+        // current thread (which runs start()) to catch uncaught exceptions
+        // raised by controller event handlers without killing the app.
+        Thread.UncaughtExceptionHandler uncaughtExceptionHandler = (thread, throwable) -> {
             LOGGER.log(Level.SEVERE, "Uncaught exception in thread: " + thread.getName(), throwable);
             javafx.application.Platform.runLater(() ->
                     AlertService.showErrorDialog(
@@ -83,7 +87,9 @@ public class CocolatanApp extends Application {
                             "Ocurrió un error inesperado. Consulte el archivo de logs para más detalles."
                     )
             );
-        });
+        };
+        Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
+        Thread.currentThread().setUncaughtExceptionHandler(uncaughtExceptionHandler);
 
         try {
             // Initialize database
@@ -223,6 +229,10 @@ public class CocolatanApp extends Application {
 
     @Override
     public void stop() {
+        MainPresenter mainPresenter = MainPresenter.getInstance();
+        if (mainPresenter != null) {
+            mainPresenter.dispose();
+        }
         if (backupScheduler != null) {
             backupScheduler.stop();
         }

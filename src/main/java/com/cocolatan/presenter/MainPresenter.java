@@ -44,6 +44,15 @@ public class MainPresenter {
 
     private static MainPresenter instance;
 
+    // Background thread that refreshes the clock label every second. Kept as a
+    // field so it can be interrupted on logout/app stop, preventing a new
+    // thread + scene-graph leak on every login cycle.
+    private Thread clockThread;
+
+    // Set to false to stop the clock thread (logout, shutdown, detached label).
+    private final java.util.concurrent.atomic.AtomicBoolean clockActive =
+            new java.util.concurrent.atomic.AtomicBoolean(true);
+
     @FXML
     private StackPane contentArea;
 
@@ -119,11 +128,18 @@ public class MainPresenter {
         updateDateTime();
 
         // Update clock every second
-        Thread clockThread = new Thread(() -> {
-            while (true) {
+        clockThread = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted() && clockActive.get()) {
                 try {
                     Thread.sleep(1000);
-                    Platform.runLater(this::updateDateTime);
+                    Platform.runLater(() -> {
+                        // Stop the clock when the label is gone/detached.
+                        if (dateTimeLabel == null) {
+                            clockActive.set(false);
+                            return;
+                        }
+                        updateDateTime();
+                    });
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
@@ -356,9 +372,22 @@ public class MainPresenter {
 
     @FXML
     public void onLogout() {
+        dispose();
         AuthService.getInstance().logout();
         viewCache.clear();
         CocolatanApp.showLoginView();
+    }
+
+    /**
+     * Stops the background clock thread so it does not leak across login
+     * cycles. Called on logout and from CocolatanApp.stop() during shutdown.
+     */
+    public void dispose() {
+        clockActive.set(false);
+        if (clockThread != null) {
+            clockThread.interrupt();
+            clockThread = null;
+        }
     }
 
     private boolean checkAdminAccess() {

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -114,6 +115,11 @@ public class PurchaseController implements Refreshable {
 
     @FXML
     private Label lblPhotoName;
+
+    // Label beside the "Adjuntar Factura" button. Shares the filename with
+    // lblPhotoName (the preview caption) so both places reflect the attachment.
+    @FXML
+    private Label lblPhotoForm;
 
     @FXML
     private TableView<Purchase> historyTable;
@@ -394,6 +400,13 @@ public class PurchaseController implements Refreshable {
         });
 
         dialog.showAndWait().ifPresent(newSupplier -> {
+            if (newSupplier == null) {
+                return;
+            }
+            if (newSupplier.getName() == null || newSupplier.getName().isBlank()) {
+                AlertService.showErrorDialog("Error", "El nombre del proveedor es obligatorio.");
+                return;
+            }
             try {
                 Supplier savedSupplier = presenter.saveSupplier(newSupplier);
                 if (savedSupplier != null && savedSupplier.getId() != null) {
@@ -525,8 +538,14 @@ public class PurchaseController implements Refreshable {
 
         dialog.getDialogPane().setContent(grid);
 
+        // Tracks whether the user actually pressed Guardar. Both Cancel and a
+        // parse failure convert to null, so the flag distinguishes them and
+        // prevents Cancel from showing the numeric-validation error.
+        boolean[] saveRequested = { false };
+
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
+                saveRequested[0] = true;
                 try {
                     Product product = new Product();
                     product.setName(nameField.getText().trim());
@@ -561,34 +580,38 @@ public class PurchaseController implements Refreshable {
             return null;
         });
 
-        dialog.showAndWait().ifPresent(newProduct -> {
-            if (newProduct == null) {
-                AlertService.showErrorDialog("Error", "Verifique los valores numéricos (costo, precio, venta PedidosYa).");
-                return;
-            }
-            if (newProduct.getName() == null || newProduct.getName().isBlank()) {
-                AlertService.showErrorDialog("Error", "El nombre del producto es obligatorio.");
-                return;
-            }
-            try {
-                Product savedProduct = presenter.saveProduct(newProduct);
-                if (savedProduct != null && savedProduct.getId() != null) {
-                    reloadProducts();
-                    // Find and select in the cached list
-                    for (Product p : allCachedProducts) {
-                        if (p.getId().equals(savedProduct.getId())) {
-                            productCombo.setValue(p);
-                            break;
-                        }
+        Optional<Product> dialogResult = dialog.showAndWait();
+        Product newProduct = dialogResult.orElse(null);
+        if (newProduct == null && !saveRequested[0]) {
+            // User cancelled or dismissed the dialog — no validation error.
+            return;
+        }
+        if (newProduct == null) {
+            AlertService.showErrorDialog("Error", "Verifique los valores numéricos (costo, precio, venta PedidosYa).");
+            return;
+        }
+        if (newProduct.getName() == null || newProduct.getName().isBlank()) {
+            AlertService.showErrorDialog("Error", "El nombre del producto es obligatorio.");
+            return;
+        }
+        try {
+            Product savedProduct = presenter.saveProduct(newProduct);
+            if (savedProduct != null && savedProduct.getId() != null) {
+                reloadProducts();
+                // Find and select in the cached list
+                for (Product p : allCachedProducts) {
+                    if (p.getId().equals(savedProduct.getId())) {
+                        productCombo.setValue(p);
+                        break;
                     }
-                    AlertService.showInfoDialog("Éxito", "Producto guardado correctamente.");
-                } else {
-                    AlertService.showErrorDialog("Error", "No se pudo guardar el producto.");
                 }
-            } catch (Exception e) {
-                AlertService.showErrorDialog("Error", "Error al guardar producto: " + e.getMessage());
+                AlertService.showInfoDialog("Éxito", "Producto guardado correctamente.");
+            } else {
+                AlertService.showErrorDialog("Error", "No se pudo guardar el producto.");
             }
-        });
+        } catch (Exception e) {
+            AlertService.showErrorDialog("Error", "Error al guardar producto: " + e.getMessage());
+        }
     }
 
     // ──────────────────────────────────────────────
@@ -896,7 +919,7 @@ public class PurchaseController implements Refreshable {
         invoicePhotoPath = null;
         imgInvoicePreview.setImage(null);
         imgInvoicePreview.setVisible(false);
-        lblPhotoName.setText("");
+        setPhotoFileName("");
     }
 
     // ──────────────────────────────────────────────
@@ -924,7 +947,7 @@ public class PurchaseController implements Refreshable {
         invoicePhotoPath = photoPath;
         imgInvoicePreview.setImage(new Image(selectedFile.toURI().toString()));
         imgInvoicePreview.setVisible(true);
-        lblPhotoName.setText(selectedFile.getName());
+        setPhotoFileName(selectedFile.getName());
     }
 
     public void onPurchaseLoaded(Purchase purchase) {
@@ -933,7 +956,7 @@ public class PurchaseController implements Refreshable {
             if (absolutePath != null) {
                 imgInvoicePreview.setImage(new Image(absolutePath.toUri().toString()));
                 imgInvoicePreview.setVisible(true);
-                lblPhotoName.setText(new File(purchase.getInvoicePhotoPath()).getName());
+                setPhotoFileName(new File(purchase.getInvoicePhotoPath()).getName());
             }
         }
     }
@@ -942,7 +965,20 @@ public class PurchaseController implements Refreshable {
         if (imgInvoicePreview.getImage() != null) {
             imgInvoicePreview.setImage(null);
             imgInvoicePreview.setVisible(false);
-            lblPhotoName.setText("");
+            setPhotoFileName("");
+        }
+    }
+
+    /**
+     * Displays the attached invoice filename in both the preview caption and
+     * the form label beside "Adjuntar Factura".
+     */
+    private void setPhotoFileName(String fileName) {
+        if (lblPhotoName != null) {
+            lblPhotoName.setText(fileName);
+        }
+        if (lblPhotoForm != null) {
+            lblPhotoForm.setText(fileName);
         }
     }
 }

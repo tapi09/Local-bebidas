@@ -47,4 +47,36 @@ class SaleHistoryControllerTest {
     void formatPaymentMethodPassesThroughUnknownValue() {
         assertThat(SaleHistoryController.formatPaymentMethod("OTHER")).isEqualTo("OTHER");
     }
+
+    // --- formatReceipt ---
+
+    @Test
+    void formatReceiptReturnsDashWhenNull() {
+        assertThat(SaleHistoryController.formatReceipt(null)).isEqualTo("—");
+    }
+
+    @Test
+    void formatReceiptReturnsDashWhenBlank() {
+        assertThat(SaleHistoryController.formatReceipt("")).isEqualTo("—");
+        assertThat(SaleHistoryController.formatReceipt("   \n  ")).isEqualTo("—");
+    }
+
+    @Test
+    void formatReceiptCollapsesLinesToSingleLine() {
+        assertThat(SaleHistoryController.formatReceipt("Fecha: 05/08/2026\nPago: Efectivo"))
+                .isEqualTo("Fecha: 05/08/2026 Pago: Efectivo");
+    }
+
+    @Test
+    void formatReceiptTruncatesLongText() {
+        String longText = "A".repeat(100);
+        assertThat(SaleHistoryController.formatReceipt(longText))
+                .isEqualTo("A".repeat(80) + "…");
+    }
+
+    @Test
+    void formatReceiptKeepsShortTextUntruncated() {
+        String shortText = "Comprobante #42";
+        assertThat(SaleHistoryController.formatReceipt(shortText)).isEqualTo(shortText);
+    }
 }

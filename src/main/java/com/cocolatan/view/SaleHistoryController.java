@@ -53,6 +53,9 @@ public class SaleHistoryController implements Refreshable {
     private TableColumn<Sale, String> colStatus;
 
     @FXML
+    private TableColumn<Sale, String> colReceipt;
+
+    @FXML
     private Button btnCancelSale;
 
     private SaleHistoryPresenter presenter;
@@ -88,6 +91,8 @@ public class SaleHistoryController implements Refreshable {
             return new SimpleStringProperty(formatPaymentMethod(pm));
         });
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colReceipt.setCellValueFactory(cellData ->
+                new SimpleStringProperty(formatReceipt(cellData.getValue().getReceiptText())));
 
         // Hide cancel button for non-admin users
         if (AuthService.getInstance().isCajero() && btnCancelSale != null) {
@@ -168,5 +173,17 @@ public class SaleHistoryController implements Refreshable {
             case "MIXED" -> "Mixto";
             default -> paymentMethod;
         };
+    }
+
+    /**
+     * Returns a compact single-line preview of a sale's receipt text for the
+     * Comprobante column, or "—" when no receipt was generated.
+     */
+    static String formatReceipt(String receiptText) {
+        if (receiptText == null || receiptText.isBlank()) {
+            return "—";
+        }
+        String oneLine = receiptText.replace('\n', ' ').replaceAll("\\s+", " ").trim();
+        return oneLine.length() <= 80 ? oneLine : oneLine.substring(0, 80) + "…";
     }
 }

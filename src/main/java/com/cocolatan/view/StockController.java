@@ -205,9 +205,16 @@ public class StockController implements Refreshable {
 
         productSelector.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
-                int stock = presenter.getStockByProduct(newVal.getId());
-                currentStockLabel.setText(String.valueOf(stock));
-                selectedProductInfo.setText(newVal.getName());
+                try {
+                    int stock = presenter.getStockByProduct(newVal.getId());
+                    currentStockLabel.setText(String.valueOf(stock));
+                    selectedProductInfo.setText(newVal.getName());
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error al cargar stock del producto seleccionado", e);
+                    currentStockLabel.setText("—");
+                    selectedProductInfo.setText("");
+                    AlertService.showErrorDialog("Error", "Error al cargar el stock del producto.");
+                }
             } else {
                 currentStockLabel.setText("—");
                 selectedProductInfo.setText("");
@@ -216,13 +223,18 @@ public class StockController implements Refreshable {
     }
 
     private void loadDashboard() {
-        dashboardData = presenter.getDashboardData();
-        dashboardTable.setItems(FXCollections.observableArrayList(dashboardData));
+        try {
+            dashboardData = presenter.getDashboardData();
+            dashboardTable.setItems(FXCollections.observableArrayList(dashboardData));
 
-        StockPresenter.StockStatusCounts counts = presenter.getStatusCounts();
-        countOk.setText("OK: " + counts.getOk());
-        countLow.setText("BAJO: " + counts.getLow());
-        countOut.setText("SIN STOCK: " + counts.getOut());
+            StockPresenter.StockStatusCounts counts = presenter.getStatusCounts();
+            countOk.setText("OK: " + counts.getOk());
+            countLow.setText("BAJO: " + counts.getLow());
+            countOut.setText("SIN STOCK: " + counts.getOut());
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al cargar el dashboard de stock", e);
+            AlertService.showErrorDialog("Error", "Error al cargar el dashboard de stock.");
+        }
     }
 
     @FXML
@@ -233,41 +245,56 @@ public class StockController implements Refreshable {
             return;
         }
 
-        // Map display status to internal status
-        String internalStatus = mapStatusFilter(status);
+        try {
+            // Map display status to internal status
+            String internalStatus = mapStatusFilter(status);
 
-        // Filter the already-loaded dashboard data — no re-query on every filter.
-        List<StockPresenter.ProductStockInfo> filtered = new ArrayList<>();
-        if (dashboardData != null) {
-            for (StockPresenter.ProductStockInfo info : dashboardData) {
-                if (info.getStatus().equals(internalStatus)) {
-                    filtered.add(info);
+            // Filter the already-loaded dashboard data — no re-query on every filter.
+            List<StockPresenter.ProductStockInfo> filtered = new ArrayList<>();
+            if (dashboardData != null) {
+                for (StockPresenter.ProductStockInfo info : dashboardData) {
+                    if (info.getStatus().equals(internalStatus)) {
+                        filtered.add(info);
+                    }
                 }
             }
+            dashboardTable.setItems(FXCollections.observableArrayList(filtered));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al filtrar el stock", e);
+            AlertService.showErrorDialog("Error", "Error al filtrar el stock.");
         }
-        dashboardTable.setItems(FXCollections.observableArrayList(filtered));
     }
 
     @FXML
     private void onShowAll() {
-        loadDashboard();
+        try {
+            loadDashboard();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al mostrar todos los productos", e);
+            AlertService.showErrorDialog("Error", "Error al mostrar todos los productos.");
+        }
     }
 
     @FXML
     private void onSearchMovements() {
-        Product selectedProduct = productSelector.getValue();
-        String typeFilter = movementTypeFilter.getValue();
-        String fromDate = fromDateField.getText().trim();
-        String toDate = toDateField.getText().trim();
+        try {
+            Product selectedProduct = productSelector.getValue();
+            String typeFilter = movementTypeFilter.getValue();
+            String fromDate = fromDateField.getText().trim();
+            String toDate = toDateField.getText().trim();
 
-        Long productId = selectedProduct != null ? selectedProduct.getId() : null;
-        String type = "Todos".equals(typeFilter) ? null : typeFilter;
+            Long productId = selectedProduct != null ? selectedProduct.getId() : null;
+            String type = "Todos".equals(typeFilter) ? null : typeFilter;
 
-        if (fromDate.isEmpty()) fromDate = null;
-        if (toDate.isEmpty()) toDate = null;
+            if (fromDate.isEmpty()) fromDate = null;
+            if (toDate.isEmpty()) toDate = null;
 
-        List<StockMovement> movements = presenter.getMovementHistory(productId, type, fromDate, toDate);
-        movementsTable.setItems(FXCollections.observableArrayList(movements));
+            List<StockMovement> movements = presenter.getMovementHistory(productId, type, fromDate, toDate);
+            movementsTable.setItems(FXCollections.observableArrayList(movements));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al buscar movimientos de stock", e);
+            AlertService.showErrorDialog("Error", "Error al buscar movimientos de stock.");
+        }
     }
 
     @FXML
