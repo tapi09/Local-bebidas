@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.cocolatan.view.HomeController"
+      spacing="14"
+      styleClass="kiosk-container">
+
+    <padding>
+        <Insets top="12" right="16" bottom="16" left="16"/>
+    </padding>
+
+    <!-- Header Section -->
+    <VBox spacing="2">
+        <Label text="Panel de Control" styleClass="title-label"/>
+        <Label text="Bienvenido al Sistema Kiosco POS — Central de Bebidas" styleClass="subtitle-label"/>
+    </VBox>
+
+    <!-- Summary KPI Cards Grid (3x2) -->
+    <GridPane hgap="14" vgap="14">
+        <!-- Card 1: Productos Activos -->
+        <VBox styleClass="dashboard-card" GridPane.columnIndex="0" GridPane.rowIndex="0" HBox.hgrow="ALWAYS">
+            <Label text="📦 Productos Activos" styleClass="dashboard-card-title"/>
+            <Label fx:id="activeProductsLabel" text="0" styleClass="dashboard-card-value"/>
+        </VBox>
+
+        <!-- Card 2: Stock Bajo -->
+        <VBox styleClass="dashboard-card" GridPane.columnIndex="1" GridPane.rowIndex="0" HBox.hgrow="ALWAYS">
+            <Label text="⚠️ Stock Bajo" styleClass="dashboard-card-title"/>
+            <Label fx:id="lowStockLabel" text="0" styleClass="dashboard-card-value-warning"/>
+        </VBox>
+
+        <!-- Card 3: Ventas Hoy -->
+        <VBox styleClass="dashboard-card" GridPane.columnIndex="0" GridPane.rowIndex="1" HBox.hgrow="ALWAYS">
+            <Label text="💵 Ventas Hoy" styleClass="dashboard-card-title"/>
+            <Label fx:id="todaySalesLabel" text="0,00" styleClass="dashboard-card-value"/>
+        </VBox>
+
+        <!-- Card 4: Productos Agotados -->
+        <VBox styleClass="dashboard-card" GridPane.columnIndex="1" GridPane.rowIndex="1" HBox.hgrow="ALWAYS">
+            <Label text="🚫 Productos Agotados" styleClass="dashboard-card-title"/>
+            <Label fx:id="outOfStockLabel" text="0" styleClass="dashboard-card-value-danger"/>
+        </VBox>
+
+        <!-- Card 5: Alertas -->
+        <VBox styleClass="dashboard-card" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2" HBox.hgrow="ALWAYS">
+            <Label text="🚨 Alertas Activas" styleClass="dashboard-card-title"/>
+            <Label fx:id="alertsLabel" text="0" styleClass="dashboard-card-value-danger"/>
+        </VBox>
+    </GridPane>
+
+    <!-- Quick Access Section -->
+    <VBox spacing="8">
+        <Label text="Acceso Rápido" styleClass="section-title"/>
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <Button text="Nueva Venta" onAction="#onQuickSale" styleClass="button-success, quick-action-btn"/>
+            <Button text="Productos" onAction="#onQuickProducts" styleClass="button, quick-action-btn"/>
+            <Button text="Compras" onAction="#onQuickPurchases" styleClass="button-secondary, quick-action-btn"/>
+            <Button text="Stock" onAction="#onQuickStock" styleClass="button-secondary, quick-action-btn"/>
+            <Button fx:id="backupButton" text="Realizar Backup" onAction="#onBackup" styleClass="button-secondary, quick-action-btn"/>
+        </HBox>
+    </VBox>
+
+    <Separator styleClass="section-separator"/>
+
+    <!-- Latest Sales Table -->
+    <VBox spacing="8" VBox.vgrow="ALWAYS">
+        <Label text="Últimas Ventas Registradas" styleClass="section-title"/>
+        <TableView fx:id="recentSalesTable" minHeight="140" prefHeight="160" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="colDate" text="Fecha" prefWidth="160"/>
+                <TableColumn fx:id="colTotal" text="Total" prefWidth="140"/>
+                <TableColumn fx:id="colChannel" text="Canal" prefWidth="120"/>
+                <TableColumn fx:id="colPayment" text="Método de Pago" prefWidth="160"/>
+            </columns>
+        </TableView>
+    </VBox>
+</VBox>

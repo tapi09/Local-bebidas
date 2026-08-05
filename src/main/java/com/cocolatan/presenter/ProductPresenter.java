@@ -1,0 +1,236 @@
+package com.cocolatan.presenter;
+
+import com.cocolatan.model.Category;
+import com.cocolatan.model.Product;
+import com.cocolatan.model.Subcategory;
+import com.cocolatan.model.Supplier;
+import com.cocolatan.repository.CategoryRepository;
+import com.cocolatan.repository.ProductRepository;
+import com.cocolatan.repository.SubcategoryRepository;
+import com.cocolatan.repository.SupplierRepository;
+import com.cocolatan.service.InventoryService;
+
+import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Presenter for the Product Catalog module.
+ * Handles CRUD logic, search, validation, and supplier dropdown.
+ */
+public class ProductPresenter {
+
+    private final ProductRepository productRepository;
+    private final SupplierRepository supplierRepository;
+    private final InventoryService inventoryService;
+    private final CategoryRepository categoryRepository;
+    private final SubcategoryRepository subcategoryRepository;
+
+    public ProductPresenter(ProductRepository productRepository, SupplierRepository supplierRepository,
+                            InventoryService inventoryService, CategoryRepository categoryRepository,
+                            SubcategoryRepository subcategoryRepository) {
+        this.productRepository = productRepository;
+        this.supplierRepository = supplierRepository;
+        this.inventoryService = inventoryService;
+        this.categoryRepository = categoryRepository;
+        this.subcategoryRepository = subcategoryRepository;
+    }
+
+    /**
+     * Backward-compatible constructor used while the catalog controller is still
+     * wired without hierarchy repos. Hierarchy list methods require the 5-arg
+     * constructor; the catalog switches over when the cascade pickers land (WU4).
+     */
+    public ProductPresenter(ProductRepository productRepository, SupplierRepository supplierRepository,
+                            InventoryService inventoryService) {
+        this(productRepository, supplierRepository, inventoryService, null, null);
+    }
+
+    /**
+     * Returns current stock for a product.
+     */
+    public int getCurrentStock(Long productId) {
+        return inventoryService.getCurrentStock(productId);
+    }
+
+    /**
+     * Returns stock status string (OK, LOW, OUT) for a product.
+     */
+    public String getStockStatus(Long productId) {
+        return inventoryService.getStockStatus(productId);
+    }
+
+    /**
+     * Loads all active products from the repository.
+     */
+    public List<Product> loadProducts() {
+        try {
+            return productRepository.findAllActive();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar productos", e);
+        }
+    }
+
+    /**
+     * Searches products by name (case-insensitive).
+     */
+    public List<Product> searchByName(String name) {
+        try {
+            return productRepository.searchByName(name);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al buscar productos", e);
+        }
+    }
+
+    /**
+     * Validates and saves a new product.
+     *
+     * @return true if saved successfully, false if validation failed
+     */
+    public boolean saveProduct(Product product) {
+        if (!validateProduct(product)) {
+            return false;
+        }
+        if (product.getCategory() == null) {
+            product.setCategory("");
+        }
+        try {
+            checkBarcodeDuplicate(product.getBarcode(), null);
+            productRepository.save(product);
+            return true;
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al guardar producto", e);
+        }
+    }
+
+    /**
+     * Updates an existing product.
+     */
+    public void updateProduct(Product product) {
+        if (product.getCategory() == null) {
+            product.setCategory("");
+        }
+        try {
+            checkBarcodeDuplicate(product.getBarcode(), product.getId());
+            productRepository.update(product);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al actualizar producto", e);
+        }
+    }
+
+    /**
+     * Checks if a barcode is already in use by another product.
+     *
+     * @throws RuntimeException with specific message if duplicate exists
+     */
+    private void checkBarcodeDuplicate(String barcode, Long excludeProductId) {
+        if (barcode == null || barcode.trim().isEmpty()) {
+            return;
+        }
+        try {
+            Optional<Product> existing = productRepository.findByBarcodeExact(barcode);
+            existing.ifPresent(existingProduct -> {
+                if (excludeProductId == null || !existingProduct.getId().equals(excludeProductId)) {
+                    throw new RuntimeException("Ya existe un producto con ese código de barras");
+                }
+            });
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al verificar código de barras", e);
+        }
+    }
+
+    /**
+     * Deactivates a product (soft delete).
+     */
+    public void deactivateProduct(Long productId) {
+        try {
+            productRepository.deactivate(productId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al desactivar producto", e);
+        }
+    }
+
+    /**
+     * Safely deactivates a product only if it has no purchase/sale history.
+     *
+     * @return true if deactivated, false if has history (cannot deactivate)
+     */
+    public boolean safeDeactivateProduct(Long productId) {
+        try {
+            if (productRepository.hasHistory(productId)) {
+                return false;
+            }
+            productRepository.deactivate(productId);
+            return true;
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al desactivar producto", e);
+        }
+    }
+
+    /**
+     * Returns the distinct categories of active products for filter/dropdown use.
+     */
+    public List<String> getDistinctCategories() {
+        try {
+            return productRepository.findDistinctCategories();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar categorías", e);
+        }
+    }
+
+    /**
+     * Returns the active categories for the cascade picker.
+     */
+    public List<Category> getCategories() {
+        try {
+            return categoryRepository.findAllActive();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar categorías", e);
+        }
+    }
+
+    /**
+     * Returns the active subcategories of a category for the cascade picker.
+     */
+    public List<Subcategory> getSubcategoriesForCategory(long categoryId) {
+        try {
+            return subcategoryRepository.findAllActiveByCategoryId(categoryId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar subcategorías", e);
+        }
+    }
+
+    /**
+     * Loads suppliers for dropdown selection.
+     */
+    public List<Supplier> loadSuppliers() {
+        try {
+            return supplierRepository.findForDropdown();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar proveedores", e);
+        }
+    }
+
+    /**
+     * Validates product fields before save.
+     */
+    public boolean validateProduct(Product product) {
+        if (product.getName() == null || product.getName().trim().isEmpty()) {
+            return false;
+        }
+        if (product.getPresentation() == null || product.getPresentation().trim().isEmpty()) {
+            return false;
+        }
+        if (product.getCostPrice() < 0) {
+            return false;
+        }
+        if (product.getSalePrice() < product.getCostPrice()) {
+            return false;
+        }
+        if (product.getPedidosyaPrice() < 0) {
+            return false;
+        }
+        return true;
+    }
+}

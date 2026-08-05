@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+
+<ScrollPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.cocolatan.view.PurchaseController"
+            fitToWidth="true">
+
+<content>
+<VBox spacing="15">
+
+    <padding>
+        <Insets top="10" right="20" bottom="10" left="20"/>
+    </padding>
+
+    <!-- Title -->
+    <Label text="Entrada de Compras" styleClass="section-title"/>
+
+    <!-- Purchase Form -->
+    <GridPane hgap="10" vgap="8">
+        <padding>
+            <Insets top="5" right="10" bottom="5" left="10"/>
+        </padding>
+
+        <Label text="Proveedor:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <ComboBox fx:id="supplierCombo" prefWidth="250"/>
+            <Button text="+" onAction="#onQuickSupplier" styleClass="button-small" prefWidth="30"/>
+        </HBox>
+
+        <Label text="N° Factura:" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+        <TextField fx:id="invoiceRefField" GridPane.columnIndex="3" GridPane.rowIndex="0" prefWidth="150"/>
+
+        <Label text="Fecha:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <DatePicker fx:id="purchaseDatePicker" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="250"/>
+
+        <Label text="Notas:" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+        <TextArea fx:id="notesField" GridPane.columnIndex="3" GridPane.rowIndex="1" prefWidth="200" prefHeight="60"/>
+
+        <Label text="Factura:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="2">
+            <Button text="Adjuntar Factura" onAction="#onAttachInvoice" styleClass="button"/>
+            <Label fx:id="lblPhotoName" text="" styleClass="info-label"/>
+        </HBox>
+
+        <Label text="Medio de Pago:" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+        <ComboBox fx:id="paymentMethodCombo" GridPane.columnIndex="3" GridPane.rowIndex="2" prefWidth="150"/>
+    </GridPane>
+
+    <Separator/>
+
+    <!-- Add Item Section -->
+    <Label text="Agregar ítem:" styleClass="section-title"/>
+    <GridPane hgap="10" vgap="8">
+        <Label text="Producto:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <ComboBox fx:id="productCombo" prefWidth="200"/>
+            <Button text="+" onAction="#onQuickProduct" styleClass="button-small" prefWidth="30"/>
+        </HBox>
+
+        <Label text="Cantidad:" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+        <HBox spacing="4" alignment="CENTER" GridPane.columnIndex="3" GridPane.rowIndex="0">
+            <Button fx:id="btnQtyMinus" text="−" onAction="#onQtyMinus" styleClass="qty-btn" prefWidth="30"/>
+            <TextField fx:id="quantityField" prefWidth="60" alignment="CENTER" promptText="1" text="1"/>
+            <Button fx:id="btnQtyPlus" text="+" onAction="#onQtyPlus" styleClass="qty-btn" prefWidth="30"/>
+        </HBox>
+
+        <Label text="Costo Unit.:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="1">
+            <TextField fx:id="unitCostField" prefWidth="120"/>
+            <Label fx:id="stockInfoLabel" text="" styleClass="info-label" alignment="CENTER_LEFT"/>
+        </HBox>
+
+        <Label text="Lote:" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+        <TextField fx:id="lotNumberField" GridPane.columnIndex="3" GridPane.rowIndex="1" prefWidth="120"/>
+
+        <Label text="Vencimiento:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <TextField fx:id="expiryField" GridPane.columnIndex="1" GridPane.rowIndex="2" prefWidth="120" promptText="DD/MM/AAAA"/>
+
+        <Button text="➕ Agregar" onAction="#onAddItem" styleClass="button" GridPane.columnIndex="3" GridPane.rowIndex="3"/>
+    </GridPane>
+
+    <!-- Items Table -->
+    <TableView fx:id="itemsTable" prefHeight="200" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colItemProduct" text="Producto" prefWidth="200"/>
+            <TableColumn fx:id="colItemQty" text="Cantidad" prefWidth="80"/>
+            <TableColumn fx:id="colItemCost" text="Costo Unit." prefWidth="100"/>
+            <TableColumn fx:id="colItemSubtotal" text="Subtotal" prefWidth="120"/>
+            <TableColumn fx:id="colItemLot" text="Lote" prefWidth="120"/>
+            <TableColumn fx:id="colItemExpiry" text="Vencimiento" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <!-- Total + Actions -->
+    <HBox spacing="20" alignment="CENTER_RIGHT">
+        <Label text="Subtotal:" styleClass="section-title"/>
+        <Label fx:id="subtotalLabel" text="0,00" styleClass="section-title"/>
+        <Label text="IVA/Impuesto:" styleClass="section-title"/>
+        <TextField fx:id="taxField" prefWidth="100" promptText="0" onAction="#onTaxChanged"/>
+        <Label text="Total:" styleClass="section-title"/>
+        <Label fx:id="totalLabel" text="0,00" styleClass="section-title"/>
+        <Button text="🗑️ Quitar Ítem" onAction="#onRemoveItem" styleClass="button-danger"/>
+        <Button text="💾 Guardar Compra" onAction="#onSavePurchase" styleClass="button"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- History Section -->
+    <Label text="Historial de Compras" styleClass="section-title"/>
+    <TableView fx:id="historyTable" prefHeight="200" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colHistId" text="ID" prefWidth="50"/>
+            <TableColumn fx:id="colHistSupplier" text="Proveedor" prefWidth="200"/>
+            <TableColumn fx:id="colHistDate" text="Fecha" prefWidth="100"/>
+            <TableColumn fx:id="colHistTotal" text="Total" prefWidth="120"/>
+            <TableColumn fx:id="colHistRef" text="Factura" prefWidth="120"/>
+            <TableColumn fx:id="colHistPayment" text="Medio de Pago" prefWidth="120"/>
+        </columns>
+    </TableView>
+
+    <!-- Invoice Photo Preview -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <ImageView fx:id="imgInvoicePreview" fitWidth="100" fitHeight="100" preserveRatio="true" visible="false"/>
+        <Label fx:id="lblPhotoName" text="" styleClass="info-label"/>
+    </HBox>
+</VBox>
+</content>
+</ScrollPane>

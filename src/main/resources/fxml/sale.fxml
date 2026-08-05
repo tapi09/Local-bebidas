@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.cocolatan.view.SaleController"
+      spacing="10"
+      styleClass="kiosk-container">
+
+    <padding>
+        <Insets top="12" right="16" bottom="16" left="16"/>
+    </padding>
+
+    <!-- Header & Search Bar -->
+    <VBox spacing="6" styleClass="card">
+        <HBox alignment="CENTER_LEFT">
+            <Label text="Punto de Venta (POS)" styleClass="title-label"/>
+            <HBox HBox.hgrow="ALWAYS"/>
+            <Button text="📋 Historial de Ventas" onAction="#onSaleHistory" styleClass="button-secondary"/>
+        </HBox>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Buscar producto:" styleClass="section-title"/>
+            <TextField fx:id="searchField" prefWidth="280" promptText="Nombre o código de barras..." onAction="#onSearch"/>
+            <Button text="🔍 Buscar" onAction="#onSearch" styleClass="button"/>
+            <Button text="📷 Escanear" onAction="#onBarcodeScan" styleClass="button-secondary"/>
+        </HBox>
+    </VBox>
+
+    <!-- Product Selection Table -->
+    <VBox spacing="6">
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="Catálogo de Productos" styleClass="section-title"/>
+            <HBox HBox.hgrow="ALWAYS"/>
+            <ImageView fx:id="productPhotoPreview" fitWidth="64" fitHeight="64" preserveRatio="true"
+                       styleClass="image-border">
+                <HBox.margin><Insets right="4"/></HBox.margin>
+            </ImageView>
+            <Button text="−" onAction="#onQuantityDown" styleClass="qty-btn" prefWidth="30"/>
+            <TextField fx:id="quantityField" prefWidth="60" prefHeight="36" text="1" alignment="CENTER"/>
+            <Button text="+" onAction="#onQuantityUp" styleClass="qty-btn" prefWidth="30"/>
+            <Button text="🛒 Agregar al Carrito" onAction="#onAddToCart" styleClass="button-success" prefHeight="36"/>
+        </HBox>
+        <TableView fx:id="productsTable" minHeight="100" prefHeight="120" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="colProdName" text="Producto" prefWidth="220"/>
+                <TableColumn fx:id="colProdCategory" text="Categoría" prefWidth="130"/>
+                <TableColumn fx:id="colProdPrice" text="Precio Venta" prefWidth="110"/>
+                <TableColumn fx:id="colProdStock" text="Stock" prefWidth="90"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+    <Separator styleClass="section-separator"/>
+
+    <!-- Customer & Discount Row -->
+    <HBox spacing="15" alignment="CENTER_LEFT" styleClass="card">
+        <Label text="Cliente:" styleClass="section-title"/>
+        <TextField fx:id="customerSearchField" prefWidth="160" promptText="Buscar cliente..." onAction="#onCustomerSearch"/>
+        <ComboBox fx:id="customerCombo" prefWidth="200" onAction="#onCustomerSelected"/>
+
+        <Separator orientation="VERTICAL"/>
+
+        <Label text="Descuento:" styleClass="section-title"/>
+        <ComboBox fx:id="discountCombo" prefWidth="120"/>
+        <TextField fx:id="discountField" prefWidth="70" text="0"/>
+        <Label fx:id="discountAmountLabel" styleClass="label-discount" managed="false" visible="false"/>
+    </HBox>
+
+    <!-- Cart Section -->
+    <VBox spacing="6" VBox.vgrow="ALWAYS">
+        <Label text="Carrito de Venta" styleClass="section-title"/>
+        <TableView fx:id="cartTable" minHeight="120" prefHeight="150" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="colCartProduct" text="Producto" prefWidth="240"/>
+                <TableColumn fx:id="colCartQty" text="Cantidad" prefWidth="90"/>
+                <TableColumn fx:id="colCartPrice" text="Precio Unit." prefWidth="110"/>
+                <TableColumn fx:id="colCartSubtotal" text="Subtotal" prefWidth="130"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+    <!-- Checkout Bar: Channel, Payment & Total -->
+    <HBox spacing="15" alignment="CENTER_LEFT" styleClass="card">
+        <Label text="Canal:" />
+        <ComboBox fx:id="channelCombo" prefWidth="130"/>
+
+        <Label text="Pago:" />
+        <ComboBox fx:id="paymentCombo" prefWidth="160"/>
+
+        <HBox HBox.hgrow="ALWAYS"/>
+
+        <Label text="Total:" styleClass="title-label"/>
+        <Label fx:id="totalLabel" text="0,00" styleClass="pos-total"/>
+
+        <Button text="🗑️ Quitar" onAction="#onRemoveFromCart" styleClass="button-danger"/>
+        <Button text="🧹 Limpiar" onAction="#onClearCart" styleClass="button-secondary"/>
+        <Button text="✅ Completar Venta" onAction="#onCompleteSale" styleClass="button-success"/>
+    </HBox>
+
+    <!-- Receipt Display -->
+    <VBox spacing="4">
+        <Label text="Último Comprobante Generado" styleClass="subtitle-label"/>
+        <TextField fx:id="receiptField" editable="false" prefHeight="70" minHeight="60"/>
+    </VBox>
+</VBox>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.cocolatan.view.AlertController"
+      spacing="15">
+
+    <padding>
+        <Insets top="10" right="20" bottom="10" left="20"/>
+    </padding>
+
+    <!-- Title -->
+    <Label text="Centro de Alertas" styleClass="section-title"/>
+
+    <!-- Summary -->
+    <HBox spacing="20">
+        <Label fx:id="countExpiry" text="Vencimiento: 0" styleClass="status-low"/>
+        <Label fx:id="countLowStock" text="Stock Bajo: 0" styleClass="status-out"/>
+        <Label fx:id="countTotal" text="Total: 0" styleClass="section-title"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- Expiry Alerts Section -->
+    <Label text="Alertas de Vencimiento" styleClass="section-title"/>
+    <TableView fx:id="expiryTable" prefHeight="200">
+        <columns>
+            <TableColumn fx:id="colExpProduct" text="Producto" prefWidth="200"/>
+            <TableColumn fx:id="colExpLot" text="Lote" prefWidth="100"/>
+            <TableColumn fx:id="colExpDate" text="Vencimiento" prefWidth="100"/>
+            <TableColumn fx:id="colExpDays" text="Días" prefWidth="60"/>
+            <TableColumn fx:id="colExpSeverity" text="Severidad" prefWidth="80"/>
+            <TableColumn fx:id="colExpQty" text="Cantidad" prefWidth="80"/>
+        </columns>
+    </TableView>
+
+    <Button text="✅ Marcar como Leída" onAction="#onDismissExpiry" styleClass="button-secondary"/>
+
+    <Separator/>
+
+    <!-- Low Stock Alerts Section -->
+    <Label text="Alertas de Stock Bajo" styleClass="section-title"/>
+    <TableView fx:id="lowStockTable" prefHeight="200" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colLowProduct" text="Producto" prefWidth="200"/>
+            <TableColumn fx:id="colLowStock" text="Stock Actual" prefWidth="100"/>
+            <TableColumn fx:id="colLowMin" text="Stock Mín." prefWidth="80"/>
+            <TableColumn fx:id="colLowSeverity" text="Severidad" prefWidth="80"/>
+        </columns>
+    </TableView>
+
+    <Button text="✅ Marcar como Leída" onAction="#onDismissLowStock" styleClass="button-secondary"/>
+
+    <Separator/>
+
+    <!-- Refresh -->
+    <HBox spacing="20" alignment="CENTER_RIGHT">
+        <Button text="🔄 Actualizar Alertas" onAction="#onRefresh" styleClass="button"/>
+    </HBox>
+</VBox>

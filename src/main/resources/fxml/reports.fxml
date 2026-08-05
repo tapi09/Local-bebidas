@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.cocolatan.view.ReportController"
+      spacing="15">
+
+    <padding>
+        <Insets top="10" right="20" bottom="10" left="20"/>
+    </padding>
+
+    <!-- Title -->
+    <Label text="Reportes" styleClass="section-title"/>
+
+    <!-- Report Type Selection -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Tipo de reporte:" />
+        <ComboBox fx:id="reportTypeCombo" prefWidth="200"/>
+        <Button text="📊 Generar" onAction="#onGenerateReport" styleClass="button-success"/>
+        <Button fx:id="exportButton" text="📥 Exportar CSV" onAction="#onExportReport" styleClass="button-secondary"/>
+    </HBox>
+
+    <!-- Date Range (visible for period-based reports) -->
+    <GridPane fx:id="dateRangePane" hgap="10" vgap="8">
+        <padding>
+            <Insets top="5" right="10" bottom="5" left="10"/>
+        </padding>
+
+        <Label text="Desde:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <DatePicker fx:id="fromDatePicker" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="150"/>
+
+        <Label text="Hasta:" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+        <DatePicker fx:id="toDatePicker" GridPane.columnIndex="3" GridPane.rowIndex="0" prefWidth="150"/>
+
+        <Label text="Rápido:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <ComboBox fx:id="presetCombo" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="150"/>
+    </GridPane>
+
+    <Separator/>
+
+    <!-- Results -->
+    <Label text="Resultados" styleClass="section-title"/>
+
+    <!-- Margin Report Table -->
+    <TableView fx:id="marginTable" prefHeight="250" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colMarginProduct" text="Producto" prefWidth="180"/>
+            <TableColumn fx:id="colMarginCategory" text="Categoría" prefWidth="120"/>
+            <TableColumn fx:id="colMarginCost" text="Costo" prefWidth="100"/>
+            <TableColumn fx:id="colMarginSale" text="Venta" prefWidth="100"/>
+            <TableColumn fx:id="colMarginValue" text="Margen" prefWidth="100"/>
+            <TableColumn fx:id="colMarginPercent" text="Margen %" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <!-- Sales Period Report Table -->
+    <TableView fx:id="salesPeriodTable" prefHeight="250" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colSalesPeriod" text="Fecha" prefWidth="140"/>
+            <TableColumn fx:id="colSalesRevenue" text="Ingresos" prefWidth="140"/>
+            <TableColumn fx:id="colSalesCount" text="Transacciones" prefWidth="120"/>
+            <TableColumn fx:id="colSalesTicket" text="Ticket Prom." prefWidth="140"/>
+        </columns>
+    </TableView>
+
+    <!-- Channel Comparison Table -->
+    <TableView fx:id="channelTable" prefHeight="250" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colChannelName" text="Canal" prefWidth="150"/>
+            <TableColumn fx:id="colChannelRevenue" text="Ingresos" prefWidth="140"/>
+            <TableColumn fx:id="colChannelCount" text="Transacciones" prefWidth="120"/>
+            <TableColumn fx:id="colChannelPercent" text="Participación %" prefWidth="140"/>
+        </columns>
+    </TableView>
+
+    <!-- Rotation Report Table -->
+    <TableView fx:id="rotationTable" prefHeight="250" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colRotProduct" text="Producto" prefWidth="180"/>
+            <TableColumn fx:id="colRotCategory" text="Categoría" prefWidth="120"/>
+            <TableColumn fx:id="colRotUnitsSold" text="Unidades Vendidas" prefWidth="140"/>
+            <TableColumn fx:id="colRotAvgStock" text="Stock Promedio" prefWidth="120"/>
+            <TableColumn fx:id="colRotValue" text="Rotación" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <!-- Top Sellers Report Table -->
+    <TableView fx:id="topSellersTable" prefHeight="250" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colTopProduct" text="Producto" prefWidth="180"/>
+            <TableColumn fx:id="colTopQty" text="Cantidad Vendida" prefWidth="140"/>
+            <TableColumn fx:id="colTopSales" text="Total Ventas" prefWidth="140"/>
+        </columns>
+    </TableView>
+
+    <!-- Stock Value Report Table -->
+    <TableView fx:id="stockValueTable" prefHeight="250" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colSVProduct" text="Producto" prefWidth="180"/>
+            <TableColumn fx:id="colSVCategory" text="Categoría" prefWidth="120"/>
+            <TableColumn fx:id="colSVStock" text="Stock Actual" prefWidth="100"/>
+            <TableColumn fx:id="colSVCost" text="Costo Unit." prefWidth="100"/>
+            <TableColumn fx:id="colSVTotal" text="Valor Total" prefWidth="140"/>
+        </columns>
+    </TableView>
+
+    <!-- Daily Sales Detail Report Table -->
+    <TableView fx:id="dailySalesDetailTable" prefHeight="250" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colDailyDate" text="Fecha" prefWidth="120"/>
+            <TableColumn fx:id="colDailyProduct" text="Producto" prefWidth="180"/>
+            <TableColumn fx:id="colDailyQty" text="Cantidad" prefWidth="80"/>
+            <TableColumn fx:id="colDailyUnitPrice" text="Precio Unitario" prefWidth="120"/>
+            <TableColumn fx:id="colDailyLineTotal" text="Total Línea" prefWidth="120"/>
+        </columns>
+    </TableView>
+
+    <!-- Total label for daily sales detail -->
+    <HBox fx:id="dailySalesDetailTotalPane" spacing="10" alignment="CENTER_RIGHT">
+        <Label text="Total General:" styleClass="section-title"/>
+        <Label fx:id="dailySalesDetailTotalLabel" text="0,00" styleClass="title-label"/>
+    </HBox>
+
+    <!-- Total label for stock value -->
+    <HBox fx:id="stockValueTotalPane" spacing="10" alignment="CENTER_RIGHT">
+        <Label text="Valor Total del Inventario:" styleClass="section-title"/>
+        <Label fx:id="stockValueTotalLabel" text="0,00" styleClass="title-label"/>
+    </HBox>
+</VBox>

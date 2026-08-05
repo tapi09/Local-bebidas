@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.geometry.Insets?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.cocolatan.view.LoginController"
+           styleClass="login-root">
+
+    <VBox spacing="12" maxWidth="320" alignment="CENTER">
+        <padding>
+            <Insets top="24" right="24" bottom="24" left="24"/>
+        </padding>
+
+        <ImageView fx:id="loginLogoImage" styleClass="login-logo-image" fitHeight="88" preserveRatio="true" visible="false"/>
+        <Label fx:id="loginLogoLabel" text="Cocolatán" styleClass="login-logo"/>
+        <Label text="Central de Bebidas" styleClass="login-subtitle"/>
+        <Label text="Iniciar Sesión" styleClass="login-title"/>
+
+        <TextField fx:id="usernameField" promptText="Usuario" styleClass="login-field" maxWidth="1.7976931348623157E308"/>
+        <PasswordField fx:id="passwordField" promptText="Contraseña" styleClass="login-field" maxWidth="1.7976931348623157E308"/>
+
+        <Label fx:id="errorLabel" styleClass="login-error" managed="false"/>
+
+        <Button text="Ingresar" onAction="#onLogin" styleClass="login-button" maxWidth="1.7976931348623157E308"
+                prefHeight="36"/>
+        <Label fx:id="forgotPasswordLabel" text="¿Olvidaste tu contraseña?" styleClass="login-forgot"
+               onMouseClicked="#onForgotPassword" maxWidth="1.7976931348623157E308"/>
+        <Label fx:id="versionLabel" text="" styleClass="login-version" maxWidth="1.7976931348623157E308"/>
+    </VBox>
+</StackPane>

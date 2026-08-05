@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.cocolatan.view.CategoriesController"
+      spacing="15">
+
+    <padding>
+        <Insets top="10" right="20" bottom="10" left="20"/>
+    </padding>
+
+    <!-- Title -->
+    <Label text="Gestión de Categorías y Subcategorías" styleClass="section-title"/>
+
+    <!-- Categories Table -->
+    <Label text="Categorías" styleClass="section-subtitle"/>
+    <TableView fx:id="categoriesTable" VBox.vgrow="ALWAYS" prefHeight="220">
+        <columns>
+            <TableColumn fx:id="colCatId" text="ID" prefWidth="50"/>
+            <TableColumn fx:id="colCatName" text="Nombre" prefWidth="220"/>
+            <TableColumn fx:id="colCatOrder" text="Orden" prefWidth="60"/>
+            <TableColumn fx:id="colCatActive" text="Activa" prefWidth="60"/>
+        </columns>
+    </TableView>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="➕ Nueva" fx:id="btnNewCategory" onAction="#onNewCategory" styleClass="button"/>
+        <Button text="✏️ Editar" fx:id="btnEditCategory" onAction="#onEditCategory" styleClass="button"/>
+        <Button text="🗑️ Eliminar" fx:id="btnDeleteCategory" onAction="#onDeleteCategory" styleClass="button-danger"/>
+        <Button text="⬆️" fx:id="btnCategoryUp" onAction="#onCategoryUp" styleClass="button"/>
+        <Button text="⬇️" fx:id="btnCategoryDown" onAction="#onCategoryDown" styleClass="button"/>
+        <Button text="⚡ Activar/Desactivar" fx:id="btnToggleCategory" onAction="#onToggleCategoryActive" styleClass="button-secondary"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- Subcategories Table (filtered by selected category) -->
+    <Label text="Subcategorías de la categoría seleccionada" styleClass="section-subtitle"/>
+    <TableView fx:id="subcategoriesTable" VBox.vgrow="ALWAYS" prefHeight="220">
+        <columns>
+            <TableColumn fx:id="colSubId" text="ID" prefWidth="50"/>
+            <TableColumn fx:id="colSubName" text="Nombre" prefWidth="220"/>
+            <TableColumn fx:id="colSubOrder" text="Orden" prefWidth="60"/>
+            <TableColumn fx:id="colSubActive" text="Activa" prefWidth="60"/>
+        </columns>
+    </TableView>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="➕ Nueva" fx:id="btnNewSubcategory" onAction="#onNewSubcategory" styleClass="button"/>
+        <Button text="✏️ Editar" fx:id="btnEditSubcategory" onAction="#onEditSubcategory" styleClass="button"/>
+        <Button text="🗑️ Eliminar" fx:id="btnDeleteSubcategory" onAction="#onDeleteSubcategory" styleClass="button-danger"/>
+        <Button text="⬆️" fx:id="btnSubcategoryUp" onAction="#onSubcategoryUp" styleClass="button"/>
+        <Button text="⬇️" fx:id="btnSubcategoryDown" onAction="#onSubcategoryDown" styleClass="button"/>
+        <Button text="⚡ Activar/Desactivar" fx:id="btnToggleSubcategory" onAction="#onToggleSubcategoryActive" styleClass="button-secondary"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- Category/Subcategory Form (GridPane) -->
+    <GridPane fx:id="formPane" hgap="10" vgap="8" visible="false" managed="false">
+        <padding>
+            <Insets top="10" right="10" bottom="10" left="10"/>
+        </padding>
+
+        <Label text="Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <TextField fx:id="nameField" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="300"/>
+
+        <Label text="Orden:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <TextField fx:id="sortOrderField" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="80"/>
+
+        <Label text="Activa:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <CheckBox fx:id="activeCheck" GridPane.columnIndex="1" GridPane.rowIndex="2" selected="true"/>
+
+        <HBox spacing="10" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2">
+            <Button text="💾 Guardar" fx:id="btnSave" onAction="#onSave" styleClass="button"/>
+            <Button text="❌ Cancelar" fx:id="btnCancel" onAction="#onCancel" styleClass="button-secondary"/>
+        </HBox>
+    </GridPane>
+</VBox>

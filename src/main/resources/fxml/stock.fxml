@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.cocolatan.view.StockController"
+      spacing="12"
+      styleClass="kiosk-container">
+
+    <padding>
+        <Insets top="12" right="16" bottom="16" left="16"/>
+    </padding>
+
+    <!-- Header & Summary Cards -->
+    <VBox spacing="8" styleClass="card">
+        <HBox alignment="CENTER_LEFT" spacing="15">
+            <Label text="Gestión e Inventario de Stock" styleClass="title-label" HBox.hgrow="ALWAYS"/>
+            <HBox spacing="15" alignment="CENTER_RIGHT">
+                <Label fx:id="countOk" text="OK: 0" styleClass="status-ok"/>
+                <Label fx:id="countLow" text="BAJO: 0" styleClass="status-low"/>
+                <Label fx:id="countOut" text="SIN STOCK: 0" styleClass="status-out"/>
+            </HBox>
+        </HBox>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Filtrar estado:" styleClass="subtitle-label"/>
+            <ComboBox fx:id="statusFilter" prefWidth="140"/>
+            <Button text="🔍 Filtrar" onAction="#onFilter" styleClass="button"/>
+            <Button text="🔄 Mostrar Todos" onAction="#onShowAll" styleClass="button-secondary"/>
+        </HBox>
+    </VBox>
+
+    <!-- Dashboard Table -->
+    <VBox spacing="6" VBox.vgrow="ALWAYS">
+        <Label text="Estado de Inventario" styleClass="section-title"/>
+        <TableView fx:id="dashboardTable" minHeight="140" prefHeight="180" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="colName" text="Producto" prefWidth="220"/>
+                <TableColumn fx:id="colCategory" text="Categoría" prefWidth="130"/>
+                <TableColumn fx:id="colStock" text="Stock Actual" prefWidth="110"/>
+                <TableColumn fx:id="colMinStock" text="Stock Mín." prefWidth="90"/>
+                <TableColumn fx:id="colStatus" text="Estado" prefWidth="90"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+    <Separator styleClass="section-separator"/>
+
+    <!-- Movement History Section -->
+    <VBox spacing="8" styleClass="card">
+        <Label text="Historial de Movimientos" styleClass="section-title"/>
+        <GridPane hgap="10" vgap="8">
+            <Label text="Producto:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <ComboBox fx:id="productSelector" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="220"/>
+
+            <Label text="Tipo:" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+            <ComboBox fx:id="movementTypeFilter" GridPane.columnIndex="3" GridPane.rowIndex="0" prefWidth="120"/>
+
+            <Label text="Desde:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+            <TextField fx:id="fromDateField" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="110" promptText="dd/MM/yyyy"/>
+
+            <Label text="Hasta:" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+            <TextField fx:id="toDateField" GridPane.columnIndex="3" GridPane.rowIndex="1" prefWidth="110" promptText="dd/MM/yyyy"/>
+
+            <HBox spacing="8" GridPane.columnIndex="4" GridPane.rowIndex="0" GridPane.rowSpan="2" alignment="CENTER_LEFT">
+                <Button text="🔍 Buscar" onAction="#onSearchMovements" styleClass="button"/>
+                <Button text="🔄 Limpiar" onAction="#onClearMovementFilters" styleClass="button-secondary"/>
+            </HBox>
+        </GridPane>
+
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Stock actual:" styleClass="subtitle-label"/>
+            <Label fx:id="currentStockLabel" text="—" styleClass="status-ok"/>
+            <Label fx:id="selectedProductInfo" text="" styleClass="subtitle-label"/>
+        </HBox>
+
+        <TableView fx:id="movementsTable" minHeight="120" prefHeight="140">
+            <columns>
+                <TableColumn fx:id="colMovDate" text="Fecha" prefWidth="140"/>
+                <TableColumn fx:id="colMovProduct" text="Producto" prefWidth="180"/>
+                <TableColumn fx:id="colMovType" text="Tipo" prefWidth="100"/>
+                <TableColumn fx:id="colMovQty" text="Cantidad" prefWidth="80"/>
+                <TableColumn fx:id="colMovRef" text="Referencia" prefWidth="120"/>
+                <TableColumn fx:id="colMovNotes" text="Notas" prefWidth="180"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+    <Separator styleClass="section-separator"/>
+
+    <!-- Manual Adjustment Section -->
+    <VBox fx:id="adjustmentSection" spacing="8" styleClass="card">
+        <Label text="Ajuste Manual de Stock" styleClass="section-title"/>
+        <GridPane hgap="10" vgap="8">
+            <Label text="Producto:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <ComboBox fx:id="adjustProductSelector" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="220"/>
+
+            <Label text="Cantidad:" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+            <TextField fx:id="adjustQuantityField" GridPane.columnIndex="3" GridPane.rowIndex="0" prefWidth="90" promptText="+/-"/>
+
+            <Label text="Motivo:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+            <TextArea fx:id="adjustReasonField" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="320" prefHeight="45" GridPane.columnSpan="3"/>
+        </GridPane>
+        <HBox alignment="CENTER_RIGHT">
+            <Button text="✅ Aplicar Ajuste" onAction="#onApplyAdjustment" styleClass="button-success"/>
+        </HBox>
+    </VBox>
+</VBox>
