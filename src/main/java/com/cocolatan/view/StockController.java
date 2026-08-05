@@ -14,6 +14,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -114,6 +115,9 @@ public class StockController implements Refreshable {
     private StockPresenter presenter;
     private List<Product> allProducts;
 
+    // Last loaded dashboard data, reused for status filtering without re-querying.
+    private List<StockPresenter.ProductStockInfo> dashboardData;
+
     @FXML
     public void initialize() {
         com.cocolatan.repository.DatabaseManager dbManager = com.cocolatan.CocolatanApp.getDatabaseManager();
@@ -201,11 +205,7 @@ public class StockController implements Refreshable {
 
         productSelector.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
-                int stock = presenter.getDashboardData().stream()
-                        .filter(info -> info.getProduct().getId().equals(newVal.getId()))
-                        .findFirst()
-                        .map(StockPresenter.ProductStockInfo::getCurrentStock)
-                        .orElse(0);
+                int stock = presenter.getStockByProduct(newVal.getId());
                 currentStockLabel.setText(String.valueOf(stock));
                 selectedProductInfo.setText(newVal.getName());
             } else {
@@ -216,8 +216,8 @@ public class StockController implements Refreshable {
     }
 
     private void loadDashboard() {
-        List<StockPresenter.ProductStockInfo> data = presenter.getDashboardData();
-        dashboardTable.setItems(FXCollections.observableArrayList(data));
+        dashboardData = presenter.getDashboardData();
+        dashboardTable.setItems(FXCollections.observableArrayList(dashboardData));
 
         StockPresenter.StockStatusCounts counts = presenter.getStatusCounts();
         countOk.setText("OK: " + counts.getOk());
@@ -236,7 +236,15 @@ public class StockController implements Refreshable {
         // Map display status to internal status
         String internalStatus = mapStatusFilter(status);
 
-        List<StockPresenter.ProductStockInfo> filtered = presenter.getDashboardByStatus(internalStatus);
+        // Filter the already-loaded dashboard data — no re-query on every filter.
+        List<StockPresenter.ProductStockInfo> filtered = new ArrayList<>();
+        if (dashboardData != null) {
+            for (StockPresenter.ProductStockInfo info : dashboardData) {
+                if (info.getStatus().equals(internalStatus)) {
+                    filtered.add(info);
+                }
+            }
+        }
         dashboardTable.setItems(FXCollections.observableArrayList(filtered));
     }
 

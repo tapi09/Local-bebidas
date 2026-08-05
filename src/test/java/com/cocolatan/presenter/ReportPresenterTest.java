@@ -199,9 +199,11 @@ class ReportPresenterTest {
 
     @Test
     void getStockValueTotalReturnsSum() {
-        when(reportService.getStockValueReportTotal()).thenReturn(25000.0);
+        List<ReportService.StockValueReport> reports = Arrays.asList(
+                new ReportService.StockValueReport("Coca-Cola", "Gaseosas", 50, 300.0, 15000.0),
+                new ReportService.StockValueReport("Pepsi", "Gaseosas", 20, 500.0, 10000.0));
 
-        double total = presenter.getStockValueTotal();
+        double total = presenter.getStockValueTotal(reports);
 
         assertThat(total).isCloseTo(25000.0, org.assertj.core.data.Offset.offset(0.01));
     }

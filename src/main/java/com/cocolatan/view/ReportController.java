@@ -327,7 +327,7 @@ public class ReportController implements Refreshable {
                     stockValueTotalPane.setManaged(true);
                     List<ReportService.StockValueReport> data = presenter.generateStockValueReport();
                     stockValueTable.setItems(FXCollections.observableArrayList(data));
-                    stockValueTotalLabel.setText(String.format("$%,.2f", presenter.getStockValueTotal()));
+                    stockValueTotalLabel.setText(String.format("$%,.2f", presenter.getStockValueTotal(data)));
                 }
                 case "TOP_SELLERS" -> {
                     showOnlyTable(topSellersTable);
@@ -338,7 +338,7 @@ public class ReportController implements Refreshable {
                     showOnlyTable(dailySalesDetailTable);
                     DailySalesDetailReport report = presenter.generateDailySalesDetailReport();
                     dailySalesDetailTable.setItems(FXCollections.observableArrayList(report.getRows()));
-                    dailySalesDetailTotalLabel.setText(String.format("$%,.2f", presenter.getDailySalesDetailTotal()));
+                    dailySalesDetailTotalLabel.setText(String.format("$%,.2f", report.getGrandTotal()));
                     dailySalesDetailTotalPane.setVisible(true);
                     dailySalesDetailTotalPane.setManaged(true);
                 }

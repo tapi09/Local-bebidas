@@ -19,9 +19,11 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Service for report generation: margin, sales by period, channel comparison,
@@ -181,15 +183,23 @@ public class ReportService {
         try {
             List<Sale> sales = saleRepository.findAllByDateRange(fromDate, toDate);
 
+            List<Long> saleIds = sales.stream().map(Sale::getId).toList();
+            List<SaleItem> allItems = saleIds.isEmpty()
+                    ? new ArrayList<>()
+                    : saleRepository.findItemsBySaleIds(saleIds);
+            Map<Long, List<SaleItem>> itemsBySaleId = allItems.stream()
+                    .collect(Collectors.groupingBy(SaleItem::getSaleId));
+            Map<Long, String> productNames = resolveProductNames(allItems);
+
             Map<String, DailySalesDetailRow> grouped = new LinkedHashMap<>();
             double grandTotal = 0.0;
 
             for (Sale sale : sales) {
-                List<SaleItem> items = saleRepository.findItemsBySaleId(sale.getId());
+                List<SaleItem> items = itemsBySaleId.getOrDefault(sale.getId(), List.of());
                 boolean isCancelled = "CANCELLED".equals(sale.getStatus());
 
                 for (SaleItem item : items) {
-                    String baseName = resolveProductName(item.getProductId());
+                    String baseName = productNames.getOrDefault(item.getProductId(), "Producto #" + item.getProductId());
 
                     if (isCancelled) {
                         // The original sale stays visible as a positive line and the
@@ -238,14 +248,25 @@ public class ReportService {
         row.setLineTotal(row.getQuantity() * row.getUnitPrice());
     }
 
-    private String resolveProductName(Long productId) {
-        try {
-            return productRepository.findById(productId)
-                    .map(Product::getName)
-                    .orElse("Producto #" + productId);
-        } catch (SQLException e) {
-            return "Producto #" + productId;
+    /**
+     * Resolves the product name map for all distinct product ids referenced by
+     * the given sale items, using a single batched query. Missing or unreadable
+     * products fall back to the "Producto #id" label.
+     */
+    private Map<Long, String> resolveProductNames(List<SaleItem> items) {
+        Map<Long, String> names = new HashMap<>();
+        List<Long> productIds = items.stream().map(SaleItem::getProductId).distinct().toList();
+        if (productIds.isEmpty()) {
+            return names;
         }
+        try {
+            for (Product product : productRepository.findAllByIds(productIds)) {
+                names.put(product.getId(), product.getName());
+            }
+        } catch (SQLException e) {
+            // Fall back to the default "Producto #id" label for every item.
+        }
+        return names;
     }
 
     // ========================================
@@ -262,10 +283,19 @@ public class ReportService {
             LocalDate start = LocalDate.parse(fromDate, DATE_FORMATTER);
             LocalDate end = LocalDate.parse(toDate, DATE_FORMATTER);
 
+            List<Long> productIds = products.stream().map(Product::getId).toList();
+            Map<Long, Integer> currentStocks = productIds.isEmpty()
+                    ? new HashMap<>()
+                    : stockMovementRepository.computeCurrentStocks(productIds);
+            Map<Long, List<StockMovement>> movementsByProduct = productIds.isEmpty()
+                    ? new HashMap<>()
+                    : stockMovementRepository.findByProductIds(productIds).stream()
+                            .collect(Collectors.groupingBy(StockMovement::getProductId));
+
             List<RotationReport> reports = new ArrayList<>();
 
             for (Product product : products) {
-                List<StockMovement> movements = stockMovementRepository.findByProductId(product.getId());
+                List<StockMovement> movements = movementsByProduct.getOrDefault(product.getId(), List.of());
 
                 int unitsSold = 0;
                 int netMovement = 0;
@@ -290,7 +320,7 @@ public class ReportService {
                 // Compute average stock: (opening + closing) / 2
                 // closing = opening + netMovement; average = opening + netMovement/2
                 // We approximate opening as current_stock - netMovement
-                int currentStock = stockMovementRepository.computeCurrentStock(product.getId());
+                int currentStock = currentStocks.getOrDefault(product.getId(), 0);
                 int openingStock = currentStock - netMovement;
                 double averageStock = (openingStock + currentStock) / 2.0;
                 if (averageStock < 0) {
@@ -325,10 +355,15 @@ public class ReportService {
     public List<StockValueReport> getStockValueReport() {
         try {
             List<Product> products = productRepository.findAllActive();
+            List<Long> productIds = products.stream().map(Product::getId).toList();
+            Map<Long, Integer> stockMap = productIds.isEmpty()
+                    ? new HashMap<>()
+                    : stockMovementRepository.computeCurrentStocks(productIds);
+
             List<StockValueReport> reports = new ArrayList<>();
 
             for (Product product : products) {
-                int currentStock = stockMovementRepository.computeCurrentStock(product.getId());
+                int currentStock = stockMap.getOrDefault(product.getId(), 0);
                 double totalValue = currentStock * product.getCostPrice();
 
                 reports.add(new StockValueReport(

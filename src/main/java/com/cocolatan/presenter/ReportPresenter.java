@@ -112,8 +112,14 @@ public class ReportPresenter {
         return reportService.getStockValueReport();
     }
 
-    public double getStockValueTotal() {
-        return reportService.getStockValueReportTotal();
+    /**
+     * Returns the total stock value by summing the already-generated report rows,
+     * without re-running the report query.
+     */
+    public double getStockValueTotal(List<ReportService.StockValueReport> reports) {
+        return reports.stream()
+                .mapToDouble(ReportService.StockValueReport::getTotalValue)
+                .sum();
     }
 
     public List<ReportService.TopSellerReport> generateTopSellersReport() {
@@ -123,12 +129,6 @@ public class ReportPresenter {
     public DailySalesDetailReport generateDailySalesDetailReport() {
         validateDateRange();
         return reportService.getDailySalesDetailReport(fromDate, toDate);
-    }
-
-    public double getDailySalesDetailTotal() {
-        return generateDailySalesDetailReport().getRows().stream()
-                .mapToDouble(DailySalesDetailRow::getLineTotal)
-                .sum();
     }
 
     /**

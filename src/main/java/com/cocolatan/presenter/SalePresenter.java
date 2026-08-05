@@ -12,6 +12,7 @@ import com.cocolatan.service.SalesService;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Presenter for the Point of Sale module.
@@ -128,6 +129,15 @@ public class SalePresenter {
      */
     public int getAvailableStock(Long productId) {
         return inventoryService.getAvailableStock(productId);
+    }
+
+    /**
+     * Returns current stock for multiple products in a single query.
+     *
+     * @return map of productId -> currentStock; products with no movements map to 0
+     */
+    public Map<Long, Integer> getStockForProducts(List<Long> productIds) {
+        return inventoryService.getStocksForProducts(productIds);
     }
 
     /**

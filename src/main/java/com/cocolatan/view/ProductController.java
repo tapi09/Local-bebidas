@@ -29,6 +29,7 @@ import javafx.stage.FileChooser;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -157,6 +158,9 @@ public class ProductController implements Refreshable {
     private Map<String, Long> categoryIdByName;
     private Map<String, Long> subcategoryIdByName;
 
+    // Cached stock per product (batch query per load, no per-row DB hits).
+    private Map<Long, Integer> stockMap = Collections.emptyMap();
+
     @FXML
     public void initialize() {
         DatabaseManager dbManager = com.cocolatan.CocolatanApp.getDatabaseManager();
@@ -185,7 +189,7 @@ public class ProductController implements Refreshable {
         colBarcode.setCellValueFactory(new PropertyValueFactory<>("barcode"));
         colStock.setCellValueFactory(cellData -> {
             Product product = cellData.getValue();
-            int stock = presenter.getCurrentStock(product.getId());
+            int stock = stockMap.getOrDefault(product.getId(), 0);
             return new SimpleIntegerProperty(stock).asObject();
         });
     }
@@ -213,7 +217,21 @@ public class ProductController implements Refreshable {
 
     private void loadProducts() {
         currentBase = presenter.loadProducts();
+        refreshStockMap();
         applyFilterAndSet();
+    }
+
+    /**
+     * Recomputes the cached stock map for the currently loaded products in a
+     * single batched query. Called whenever the underlying product list changes.
+     */
+    private void refreshStockMap() {
+        if (currentBase == null) {
+            stockMap = Collections.emptyMap();
+            return;
+        }
+        List<Long> ids = currentBase.stream().map(Product::getId).toList();
+        stockMap = presenter.getStockForProducts(ids);
     }
 
     private void loadSuppliers() {
@@ -348,6 +366,7 @@ public class ProductController implements Refreshable {
         } else {
             currentBase = presenter.searchByName(query);
         }
+        refreshStockMap();
         applyFilterAndSet();
     }
 

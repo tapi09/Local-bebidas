@@ -305,6 +305,31 @@ public class SaleRepository {
     }
 
     /**
+     * Returns all items for multiple sales in a single query.
+     * Used to avoid a per-sale round trip when building reports.
+     */
+    public List<SaleItem> findItemsBySaleIds(List<Long> saleIds) throws SQLException {
+        if (saleIds == null || saleIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        String placeholders = saleIds.stream().map(id -> "?").collect(java.util.stream.Collectors.joining(","));
+        String sql = "SELECT * FROM sale_items WHERE sale_id IN (" + placeholders + ")";
+        Connection conn = dbManager.getConnection();
+        List<SaleItem> items = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < saleIds.size(); i++) {
+                ps.setLong(i + 1, saleIds.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    items.add(mapItem(rs));
+                }
+            }
+        }
+        return items;
+    }
+
+    /**
      * Returns the most recent active sales, up to {@code limit}, ordered by id
      * descending. Used by the dashboard home view.
      */

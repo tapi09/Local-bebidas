@@ -48,17 +48,17 @@ class DailySalesDetailReportServiceTest {
     @Test
     void dailySalesDetailReturnsPerDayPerProductBreakdown() throws SQLException {
         Sale sale1 = createSale("03/08/2026", "IN", 1L);
-        SaleItem item1 = createSaleItem(1L, 1L, 2, 600.0);
+        SaleItem item1 = createSaleItem(1L, 1L, 1L, 2, 600.0);
 
         Sale sale2 = createSale("03/08/2026", "IN", 2L);
-        SaleItem item2 = createSaleItem(2L, 1L, 1, 600.0);
-        SaleItem item3 = createSaleItem(3L, 2L, 3, 450.0);
+        SaleItem item2 = createSaleItem(2L, 2L, 1L, 1, 600.0);
+        SaleItem item3 = createSaleItem(3L, 2L, 2L, 3, 450.0);
 
         when(saleRepository.findAllByDateRange("01/08/2026", "05/08/2026")).thenReturn(Arrays.asList(sale1, sale2));
-        when(saleRepository.findItemsBySaleId(1L)).thenReturn(Collections.singletonList(item1));
-        when(saleRepository.findItemsBySaleId(2L)).thenReturn(Arrays.asList(item2, item3));
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(createProduct(1L, "Coca-Cola 500ml")));
-        when(productRepository.findById(2L)).thenReturn(java.util.Optional.of(createProduct(2L, "Sprite 500ml")));
+        when(saleRepository.findItemsBySaleIds(Arrays.asList(1L, 2L)))
+                .thenReturn(Arrays.asList(item1, item2, item3));
+        when(productRepository.findAllByIds(Arrays.asList(1L, 2L)))
+                .thenReturn(Arrays.asList(createProduct(1L, "Coca-Cola 500ml"), createProduct(2L, "Sprite 500ml")));
 
         DailySalesDetailReport report = reportService.getDailySalesDetailReport("01/08/2026", "05/08/2026");
 
@@ -79,11 +79,13 @@ class DailySalesDetailReportServiceTest {
     @Test
     void dailySalesDetailGroupsByDateAndProduct() throws SQLException {
         Sale sale1 = createSale("03/08/2026", "IN", 1L);
-        SaleItem item1 = createSaleItem(1L, 1L, 2, 600.0);
+        SaleItem item1 = createSaleItem(1L, 1L, 1L, 2, 600.0);
 
         when(saleRepository.findAllByDateRange("01/08/2026", "05/08/2026")).thenReturn(Collections.singletonList(sale1));
-        when(saleRepository.findItemsBySaleId(1L)).thenReturn(Collections.singletonList(item1));
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(createProduct(1L, "Coca-Cola 500ml")));
+        when(saleRepository.findItemsBySaleIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item1));
+        when(productRepository.findAllByIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(createProduct(1L, "Coca-Cola 500ml")));
 
         DailySalesDetailReport report = reportService.getDailySalesDetailReport("01/08/2026", "05/08/2026");
 
@@ -100,16 +102,17 @@ class DailySalesDetailReportServiceTest {
     void dailySalesDetailShowsCancelledSaleAsOriginalPlusCancellation() throws SQLException {
         Sale active = createSale("03/08/2026", "IN", 1L);
         active.setStatus("ACTIVE");
-        SaleItem activeItem = createSaleItem(1L, 1L, 4, 1300.0);
+        SaleItem activeItem = createSaleItem(1L, 1L, 1L, 4, 1300.0);
 
         Sale cancelled = createSale("03/08/2026", "IN", 2L);
         cancelled.setStatus("CANCELLED");
-        SaleItem cancelledItem = createSaleItem(2L, 1L, 6, 1300.0);
+        SaleItem cancelledItem = createSaleItem(2L, 2L, 1L, 6, 1300.0);
 
         when(saleRepository.findAllByDateRange("01/08/2026", "05/08/2026")).thenReturn(Arrays.asList(active, cancelled));
-        when(saleRepository.findItemsBySaleId(1L)).thenReturn(Collections.singletonList(activeItem));
-        when(saleRepository.findItemsBySaleId(2L)).thenReturn(Collections.singletonList(cancelledItem));
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(createProduct(1L, "Gaseosa")));
+        when(saleRepository.findItemsBySaleIds(Arrays.asList(1L, 2L)))
+                .thenReturn(Arrays.asList(activeItem, cancelledItem));
+        when(productRepository.findAllByIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(createProduct(1L, "Gaseosa")));
 
         DailySalesDetailReport report = reportService.getDailySalesDetailReport("01/08/2026", "05/08/2026");
 
@@ -144,9 +147,10 @@ class DailySalesDetailReportServiceTest {
         return sale;
     }
 
-    private SaleItem createSaleItem(Long id, Long productId, int quantity, double unitPrice) {
+    private SaleItem createSaleItem(Long id, Long saleId, Long productId, int quantity, double unitPrice) {
         SaleItem item = new SaleItem();
         item.setId(id);
+        item.setSaleId(saleId);
         item.setProductId(productId);
         item.setQuantity(quantity);
         item.setUnitPrice(unitPrice);

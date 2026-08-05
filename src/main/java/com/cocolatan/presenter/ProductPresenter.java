@@ -13,6 +13,7 @@ import com.cocolatan.service.InventoryService;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -52,6 +53,15 @@ public class ProductPresenter {
      */
     public int getCurrentStock(Long productId) {
         return inventoryService.getCurrentStock(productId);
+    }
+
+    /**
+     * Returns current stock for multiple products in a single query.
+     *
+     * @return map of productId -> currentStock; products with no movements map to 0
+     */
+    public Map<Long, Integer> getStockForProducts(List<Long> productIds) {
+        return inventoryService.getStocksForProducts(productIds);
     }
 
     /**

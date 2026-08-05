@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -99,6 +100,18 @@ public class InventoryService {
      */
     public int getAvailableStock(Long productId) {
         return getCurrentStock(productId);
+    }
+
+    /**
+     * Computes current stock for multiple products in a single query.
+     * Returns a map of productId -> currentStock; products with no movements map to 0.
+     */
+    public Map<Long, Integer> getStocksForProducts(List<Long> productIds) {
+        try {
+            return stockMovementRepository.computeCurrentStocks(productIds);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al calcular stock de productos", e);
+        }
     }
 
     /**

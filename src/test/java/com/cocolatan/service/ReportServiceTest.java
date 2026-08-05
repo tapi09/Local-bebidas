@@ -232,8 +232,10 @@ class ReportServiceTest {
         StockMovement entry2 = createMovement(1L, "ENTRY", 50);
         StockMovement exit1 = createMovement(1L, "EXIT", 80);
         StockMovement exit2 = createMovement(1L, "EXIT", 40);
-        when(stockMovementRepository.findByProductId(1L)).thenReturn(Arrays.asList(entry1, entry2, exit1, exit2));
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(30); // 150 - 120
+        when(stockMovementRepository.findByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Arrays.asList(entry1, entry2, exit1, exit2));
+        when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 30)); // 150 - 120
 
         List<ReportService.RotationReport> result = reportService.getRotationReport("01/07/2026", "31/07/2026");
 
@@ -247,8 +249,8 @@ class ReportServiceTest {
     void rotationReportZeroSalesShowsZeroRotation() throws SQLException {
         Product p = createProduct(1L, "Agua", "Aguas", 200.0, 250.0);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(p));
-        when(stockMovementRepository.findByProductId(1L)).thenReturn(Collections.emptyList());
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(0);
+        when(stockMovementRepository.findByProductIds(Collections.singletonList(1L))).thenReturn(Collections.emptyList());
+        when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L))).thenReturn(Collections.emptyMap());
 
         List<ReportService.RotationReport> result = reportService.getRotationReport("01/07/2026", "31/07/2026");
 
@@ -261,8 +263,8 @@ class ReportServiceTest {
     void rotationReportIncludesProductNameAndCategory() throws SQLException {
         Product p = createProduct(1L, "Fernet", "Birras", 800.0, 1500.0);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(p));
-        when(stockMovementRepository.findByProductId(1L)).thenReturn(Collections.emptyList());
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(0);
+        when(stockMovementRepository.findByProductIds(Collections.singletonList(1L))).thenReturn(Collections.emptyList());
+        when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L))).thenReturn(Collections.emptyMap());
 
         List<ReportService.RotationReport> result = reportService.getRotationReport("01/07/2026", "31/07/2026");
 
@@ -281,8 +283,8 @@ class ReportServiceTest {
         when(productRepository.findAllActive()).thenReturn(Arrays.asList(a, b));
 
         // Product A: 50 units in stock, Product B: 20 units in stock
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(50);
-        when(stockMovementRepository.computeCurrentStock(2L)).thenReturn(20);
+        when(stockMovementRepository.computeCurrentStocks(Arrays.asList(1L, 2L)))
+                .thenReturn(java.util.Map.of(1L, 50, 2L, 20));
 
         List<ReportService.StockValueReport> result = reportService.getStockValueReport();
 
@@ -302,8 +304,8 @@ class ReportServiceTest {
         Product b = createProduct(2L, "Pepsi", "Gaseosas", 500.0, 650.0);
         when(productRepository.findAllActive()).thenReturn(Arrays.asList(a, b));
 
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(50);
-        when(stockMovementRepository.computeCurrentStock(2L)).thenReturn(30);
+        when(stockMovementRepository.computeCurrentStocks(Arrays.asList(1L, 2L)))
+                .thenReturn(java.util.Map.of(1L, 50, 2L, 30));
 
         double total = reportService.getStockValueReportTotal();
 
@@ -315,7 +317,7 @@ class ReportServiceTest {
     void stockValueReportIncludesZeroStockProducts() throws SQLException {
         Product p = createProduct(1L, "Agua", "Aguas", 200.0, 250.0);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(p));
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(0);
+        when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L))).thenReturn(Collections.emptyMap());
 
         List<ReportService.StockValueReport> result = reportService.getStockValueReport();
 
@@ -385,8 +387,8 @@ class ReportServiceTest {
     void rotationReportShowsCombinedHierarchyLabel() throws SQLException {
         Product product = createHierarchyProduct(1L, "Sprite", "Gaseosas", "Botella", 200.0, 250.0);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(stockMovementRepository.findByProductId(1L)).thenReturn(Collections.emptyList());
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(0);
+        when(stockMovementRepository.findByProductIds(Collections.singletonList(1L))).thenReturn(Collections.emptyList());
+        when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L))).thenReturn(Collections.emptyMap());
 
         List<ReportService.RotationReport> result = reportService.getRotationReport("01/07/2026", "31/07/2026");
 
@@ -397,7 +399,8 @@ class ReportServiceTest {
     void stockValueReportShowsCombinedHierarchyLabel() throws SQLException {
         Product product = createHierarchyProduct(1L, "Quilmes", "Cervezas", "Latas", 300.0, 600.0);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(10);
+        when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 10));
 
         List<ReportService.StockValueReport> result = reportService.getStockValueReport();
 
@@ -410,7 +413,8 @@ class ReportServiceTest {
         product.setCategoryName(null);
         product.setSubcategoryName(null);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(0);
+        when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 0));
 
         List<ReportService.StockValueReport> result = reportService.getStockValueReport();
 

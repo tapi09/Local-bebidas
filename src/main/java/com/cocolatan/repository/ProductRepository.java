@@ -176,6 +176,31 @@ public class ProductRepository {
     }
 
     /**
+     * Returns products matching the given ids (regardless of active status)
+     * using a single batched IN query. Used to resolve product names in bulk.
+     */
+    public List<Product> findAllByIds(List<Long> ids) throws SQLException {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        String placeholders = ids.stream().map(id -> "?").collect(java.util.stream.Collectors.joining(","));
+        String sql = BASE_SELECT + "WHERE p.id IN (" + placeholders + ")";
+        Connection conn = dbManager.getConnection();
+        List<Product> products = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setLong(i + 1, ids.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    products.add(mapRow(rs));
+                }
+            }
+        }
+        return products;
+    }
+
+    /**
      * Returns all active products whose legacy category text matches.
      * @deprecated hierarchy filters use ids after the subcategory change;
      * kept for compatibility with existing consumers.

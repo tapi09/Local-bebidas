@@ -55,6 +55,18 @@ public class StockPresenter {
     }
 
     /**
+     * Returns current stock for a single product (lightweight, single query).
+     * Used by the product selector instead of re-running the full dashboard.
+     */
+    public int getStockByProduct(Long productId) {
+        try {
+            return stockMovementRepository.computeCurrentStock(productId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar stock del producto", e);
+        }
+    }
+
+    /**
      * Returns products filtered by stock status.
      */
     public List<ProductStockInfo> getDashboardByStatus(String status) {

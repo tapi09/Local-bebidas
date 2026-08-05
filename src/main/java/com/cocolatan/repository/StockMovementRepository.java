@@ -143,6 +143,31 @@ public class StockMovementRepository {
     }
 
     /**
+     * Returns all movements for multiple products in a single query,
+     * ordered by date descending. Used to avoid per-product round trips.
+     */
+    public List<StockMovement> findByProductIds(List<Long> productIds) throws SQLException {
+        if (productIds == null || productIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        String placeholders = productIds.stream().map(id -> "?").collect(java.util.stream.Collectors.joining(","));
+        String sql = "SELECT * FROM stock_movements WHERE product_id IN (" + placeholders + ") ORDER BY created_at DESC";
+        Connection conn = dbManager.getConnection();
+        List<StockMovement> movements = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < productIds.size(); i++) {
+                ps.setLong(i + 1, productIds.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    movements.add(mapRow(rs));
+                }
+            }
+        }
+        return movements;
+    }
+
+    /**
      * Returns movements matching optional filters. All filters are AND-combined.
      *
      * @param productId    filter by product (null = all products)

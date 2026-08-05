@@ -24,7 +24,10 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -109,6 +112,12 @@ public class SaleController implements Refreshable {
     // Cached product list for real-time filtering (no DB hits on every keystroke)
     private List<Product> allCachedProducts;
 
+    // Cached stock per product for the products table (batch query per load).
+    private Map<Long, Integer> stockMap = Collections.emptyMap();
+
+    // Cached product names for the cart table (built once per product load).
+    private Map<Long, String> productNameMap = Collections.emptyMap();
+
     @FXML
     public void initialize() {
         com.cocolatan.repository.DatabaseManager dbManager = com.cocolatan.CocolatanApp.getDatabaseManager();
@@ -150,7 +159,7 @@ public class SaleController implements Refreshable {
         });
         colProdStock.setCellValueFactory(cellData -> {
             Product product = cellData.getValue();
-            int stock = presenter.getAvailableStock(product.getId());
+            int stock = stockMap.getOrDefault(product.getId(), 0);
             return new javafx.beans.property.SimpleIntegerProperty(stock).asObject();
         });
 
@@ -158,6 +167,12 @@ public class SaleController implements Refreshable {
         colCartQty.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("quantity"));
         colCartPrice.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("unitPrice"));
         colCartSubtotal.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("subtotal"));
+        // Created once; reads names from the cached map (no DB query per row).
+        colCartProduct.setCellValueFactory(cellData -> {
+            SaleItem item = cellData.getValue();
+            String productName = productNameMap.getOrDefault(item.getProductId(), "Producto #" + item.getProductId());
+            return new javafx.beans.property.SimpleStringProperty(productName);
+        });
 
         // Update photo preview when product is selected
         productsTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
@@ -287,6 +302,7 @@ public class SaleController implements Refreshable {
     @FXML
     private void onChannelChanged() {
         // Refresh displayed prices in products table
+        refreshStockMap();
         productsTable.refresh();
         // Also refresh cart prices to reflect channel change
         updateCartDisplay();
@@ -334,6 +350,37 @@ public class SaleController implements Refreshable {
         allCachedProducts = presenter.searchProducts("");
         productsData = FXCollections.observableArrayList(allCachedProducts);
         productsTable.setItems(productsData);
+        refreshStockMap();
+        refreshProductNameMap();
+    }
+
+    /**
+     * Recomputes the cached stock map for the loaded products in a single batched
+     * query. Called on load and whenever stock changes (channel change, sale done).
+     */
+    private void refreshStockMap() {
+        if (allCachedProducts == null) {
+            stockMap = Collections.emptyMap();
+            return;
+        }
+        List<Long> ids = allCachedProducts.stream().map(Product::getId).toList();
+        stockMap = presenter.getStockForProducts(ids);
+    }
+
+    /**
+     * Rebuilds the product-name map from the already-loaded product list, so the
+     * cart table never hits the database per row.
+     */
+    private void refreshProductNameMap() {
+        if (allCachedProducts == null) {
+            productNameMap = Collections.emptyMap();
+            return;
+        }
+        Map<Long, String> names = new HashMap<>();
+        for (Product product : allCachedProducts) {
+            names.put(product.getId(), product.getName());
+        }
+        productNameMap = names;
     }
 
     @FXML
@@ -460,6 +507,7 @@ public class SaleController implements Refreshable {
             String receipt = presenter.completeSale();
             if (receipt != null) {
                 receiptField.setText(receipt);
+                refreshStockMap();
                 updateCartDisplay();
                 AlertService.showInfoDialog("Venta Completada", "Venta registrada exitosamente.");
             } else {
@@ -484,13 +532,6 @@ public class SaleController implements Refreshable {
     private void updateCartDisplay() {
         cartData = FXCollections.observableArrayList(presenter.getCartItems());
         cartTable.setItems(cartData);
-
-        // Resolve product names in cart table
-        colCartProduct.setCellValueFactory(cellData -> {
-            SaleItem item = cellData.getValue();
-            String productName = presenter.getProductName(item.getProductId());
-            return new javafx.beans.property.SimpleStringProperty(productName);
-        });
 
         double total = presenter.getDiscountedTotal();
         totalLabel.setText(CurrencyFormatter.format(total));
