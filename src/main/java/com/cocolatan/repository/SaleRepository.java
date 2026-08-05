@@ -55,7 +55,9 @@ public class SaleRepository {
             item.setSubtotal(subtotal);
             total += subtotal;
         }
-        sale.setTotalAmount(total);
+        // Mirror SalePresenter.getDiscountedTotal semantics: a PERCENTAGE sale
+        // discount is a percentage of the subtotal, a FIXED one is a flat amount.
+        sale.setTotalAmount(round2(applySaleDiscount(total, sale)));
 
         long saleId;
         String saleSql = "INSERT INTO sales (sale_date, channel, payment_method, customer_id, discount, discount_type, total_amount) "
@@ -99,6 +101,29 @@ public class SaleRepository {
         }
 
         return saleId;
+    }
+
+    /**
+     * Applies the sale-level discount to a subtotal. PERCENTAGE discounts are a
+     * percentage of the subtotal; FIXED discounts are a flat amount capped at the
+     * subtotal. Any other type (including NONE) leaves the subtotal unchanged.
+     */
+    private double applySaleDiscount(double subtotal, Sale sale) {
+        double discount = sale.getDiscount();
+        if ("PERCENTAGE".equals(sale.getDiscountType()) && discount > 0) {
+            return subtotal * (1 - discount / 100);
+        }
+        if ("FIXED".equals(sale.getDiscountType()) && discount > 0) {
+            return Math.max(0, subtotal - discount);
+        }
+        return subtotal;
+    }
+
+    /**
+     * Rounds a monetary amount to 2 decimal places.
+     */
+    private double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     /**

@@ -452,7 +452,7 @@ class ReportServiceTest {
         m.setProductId(productId);
         m.setMovementType(type);
         m.setQuantity(quantity);
-        m.setCreatedAt("01/07/2026");
+        m.setCreatedAt("2026-07-01 10:30:00");
         return m;
     }
 }

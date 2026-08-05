@@ -234,6 +234,58 @@ class AuthServiceTest {
     }
 
     @Test
+    void freshDatabaseIsNotMarkedAsUsingLegacyMasterKey() throws SQLException {
+        DatabaseManager db = DatabaseManager.createInMemory();
+        try {
+            ConfigRepository configRepo = new ConfigRepository(db);
+            AuthService service = new AuthService(new UserRepository(db), configRepo);
+
+            assertThat(service.isRecoveryConfigured()).isFalse();
+            assertThat(service.isUsingLegacyMasterKey()).isFalse();
+        } finally {
+            db.close();
+        }
+    }
+
+    @Test
+    void isUsingLegacyMasterKeyDetectsFactoryDefaultHash() throws SQLException {
+        DatabaseManager db = DatabaseManager.createInMemory();
+        try {
+            ConfigRepository configRepo = new ConfigRepository(db);
+            configRepo.set("master_reset_hash",
+                    AuthService.hashPassword("cocolatan-master-2026"));
+            AuthService service = new AuthService(new UserRepository(db), configRepo);
+
+            assertThat(service.isUsingLegacyMasterKey()).isTrue();
+        } finally {
+            db.close();
+        }
+    }
+
+    @Test
+    void isUsingLegacyMasterKeyIsFalseAfterRotation() throws SQLException {
+        DatabaseManager db = DatabaseManager.createInMemory();
+        try {
+            ConfigRepository configRepo = new ConfigRepository(db);
+            AuthService service = new AuthService(new UserRepository(db), configRepo);
+            service.setMasterKey("clave-rotada");
+
+            assertThat(service.isUsingLegacyMasterKey()).isFalse();
+        } finally {
+            db.close();
+        }
+    }
+
+    @Test
+    void isUsingLegacyMasterKeyIsFalseWhenNotConfigured() throws SQLException {
+        ConfigRepository configRepo = mock(ConfigRepository.class);
+        when(configRepo.get("master_reset_hash")).thenReturn(Optional.empty());
+        AuthService service = new AuthService(userRepository, configRepo);
+
+        assertThat(service.isUsingLegacyMasterKey()).isFalse();
+    }
+
+    @Test
     void resetPasswordUpdatesHashAndClearsMustChangeFlag() throws SQLException {
         DatabaseManager db = DatabaseManager.createInMemory();
         try {

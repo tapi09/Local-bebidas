@@ -131,6 +131,55 @@ class SaleRepositoryTest {
     }
 
     @Test
+    @DisplayName("saveWithItems() descuenta el porcentaje del total de la venta")
+    void saveWithItemsAppliesPercentageDiscountToTotal() throws SQLException {
+        Sale sale = createSale("IN", "CASH");
+        sale.setDiscount(10.0);
+        sale.setDiscountType("PERCENTAGE");
+        SaleItem item1 = createSaleItem(1L, 2, 600.0);  // 1200
+        SaleItem item2 = createSaleItem(2L, 3, 550.0);  // 1650
+
+        Long id = repository.saveWithItems(sale, Arrays.asList(item1, item2));
+
+        Optional<Sale> found = repository.findById(id);
+        assertThat(found).isPresent();
+        // 2850 * 0.9 = 2565
+        assertThat(found.get().getTotalAmount()).isEqualTo(2565.0);
+    }
+
+    @Test
+    @DisplayName("saveWithItems() descuenta el monto fijo del total de la venta")
+    void saveWithItemsAppliesFixedDiscountToTotal() throws SQLException {
+        Sale sale = createSale("IN", "CASH");
+        sale.setDiscount(100.0);
+        sale.setDiscountType("FIXED");
+        SaleItem item1 = createSaleItem(1L, 2, 600.0);  // 1200
+        SaleItem item2 = createSaleItem(2L, 3, 550.0);  // 1650
+
+        Long id = repository.saveWithItems(sale, Arrays.asList(item1, item2));
+
+        Optional<Sale> found = repository.findById(id);
+        assertThat(found).isPresent();
+        // 2850 - 100 = 2750
+        assertThat(found.get().getTotalAmount()).isEqualTo(2750.0);
+    }
+
+    @Test
+    @DisplayName("saveWithItems() no deja el total negativo con descuento fijo mayor al subtotal")
+    void saveWithItemsFixedDiscountFloorsTotalAtZero() throws SQLException {
+        Sale sale = createSale("IN", "CASH");
+        sale.setDiscount(5000.0);
+        sale.setDiscountType("FIXED");
+        SaleItem item = createSaleItem(1L, 2, 600.0);  // 1200
+
+        Long id = repository.saveWithItems(sale, Collections.singletonList(item));
+
+        Optional<Sale> found = repository.findById(id);
+        assertThat(found).isPresent();
+        assertThat(found.get().getTotalAmount()).isEqualTo(0.0);
+    }
+
+    @Test
     void findHistoryReturnsSalesDescending() throws SQLException {
         Sale s1 = createSale("IN", "CASH");
         s1.setSaleDate("01/07/2026");

@@ -1,7 +1,5 @@
 package com.cocolatan.repository;
 
-import com.cocolatan.service.AuthService;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -299,10 +297,11 @@ public class DatabaseManager {
              runMigration(stmt, "INSERT OR IGNORE INTO app_config (key, value) VALUES ('business_name', 'Cocolatán')");
              // Migration v11: force password change on first login
              runMigration(stmt, "ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0");
-             // Migration v12: password recovery master key (DEFAULT — the provider
-             // MUST change it before shipping). Only the SHA-256 hash is stored.
-             runMigration(stmt, "INSERT OR IGNORE INTO app_config (key, value) VALUES ('master_reset_hash', '"
-                     + AuthService.hashPassword(AuthService.DEFAULT_MASTER_KEY) + "')");
+             // Migration v12 note: password recovery master key is intentionally
+             // NOT seeded here anymore. Shipping a known default key would let
+             // anyone reset a user's password from the login screen. The provider
+             // must configure it once through the Users screen (first-time setup
+             // accepts an empty current key); recovery only works after that.
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize schema", e);
         }

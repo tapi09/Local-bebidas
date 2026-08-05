@@ -30,6 +30,9 @@ import java.util.Map;
 public class ReportService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    // stock_movements.created_at is stored as ISO "yyyy-MM-dd HH:mm:ss" (SQLite
+    // datetime('now','localtime')), NOT the dd/MM/yyyy user-facing format.
+    private static final DateTimeFormatter ISO_DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final ProductRepository productRepository;
     private final SaleRepository saleRepository;
@@ -270,7 +273,7 @@ public class ReportService {
                 for (StockMovement m : movements) {
                     LocalDate movDate;
                     try {
-                        movDate = LocalDate.parse(m.getCreatedAt(), DATE_FORMATTER);
+                        movDate = LocalDate.parse(m.getCreatedAt(), ISO_DATETIME_FORMATTER);
                     } catch (Exception e) {
                         continue;
                     }

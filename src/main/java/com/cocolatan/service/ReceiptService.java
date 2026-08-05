@@ -46,15 +46,26 @@ public class ReceiptService {
                     displayName, item.getQuantity(), item.getUnitPrice(), item.getSubtotal());
             receipt.append(line);
             if (!"NONE".equals(item.getDiscountType()) && item.getDiscount() > 0) {
-                receipt.append(String.format("  Descuento: %.0f%%  -$%,.2f%n",
-                        item.getDiscount(), item.getSubtotal() * item.getDiscount() / 100));
+                if ("FIXED".equals(item.getDiscountType())) {
+                    // For FIXED discounts the value IS the discounted amount.
+                    double amount = Math.min(item.getSubtotal(), item.getDiscount());
+                    receipt.append(String.format("  Descuento: -$%,.2f%n", amount));
+                } else {
+                    receipt.append(String.format("  Descuento: %.0f%%  -$%,.2f%n",
+                            item.getDiscount(), item.getSubtotal() * item.getDiscount() / 100));
+                }
                 hasDiscounts = true;
             }
         }
 
         receipt.append("--------------------------------\n");
         if (!"NONE".equals(sale.getDiscountType()) && sale.getDiscount() > 0) {
-            receipt.append(String.format("Descuento venta: %.0f%%%n", sale.getDiscount()));
+            if ("FIXED".equals(sale.getDiscountType())) {
+                // For FIXED discounts the value IS the discounted amount.
+                receipt.append(String.format("Descuento venta: -$%,.2f%n", sale.getDiscount()));
+            } else {
+                receipt.append(String.format("Descuento venta: %.0f%%%n", sale.getDiscount()));
+            }
             hasDiscounts = true;
         }
         receipt.append(String.format("TOTAL: $%,.2f%n", sale.getTotalAmount()));

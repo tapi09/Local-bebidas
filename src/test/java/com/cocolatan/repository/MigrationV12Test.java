@@ -1,6 +1,5 @@
 package com.cocolatan.repository;
 
-import com.cocolatan.service.AuthService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,11 +23,10 @@ class MigrationV12Test {
     }
 
     @Test
-    void migrationV12SeedsMasterResetHash() throws SQLException {
+    void migrationV12DoesNotSeedMasterResetHash() throws SQLException {
         ConfigRepository configRepo = new ConfigRepository(dbManager);
 
-        assertThat(configRepo.get("master_reset_hash"))
-                .contains(AuthService.hashPassword(AuthService.DEFAULT_MASTER_KEY));
+        assertThat(configRepo.get("master_reset_hash")).isEmpty();
     }
 
     @Test
@@ -37,7 +35,6 @@ class MigrationV12Test {
         dbManager.initSchema();
 
         ConfigRepository configRepo = new ConfigRepository(dbManager);
-        assertThat(configRepo.get("master_reset_hash"))
-                .contains(AuthService.hashPassword(AuthService.DEFAULT_MASTER_KEY));
+        assertThat(configRepo.get("master_reset_hash")).isEmpty();
     }
 }

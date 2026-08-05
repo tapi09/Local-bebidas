@@ -174,6 +174,40 @@ class ReceiptServiceTest {
     }
 
     @Test
+    @DisplayName("generateReceipt muestra el descuento fijo de venta como monto, no como porcentaje")
+    void generateReceipt_withFixedSaleDiscount() throws SQLException {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(createProduct("Coca-Cola 500ml")));
+
+        Sale sale = createSale("IN", "CASH");
+        sale.setTotalAmount(1100.0);
+        sale.setDiscount(100.0);
+        sale.setDiscountType("FIXED");
+        SaleItem item = createSaleItem(1L, 2, 600.0, 1200.0);
+
+        String receipt = receiptService.generateReceipt(sale, Collections.singletonList(item));
+
+        assertThat(receipt).contains("Descuento venta: -$100,00");
+        assertThat(receipt).doesNotContain("Descuento venta: 100%");
+    }
+
+    @Test
+    @DisplayName("generateReceipt muestra el descuento fijo por item como monto, no como porcentaje")
+    void generateReceipt_withFixedItemDiscount() throws SQLException {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(createProduct("Pepsi 500ml")));
+
+        Sale sale = createSale("IN", "CASH");
+        sale.setTotalAmount(1100.0);
+        SaleItem item = createSaleItem(1L, 2, 600.0, 1200.0);
+        item.setDiscount(50.0);
+        item.setDiscountType("FIXED");
+
+        String receipt = receiptService.generateReceipt(sale, Collections.singletonList(item));
+
+        assertThat(receipt).contains("Descuento: -$50,00");
+        assertThat(receipt).doesNotContain("Descuento: 50%");
+    }
+
+    @Test
     void generateReceiptShowsHierarchyLabelBesideName() throws SQLException {
         when(productRepository.findById(1L)).thenReturn(Optional.of(createProduct("Quilmes", "Cervezas", "Latas")));
 
