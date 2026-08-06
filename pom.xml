@@ -6,7 +6,7 @@
 
     <groupId>com.cocolatan</groupId>
     <artifactId>cocolatan</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>Cocolatán - Central de Bebidas</name>
@@ -324,7 +324,7 @@
                                 </goals>
                                 <configuration>
                                     <executable>jpackage</executable>
-                                    <commandlineArgs>--input ${project.build.directory}/jpackage-input --name Cocolatán --main-jar ${project.build.finalName}.jar --main-class com.cocolatan.Launcher --type exe --app-version ${jpackage.app.version} --win-dir-chooser --win-menu --win-shortcut --description "Cocolatán - Central de Bebidas" --vendor Cocolatán --copyright "Copyright © 2026 Cocolatán" --about-url https://cocolatan.example.com --icon src/main/installer/cocolatan.ico --license-file LICENSE --dest dist/installer --win-upgrade-uuid b6d51196-ebc7-4437-b5b8-ef29d0c4d869 --java-options -Dprism.order=sw</commandlineArgs>
+                                    <commandlineArgs>--input ${project.build.directory}/jpackage-input --name Cocolatán --main-jar ${project.build.finalName}.jar --main-class com.cocolatan.Launcher --type exe --app-version ${jpackage.app.version} --win-dir-chooser --win-menu --win-shortcut --description "Cocolatán - Central de Bebidas" --vendor Cocolatán --copyright "Copyright © 2026 Cocolatán" --about-url https://github.com/cocolatan/cocolatan --icon src/main/installer/cocolatan.ico --license-file LICENSE --dest dist/installer --win-upgrade-uuid b6d51196-ebc7-4437-b5b8-ef29d0c4d869 --java-options -Dprism.order=sw</commandlineArgs>
                                 </configuration>
                             </execution>
                         </executions>

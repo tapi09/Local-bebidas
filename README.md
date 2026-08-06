@@ -17,13 +17,13 @@ Aplicacion de gestion para un negocio de bebidas en Mendoza, Argentina. Sistema 
 mvn clean javafx:run
 ```
 
-## Como Compilar
+## Como Compilar e Instalar
 
 ```bash
-mvn clean package
+mvn clean package -Pjpackage
 ```
 
-Genera un fat JAR en `target/cocolatan-1.0.0-SNAPSHOT.jar` (via maven-shade-plugin).
+Genera un instalador `.exe` en `dist/installer/`. No requiere pre-instalacion de Java ni dependencias — es un ejecutable standalone que se puede copiar a un pendrive USB y ejecutar directamente en cualquier PC con Windows 10/11. Los datos se almacenan en `%APPDATA%\Cocolatan\cocolatan.db`.
 
 ## Como Testear
 
@@ -37,21 +37,25 @@ mvn test jacoco:report            # Tests + reporte de cobertura
 ```
 src/main/java/com/cocolatan/
   CocolatanApp.java       - Entry point JavaFX
+  Launcher.java           - Entry point de empaquetado (jpackage)
   model/                   - 13 POJOs (Product, Supplier, Purchase, Sale, User, etc.)
   repository/              - DatabaseManager + 10 repositorios JDBC
-  service/                 - Logica de negocio (9 servicios)
-  presenter/               - 12 presenters (logica de UI)
-  view/                    - 11 controllers FXML
-  util/                    - CurrencyFormatter, DateUtils, AlertService, PhotoUtils, etc.
+  service/                 - Logica de negocio (10 servicios)
+  presenter/               - 13 presenters (logica de UI)
+  view/                    - 12 controllers FXML
+  util/                    - CurrencyFormatter, DateUtils, AlertService, PhotoUtils, StockRisk, etc.
 src/main/resources/
-  fxml/                    - 12 vistas FXML
-  styles.css               - Estilos POS profesionales
-src/test/java/             - 71 archivos de test
+  fxml/                    - 13 vistas FXML
+  styles.css / styles-dark.css - Estilos POS (claro/oscuro)
+src/test/java/             - 82 archivos de test
 ```
 
 ## Arquitectura
 
-MVP (Model-View-Presenter) con SQLite embebida. Ver `ARCHITECTURE.md` para detalle completo.
+MVP (Model-View-Presenter) + SQLite embebida. Ver `ARCHITECTURE.md` para detalle completo.
+
+- **Despliegue USB/pendrive**: single `.exe`, sin pre-instalacion, datos en `%APPDATA%\Cocolatan`
+- **Seguridad**: PreparedStatement (sin SQL injection), contrasenas con SHA-256, sin conexion de red
 
 ## Modulos
 
@@ -64,6 +68,7 @@ MVP (Model-View-Presenter) con SQLite embebida. Ver `ARCHITECTURE.md` para detal
 - **Alertas**: Vencimiento (7 dias) y stock bajo (min_stock)
 - **Reportes**: Margen, ventas por periodo, canales, rotacion, valor de stock, productos mas vendidos, ventas detalladas por dia
 - **Categorias**: Gestion de categorias y subcategorias del catalogo
+- **Usuarios**: Gestion de usuarios del sistema (roles ADMIN/CAJERO), cambio de contrasena y proteccion del ultimo admin
 
 ## Licencia
 

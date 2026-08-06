@@ -128,9 +128,10 @@ cocolatan/
 │   │   ├── ConfigRepository.java                -- Key-value app_config
 │   │   └── UserRepository.java                  -- CRUD usuarios + autenticacion
 │   │
-│   ├── service/                                 -- 9 servicios de negocio
+│   ├── service/                                 -- 10 servicios de negocio
 │   │   ├── InventoryService.java                -- Stock, status, low-stock, expiry, adjustments
 │   │   ├── SalesService.java                    -- Creacion de venta, validacion stock/vencimiento
+│   │   ├── PurchaseService.java                 -- Orquestacion de compras (transaccion: compra + items + stock + costo)
 │   │   ├── ReportService.java                   -- Margenes, ventas por periodo, canales, rotacion, valor stock, ventas detalladas por dia
 │   │   ├── AlertService.java                    -- Alertas de vencimiento y stock bajo
 │   │   ├── ReceiptService.java                  -- Generacion de texto para ticket
@@ -139,7 +140,7 @@ cocolatan/
 │   │   ├── BackupService.java                   -- Logica de backup/restore
 │   │   └── CsvService.java                      -- Exportacion de reportes a CSV
 │   │
-│   ├── presenter/                               -- 12 presenters
+│   ├── presenter/                               -- 13 presenters
 │   │   ├── MainPresenter.java                   -- Navegacion, badge de alertas, reloj
 │   │   ├── ProductPresenter.java                -- CRUD productos, busqueda, validacion
 │   │   ├── SupplierPresenter.java               -- CRUD proveedores
@@ -151,9 +152,10 @@ cocolatan/
 │   │   ├── HomePresenter.java                   -- Dashboard de inicio
 │   │   ├── CategoryPresenter.java               -- CRUD categorias/subcategorias
 │   │   ├── LoginPresenter.java                  -- Login de usuarios
-│   │   └── SaleHistoryPresenter.java            -- Historial de ventas, anulacion
+│   │   ├── SaleHistoryPresenter.java            -- Historial de ventas, anulacion
+│   │   └── UserPresenter.java                   -- CRUD usuarios, roles, proteccion del ultimo admin
 │   │
-│   ├── view/                                    -- 11 controllers FXML
+│   ├── view/                                    -- 12 controllers FXML
 │   │   ├── HomeController.java                  -- Dashboard principal
 │   │   ├── ProductController.java               -- Catalogo CRUD
 │   │   ├── SupplierController.java              -- Gestion de proveedores
@@ -164,9 +166,10 @@ cocolatan/
 │   │   ├── ReportController.java                -- Reportes (7 tipos incluyendo ventas detalladas)
 │   │   ├── CategoriesController.java            -- Gestion de categorias
 │   │   ├── LoginController.java                 -- Pantalla de login
-│   │   └── SaleHistoryController.java           -- Historial y anulacion de ventas
+│   │   ├── SaleHistoryController.java           -- Historial y anulacion de ventas
+│   │   └── UserController.java                  -- Gestion de usuarios
 │   │
-│   └── util/                                    -- 8 utilidades
+│   └── util/                                    -- 11 utilidades
 │       ├── CurrencyFormatter.java               -- Formato ARS $XX.XXX,XX
 │       ├── DateUtils.java                       -- Parse/format DD/MM/YYYY
 │       ├── AlertService.java                    -- Dialogos JavaFX (error, warning, info, confirmacion)
@@ -174,10 +177,13 @@ cocolatan/
 │       ├── HierarchyLabel.java                  -- Formato de etiqueta jerarquia (Categoria - Subcategoria)
 │       ├── IntegrityChecker.java                -- Verificacion de integridad de datos
 │       ├── LoggingConfig.java                   -- Configuracion de logs y rotacion
-│       └── Refreshable.java                     -- Interfaz para vistas que soportan refresh
+│       ├── Refreshable.java                     -- Interfaz para vistas que soportan refresh
+│       ├── StockRisk.java                       -- Reglas de stock bajo/vencimiento compartidas
+│       ├── LogoUtils.java                       -- Ubicacion y seed del logo de marca (%APPDATA%/Cocolatan/logo)
+│       └── VersionInfo.java                     -- Version/build desde version.properties
 │
 ├── src/main/resources/
-│   ├── fxml/                                    -- 12 vistas FXML
+│   ├── fxml/                                    -- 13 vistas FXML
 │   │   ├── main.fxml                            -- Layout principal (sidebar + content)
 │   │   ├── home.fxml                            -- Dashboard inicio
 │   │   ├── product.fxml                         -- Catalogo
@@ -189,11 +195,12 @@ cocolatan/
 │   │   ├── reports.fxml                         -- Reportes (7 tipos)
 │   │   ├── categories.fxml                      -- Gestion de categorias
 │   │   ├── login.fxml                           -- Login
-│   │   └── sale-history.fxml                    -- Historial de ventas
+│   │   ├── sale-history.fxml                    -- Historial de ventas
+│   │   └── user.fxml                            -- Gestion de usuarios
 │   │
 │   └── styles.css                               -- Sistema de diseno POS profesional
 │
-└── src/test/java/com/cocolatan/                 -- 71 archivos de test
+└── src/test/java/com/cocolatan/                 -- 82 archivos de test
     ├── model/                                   -- Tests de POJOs
     ├── repository/                              -- Tests de repositorios (incluyendo integracion)
     ├── service/                                 -- Tests de servicios
@@ -203,6 +210,11 @@ cocolatan/
 ```
 
 ## Modelo de Datos
+
+### Ubicacion de la Base de Datos
+
+La base de datos SQLite se almacena en `%APPDATA%\Cocolatan\cocolatan.db`.
+Al ejecutar el `.exe` empaquetado con jpackage, la aplicacion escribe en esa ruta sin necesidad de pre-instalacion.
 
 ### Diagrama Entidad-Relacion
 
@@ -220,7 +232,7 @@ customers 1---* sales (opcional)
 users     ---   (autenticacion)
 ```
 
-### Tablas SQLite (13 principales)
+### Tablas SQLite (14 principales)
 
 | Tabla | Columnas Clave | FK |
 |-------|---------------|----|
@@ -385,6 +397,7 @@ PurchaseController.deleteInvoicePhoto()
 | Reportes  |                                                   |
 | Proveed.  |                                                   |
 | Categorias|                                                   |
+| Usuarios  |                                                   |
 | [Salir]   |                                                   |
 +----------+---------------------------------------------------+
 ```
@@ -459,7 +472,7 @@ PurchaseController.deleteInvoicePhoto()
 - **Estado**: Aceptado
 - **Contexto**: Proyecto con especificaciones detalladas
 - **Decision**: Red-Green-Refactor obligatorio para toda funcionalidad
-- **Consecuencia**: 71 archivos de test, cobertura ~58% (sin contar JavaFX no testeable)
+- **Consecuencia**: 82 archivos de test, cobertura ~58% (sin contar JavaFX no testeable)
 
 ### ADR-007: Fotos de Factura en Directorio Aparte
 - **Estado**: Aceptado
@@ -473,7 +486,12 @@ PurchaseController.deleteInvoicePhoto()
 - **Decision**: Crear tabla `register_sessions` con campos pre-cargados para apertura/cierre futuro (expected_cash, actual_cash, close_date, status OPEN/CLOSED), pero sin implementar la logica de apertura/cierre aun
 - **Consecuencia**: La tabla y sus indices estan listos; el model/repository/controller/presenter/FXML se implementaran cuando se active la funcionalidad de caja
 
-## Convenciones
+## Build System
+
+- **Maven** para compilacion, dependencias y empaquetado
+- **jpackage** (perfil `-Pjpackage`) genera un `.exe` standalone para Windows
+- El instalador se produce en `dist/installer/` y no requiere pre-instalacion de Java
+- La aplicacion se puede desplegar en un pendrive USB y ejecutar directamente
 
 - **Codigo**: Ingles (clases, metodos, variables, comentarios)
 - **UI**: Espanol (labels, dialogos, mensajes de error)
