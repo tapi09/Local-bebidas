@@ -1,6 +1,7 @@
 package com.cocolatan.presenter;
 
 import com.cocolatan.model.Category;
+import com.cocolatan.model.PriceTarget;
 import com.cocolatan.model.Product;
 import com.cocolatan.model.Subcategory;
 import com.cocolatan.model.Supplier;
@@ -219,6 +220,78 @@ public class ProductPresenter {
             return supplierRepository.findForDropdown();
         } catch (SQLException e) {
             throw new RuntimeException("Error al cargar proveedores", e);
+        }
+    }
+
+    /**
+     * Returns the active products of a category (for bulk price scoping).
+     */
+    public List<Product> getProductsByCategory(long categoryId) {
+        try {
+            return productRepository.findByCategoryId(categoryId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar productos", e);
+        }
+    }
+
+    /**
+     * Returns the active products of a subcategory (for bulk price scoping).
+     */
+    public List<Product> getProductsBySubcategory(long subcategoryId) {
+        try {
+            return productRepository.findBySubcategoryId(subcategoryId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar productos", e);
+        }
+    }
+
+    /**
+     * Returns the active products of a supplier (for bulk price scoping).
+     */
+    public List<Product> getProductsBySupplier(long supplierId) {
+        try {
+            return productRepository.findBySupplierId(supplierId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar productos", e);
+        }
+    }
+
+    /**
+     * Applies a percentage change to the local and/or PedidosYa prices of the
+     * given products. Positive percentages raise prices, negative ones lower
+     * them. Only active products are actually updated by the repository.
+     *
+     * <p>Guard: a LOCAL or BOTH update is rejected when any resulting local sale
+     * price would fall below the product's cost price. PedidosYa has no such
+     * constraint.
+     *
+     * @param productIds products to update
+     * @param target     which price(s) to adjust
+     * @param percentage percentage change (must not be zero)
+     * @return number of products updated
+     */
+    public int applyBulkPriceUpdate(List<Long> productIds, PriceTarget target, double percentage) {
+        if (percentage == 0) {
+            throw new RuntimeException("El porcentaje debe ser distinto de cero");
+        }
+        double multiplier = 1 + percentage / 100.0;
+        try {
+            if (target == PriceTarget.LOCAL || target == PriceTarget.BOTH) {
+                for (Product product : productRepository.findAllByIds(productIds)) {
+                    if (!product.isActive()) {
+                        continue;
+                    }
+                    double newSalePrice = Math.round(product.getSalePrice() * multiplier * 100.0) / 100.0;
+                    if (newSalePrice < product.getCostPrice()) {
+                        throw new RuntimeException("No se puede aplicar: hay productos que quedarían por debajo del costo");
+                    }
+                }
+            }
+            boolean applySale = target == PriceTarget.LOCAL || target == PriceTarget.BOTH;
+            boolean applyPedidosya = target == PriceTarget.PEDIDOSYA || target == PriceTarget.BOTH;
+            return productRepository.bulkUpdatePrices(productIds, applySale, applyPedidosya, multiplier, multiplier);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al actualizar precios", e);
         }
     }
 

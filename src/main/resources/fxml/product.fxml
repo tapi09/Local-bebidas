@@ -58,6 +58,7 @@
         <HBox spacing="10" alignment="CENTER_RIGHT">
             <Button text="➕ Nuevo Producto" fx:id="btnNew" onAction="#onNew" styleClass="button-success"/>
             <Button text="✏️ Editar" fx:id="btnEdit" onAction="#onEdit" styleClass="button"/>
+            <Button text="📈 Precios" fx:id="btnBulkPrice" onAction="#onBulkPrice" styleClass="button"/>
             <Button text="🗑️ Desactivar" fx:id="btnDeactivate" onAction="#onDeactivate" styleClass="button-danger"/>
         </HBox>
     </VBox>

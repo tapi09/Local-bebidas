@@ -300,6 +300,21 @@ class ProductRepositoryTest {
         }
     }
 
+    private long insertSupplier(String name) throws SQLException {
+        try (PreparedStatement ps = dbManager.getConnection().prepareStatement(
+                "INSERT INTO suppliers (name) VALUES (?)",
+                Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, name);
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                }
+                throw new SQLException("Failed to retrieve generated supplier ID");
+            }
+        }
+    }
+
     private Product createProduct(String name, String category) {
         Product product = new Product();
         product.setName(name);
@@ -565,5 +580,150 @@ class ProductRepositoryTest {
                 .isAnnotationPresent(Deprecated.class)).isTrue();
         assertThat(ProductRepository.class.getMethod("findDistinctCategories")
                 .isAnnotationPresent(Deprecated.class)).isTrue();
+    }
+
+    // --- bulk price update ---
+
+    @Test
+    void bulkUpdatePricesUpdatesOnlyActiveMatchingIds() throws SQLException {
+        Product p1 = createProduct("Cerveza A", "Cervezas");
+        p1.setSalePrice(100.0);
+        Long id1 = repository.save(p1);
+        Product p2 = createProduct("Cerveza B", "Cervezas");
+        p2.setSalePrice(100.0);
+        Long id2 = repository.save(p2);
+        Product inactive = createProduct("Cerveza C", "Cervezas");
+        inactive.setSalePrice(100.0);
+        Long inactiveId = repository.save(inactive);
+        repository.deactivate(inactiveId);
+
+        int updated = repository.bulkUpdatePrices(List.of(id1, id2, inactiveId), true, false, 1.05, 1.05);
+
+        assertThat(updated).isEqualTo(2);
+        assertThat(repository.findById(id1).orElseThrow().getSalePrice()).isEqualTo(105.0);
+        assertThat(repository.findById(id2).orElseThrow().getSalePrice()).isEqualTo(105.0);
+        assertThat(repository.findById(inactiveId).orElseThrow().getSalePrice()).isEqualTo(100.0);
+    }
+
+    @Test
+    void bulkUpdatePricesUpdatesBothColumnsInOneStatement() throws SQLException {
+        Product product = createProduct("Cerveza A", "Cervezas");
+        product.setSalePrice(100.0);
+        product.setPedidosyaPrice(200.0);
+        Long id = repository.save(product);
+
+        int updated = repository.bulkUpdatePrices(List.of(id), true, true, 1.05, 1.10);
+
+        assertThat(updated).isEqualTo(1);
+        Product found = repository.findById(id).orElseThrow();
+        assertThat(found.getSalePrice()).isEqualTo(105.0);
+        assertThat(found.getPedidosyaPrice()).isEqualTo(220.0);
+    }
+
+    @Test
+    void bulkUpdatePricesLocalOnlyLeavesPedidosyaUntouched() throws SQLException {
+        Product product = createProduct("Cerveza A", "Cervezas");
+        product.setSalePrice(100.0);
+        product.setPedidosyaPrice(200.0);
+        Long id = repository.save(product);
+
+        repository.bulkUpdatePrices(List.of(id), true, false, 1.05, 1.05);
+
+        Product found = repository.findById(id).orElseThrow();
+        assertThat(found.getSalePrice()).isEqualTo(105.0);
+        assertThat(found.getPedidosyaPrice()).isEqualTo(200.0);
+    }
+
+    @Test
+    void bulkUpdatePricesPedidosyaOnlyLeavesSalePriceUntouched() throws SQLException {
+        Product product = createProduct("Cerveza A", "Cervezas");
+        product.setSalePrice(100.0);
+        product.setPedidosyaPrice(200.0);
+        Long id = repository.save(product);
+
+        repository.bulkUpdatePrices(List.of(id), false, true, 1.05, 0.90);
+
+        Product found = repository.findById(id).orElseThrow();
+        assertThat(found.getSalePrice()).isEqualTo(100.0);
+        assertThat(found.getPedidosyaPrice()).isEqualTo(180.0);
+    }
+
+    @Test
+    void bulkUpdatePricesRoundsToTwoDecimals() throws SQLException {
+        Product product = createProduct("Cerveza A", "Cervezas");
+        product.setSalePrice(99.99);
+        Long id = repository.save(product);
+
+        repository.bulkUpdatePrices(List.of(id), true, false, 1.05, 1.05);
+
+        assertThat(repository.findById(id).orElseThrow().getSalePrice()).isEqualTo(104.99);
+    }
+
+    @Test
+    void bulkUpdatePricesEmptyListReturnsZero() throws SQLException {
+        assertThat(repository.bulkUpdatePrices(List.of(), true, false, 1.05, 1.05)).isZero();
+    }
+
+    // --- scoped lookups ---
+
+    @Test
+    void findBySupplierIdReturnsOnlyActiveProductsOfSupplier() throws SQLException {
+        long supplierId = insertSupplier("Distribuidora Norte");
+        Product p1 = createProduct("Cerveza A", "Cervezas");
+        p1.setSupplierId(supplierId);
+        repository.save(p1);
+        Product p2 = createProduct("Cerveza B", "Cervezas");
+        p2.setSupplierId(supplierId);
+        repository.save(p2);
+        Product inactive = createProduct("Cerveza C", "Cervezas");
+        inactive.setSupplierId(supplierId);
+        Long inactiveId = repository.save(inactive);
+        repository.deactivate(inactiveId);
+        repository.save(createProduct("Gaseosa A", "Gaseosas"));
+
+        List<Product> results = repository.findBySupplierId(supplierId);
+
+        assertThat(results).hasSize(2);
+        assertThat(results).extracting(Product::getName).containsExactly("Cerveza A", "Cerveza B");
+    }
+
+    @Test
+    void findByCategoryIdReturnsOnlyActiveProductsOfCategory() throws SQLException {
+        long catId = insertCategory("Cervezas Artesanales");
+        Product p1 = createProduct("Quilmes 1L", "Cervezas Artesanales");
+        p1.setCategoryId(catId);
+        repository.save(p1);
+        Product p2 = createProduct("Quilmes Botella", "Cervezas Artesanales");
+        p2.setCategoryId(catId);
+        repository.save(p2);
+        Product inactive = createProduct("Cerveza C", "Cervezas Artesanales");
+        inactive.setCategoryId(catId);
+        Long inactiveId = repository.save(inactive);
+        repository.deactivate(inactiveId);
+        repository.save(createProduct("Agua Villavicencio", "Aguas"));
+
+        List<Product> results = repository.findByCategoryId(catId);
+
+        assertThat(results).hasSize(2);
+    }
+
+    @Test
+    void findBySubcategoryIdReturnsOnlyActiveProductsOfSubcategory() throws SQLException {
+        long catId = insertCategory("Cervezas Premium");
+        long subId = insertSubcategory(catId, "Latas");
+        Product p1 = createProduct("Quilmes Lata", "Cervezas Premium");
+        p1.setCategoryId(catId);
+        p1.setSubcategoryId(subId);
+        repository.save(p1);
+        Product inactive = createProduct("Quilmes Lata 2", "Cervezas Premium");
+        inactive.setCategoryId(catId);
+        inactive.setSubcategoryId(subId);
+        Long inactiveId = repository.save(inactive);
+        repository.deactivate(inactiveId);
+
+        List<Product> results = repository.findBySubcategoryId(subId);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getName()).isEqualTo("Quilmes Lata");
     }
 }

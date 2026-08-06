@@ -1,6 +1,7 @@
 package com.cocolatan.view;
 
 import com.cocolatan.model.Category;
+import com.cocolatan.model.PriceTarget;
 import com.cocolatan.model.Product;
 import com.cocolatan.model.Subcategory;
 import com.cocolatan.model.Supplier;
@@ -13,6 +14,7 @@ import com.cocolatan.repository.SubcategoryRepository;
 import com.cocolatan.repository.SupplierRepository;
 import com.cocolatan.service.InventoryService;
 import com.cocolatan.util.AlertService;
+import com.cocolatan.util.CurrencyFormatter;
 import com.cocolatan.util.PhotoUtils;
 import com.cocolatan.util.Refreshable;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -33,6 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -96,6 +99,9 @@ public class ProductController implements Refreshable {
 
     @FXML
     private Button btnDeactivate;
+
+    @FXML
+    private Button btnBulkPrice;
 
     @FXML
     private GridPane formPane;
@@ -424,6 +430,249 @@ public class ProductController implements Refreshable {
                 AlertService.showErrorDialog("Error", "Error al desactivar producto.");
             }
         }
+    }
+
+    /**
+     * Opens the bulk price update dialog: choose which price to adjust, the
+     * product scope (all / category / subcategory / supplier) and a percentage,
+     * with a live preview before applying.
+     */
+    @FXML
+    private void onBulkPrice() {
+        try {
+            Dialog<Double> dialog = new Dialog<>();
+            dialog.setTitle("Actualización masiva de precios");
+            dialog.setHeaderText("Ajuste porcentual sobre los precios");
+
+            ButtonType applyButtonType = new ButtonType("Aplicar", ButtonBar.ButtonData.OK_DONE);
+            dialog.getDialogPane().getButtonTypes().addAll(applyButtonType, ButtonType.CANCEL);
+
+            GridPane grid = new GridPane();
+            grid.setHgap(10);
+            grid.setVgap(10);
+            grid.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
+
+            ComboBox<String> priceTypeCombo = new ComboBox<>(
+                    FXCollections.observableArrayList("Precio local", "Precio PedidosYa", "Ambos"));
+            priceTypeCombo.setValue("Precio local");
+
+            ComboBox<String> scopeCombo = new ComboBox<>(FXCollections.observableArrayList(
+                    "Todos los productos", "Por categoría", "Por subcategoría", "Por proveedor"));
+            scopeCombo.setValue("Todos los productos");
+
+            Label selectorLabel = new Label("Categoría:");
+            ComboBox<Object> selectorCombo = new ComboBox<>();
+            selectorCombo.setPromptText("Seleccione...");
+            selectorCombo.setDisable(true);
+
+            TextField percentageField = new TextField();
+            percentageField.setPromptText("5  (o -10 para descuento)");
+
+            Label previewLabel = new Label();
+            previewLabel.setWrapText(true);
+
+            List<Category> categories = presenter.getCategories();
+            List<Supplier> suppliers = presenter.loadSuppliers();
+
+            scopeCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
+                selectorCombo.setValue(null);
+                selectorCombo.setItems(FXCollections.observableArrayList());
+                selectorCombo.setDisable(true);
+                if (newVal != null) {
+                    switch (newVal) {
+                        case "Por categoría":
+                            selectorLabel.setText("Categoría:");
+                            selectorCombo.setItems(FXCollections.observableArrayList(categories));
+                            selectorCombo.setDisable(false);
+                            break;
+                        case "Por subcategoría":
+                            selectorLabel.setText("Categoría:");
+                            selectorCombo.setItems(FXCollections.observableArrayList(categories));
+                            selectorCombo.setDisable(false);
+                            break;
+                        case "Por proveedor":
+                            selectorLabel.setText("Proveedor:");
+                            selectorCombo.setItems(FXCollections.observableArrayList(suppliers));
+                            selectorCombo.setDisable(false);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                updateBulkPreview(priceTypeCombo, scopeCombo, selectorCombo, percentageField, previewLabel);
+            });
+
+            // Cascade: picking a category in "Por subcategoría" loads its subcategories.
+            selectorCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if ("Por subcategoría".equals(scopeCombo.getValue()) && newVal instanceof Category) {
+                    List<Subcategory> subs = presenter.getSubcategoriesForCategory(((Category) newVal).getId());
+                    selectorLabel.setText("Subcategoría:");
+                    selectorCombo.setItems(FXCollections.observableArrayList(subs));
+                    selectorCombo.setValue(null);
+                    selectorCombo.setPromptText(subs.isEmpty() ? "Sin subcategorías" : "Seleccione subcategoría...");
+                }
+                updateBulkPreview(priceTypeCombo, scopeCombo, selectorCombo, percentageField, previewLabel);
+            });
+
+            priceTypeCombo.valueProperty().addListener((obs, oldVal, newVal) ->
+                    updateBulkPreview(priceTypeCombo, scopeCombo, selectorCombo, percentageField, previewLabel));
+            percentageField.textProperty().addListener((obs, oldVal, newVal) ->
+                    updateBulkPreview(priceTypeCombo, scopeCombo, selectorCombo, percentageField, previewLabel));
+
+            grid.add(new Label("Precio a ajustar:"), 0, 0);
+            grid.add(priceTypeCombo, 1, 0);
+            grid.add(new Label("Alcance:"), 0, 1);
+            grid.add(scopeCombo, 1, 1);
+            grid.add(selectorLabel, 0, 2);
+            grid.add(selectorCombo, 1, 2);
+            grid.add(new Label("Porcentaje (+ aumento / - descuento):"), 0, 3);
+            grid.add(percentageField, 1, 3);
+            grid.add(previewLabel, 0, 4, 2, 1);
+
+            dialog.getDialogPane().setContent(grid);
+
+            // Tracks whether the user pressed Aplicar. Cancel and a parse failure
+            // both convert to null, so the flag distinguishes them and keeps Cancel silent.
+            boolean[] saveRequested = { false };
+
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == applyButtonType) {
+                    saveRequested[0] = true;
+                    try {
+                        return parsePercentage(percentageField.getText());
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                }
+                return null;
+            });
+
+            Optional<Double> dialogResult = dialog.showAndWait();
+            if (dialogResult.isPresent()) {
+                performBulkPriceUpdate(dialogResult.get(), priceTypeCombo, scopeCombo, selectorCombo);
+            } else if (saveRequested[0]) {
+                AlertService.showErrorDialog("Error", "Ingrese un porcentaje válido (ej: 5 o -10).");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error en actualización masiva", e);
+            AlertService.showErrorDialog("Error", e.getMessage());
+        }
+    }
+
+    /**
+     * Validates the scope selection, applies the bulk update via the presenter,
+     * refreshes the table and reports how many products were updated.
+     */
+    private void performBulkPriceUpdate(double percentage, ComboBox<String> priceTypeCombo,
+                                        ComboBox<String> scopeCombo, ComboBox<Object> selectorCombo) {
+        List<Product> products = resolveScopeProducts(scopeCombo, selectorCombo);
+        if (products.isEmpty() && !"Todos los productos".equals(scopeCombo.getValue())) {
+            AlertService.showWarningDialog("Selección",
+                    "Seleccione una categoría, subcategoría o proveedor para aplicar el cambio.");
+            return;
+        }
+        PriceTarget target;
+        switch (priceTypeCombo.getValue()) {
+            case "Precio PedidosYa":
+                target = PriceTarget.PEDIDOSYA;
+                break;
+            case "Ambos":
+                target = PriceTarget.BOTH;
+                break;
+            default:
+                target = PriceTarget.LOCAL;
+                break;
+        }
+        List<Long> ids = products.stream().map(Product::getId).toList();
+        int updated = presenter.applyBulkPriceUpdate(ids, target, percentage);
+        loadProducts();
+        AlertService.showInfoDialog("Éxito", "Se actualizaron " + updated + " productos");
+    }
+
+    /**
+     * Resolves the products in scope for the bulk update based on the selected
+     * scope and selector value.
+     */
+    private List<Product> resolveScopeProducts(ComboBox<String> scopeCombo, ComboBox<Object> selectorCombo) {
+        String scope = scopeCombo.getValue();
+        if (scope == null || "Todos los productos".equals(scope)) {
+            return presenter.loadProducts();
+        }
+        Object selection = selectorCombo.getValue();
+        if (selection == null) {
+            return Collections.emptyList();
+        }
+        switch (scope) {
+            case "Por categoría":
+                if (selection instanceof Category) {
+                    return presenter.getProductsByCategory(((Category) selection).getId());
+                }
+                break;
+            case "Por subcategoría":
+                if (selection instanceof Subcategory) {
+                    return presenter.getProductsBySubcategory(((Subcategory) selection).getId());
+                }
+                break;
+            case "Por proveedor":
+                if (selection instanceof Supplier) {
+                    return presenter.getProductsBySupplier(((Supplier) selection).getId());
+                }
+                break;
+            default:
+                break;
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * Recomputes the live preview label: affected product count plus a sample
+     * price before/after the percentage change. Empty when no valid input yet.
+     */
+    private void updateBulkPreview(ComboBox<String> priceTypeCombo, ComboBox<String> scopeCombo,
+                                   ComboBox<Object> selectorCombo, TextField percentageField, Label previewLabel) {
+        Double pct;
+        try {
+            pct = parsePercentage(percentageField.getText());
+        } catch (NumberFormatException e) {
+            previewLabel.setText("");
+            return;
+        }
+        if (pct == 0) {
+            previewLabel.setText("");
+            return;
+        }
+        List<Product> products = resolveScopeProducts(scopeCombo, selectorCombo);
+        if (products.isEmpty()) {
+            previewLabel.setText("");
+            return;
+        }
+        double multiplier = 1 + pct / 100.0;
+        boolean pedidosyaTarget = "Precio PedidosYa".equals(priceTypeCombo.getValue());
+        Product sample = products.get(0);
+        double oldPrice = 0;
+        for (Product product : products) {
+            double price = pedidosyaTarget ? product.getPedidosyaPrice() : product.getSalePrice();
+            if (price > 0) {
+                sample = product;
+                oldPrice = price;
+                break;
+            }
+        }
+        double newPrice = Math.round(oldPrice * multiplier * 100.0) / 100.0;
+        previewLabel.setText(products.size() + " productos · ejemplo: " + sample.getName() + " "
+                + CurrencyFormatter.format(oldPrice) + " → " + CurrencyFormatter.format(newPrice));
+    }
+
+    /**
+     * Parses a percentage accepting an optional leading minus and decimals.
+     *
+     * @throws NumberFormatException when blank or not a number
+     */
+    private static Double parsePercentage(String text) throws NumberFormatException {
+        if (text == null || text.trim().isEmpty()) {
+            throw new NumberFormatException("Porcentaje vacío");
+        }
+        return Double.parseDouble(text.trim());
     }
 
     @FXML

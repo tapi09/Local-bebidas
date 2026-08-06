@@ -201,6 +201,103 @@ public class ProductRepository {
     }
 
     /**
+     * Applies a percentage multiplier to the local and/or PedidosYa prices of the
+     * given active products in a single batched UPDATE. Prices are rounded to 2
+     * decimals. Inactive products and ids outside the list are left untouched.
+     *
+     * @param productIds          products to update
+     * @param applySalePrice      whether to adjust the local sale price
+     * @param applyPedidosyaPrice whether to adjust the PedidosYa price
+     * @param salePriceMultiplier e.g. 1.05 for +5%, 0.90 for -10%
+     * @param pedidosyaMultiplier multiplier for the PedidosYa price
+     * @return number of rows updated
+     */
+    public int bulkUpdatePrices(List<Long> productIds, boolean applySalePrice, boolean applyPedidosyaPrice,
+                                double salePriceMultiplier, double pedidosyaMultiplier) throws SQLException {
+        if (productIds == null || productIds.isEmpty() || (!applySalePrice && !applyPedidosyaPrice)) {
+            return 0;
+        }
+        String placeholders = productIds.stream().map(id -> "?").collect(java.util.stream.Collectors.joining(","));
+        StringBuilder sql = new StringBuilder("UPDATE products SET ");
+        if (applySalePrice && applyPedidosyaPrice) {
+            sql.append("sale_price = ROUND(sale_price * ?, 2), sale_price_pedidosya = ROUND(sale_price_pedidosya * ?, 2), ");
+        } else if (applySalePrice) {
+            sql.append("sale_price = ROUND(sale_price * ?, 2), ");
+        } else {
+            sql.append("sale_price_pedidosya = ROUND(sale_price_pedidosya * ?, 2), ");
+        }
+        sql.append("updated_at = datetime('now','localtime') WHERE active = 1 AND id IN (").append(placeholders).append(")");
+        Connection conn = dbManager.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            if (applySalePrice) {
+                ps.setDouble(paramIndex++, salePriceMultiplier);
+            }
+            if (applyPedidosyaPrice) {
+                ps.setDouble(paramIndex++, pedidosyaMultiplier);
+            }
+            for (Long id : productIds) {
+                ps.setLong(paramIndex++, id);
+            }
+            return ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Returns all active products of a supplier, ordered by name.
+     */
+    public List<Product> findBySupplierId(Long supplierId) throws SQLException {
+        String sql = BASE_SELECT + "WHERE p.active = 1 AND p.supplier_id = ? ORDER BY p.name COLLATE NOCASE";
+        Connection conn = dbManager.getConnection();
+        List<Product> products = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, supplierId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    products.add(mapRow(rs));
+                }
+            }
+        }
+        return products;
+    }
+
+    /**
+     * Returns all active products of a category, ordered by name.
+     */
+    public List<Product> findByCategoryId(Long categoryId) throws SQLException {
+        String sql = BASE_SELECT + "WHERE p.active = 1 AND p.category_id = ? ORDER BY p.name COLLATE NOCASE";
+        Connection conn = dbManager.getConnection();
+        List<Product> products = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, categoryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    products.add(mapRow(rs));
+                }
+            }
+        }
+        return products;
+    }
+
+    /**
+     * Returns all active products of a subcategory, ordered by name.
+     */
+    public List<Product> findBySubcategoryId(Long subcategoryId) throws SQLException {
+        String sql = BASE_SELECT + "WHERE p.active = 1 AND p.subcategory_id = ? ORDER BY p.name COLLATE NOCASE";
+        Connection conn = dbManager.getConnection();
+        List<Product> products = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, subcategoryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    products.add(mapRow(rs));
+                }
+            }
+        }
+        return products;
+    }
+
+    /**
      * Returns all active products whose legacy category text matches.
      * @deprecated hierarchy filters use ids after the subcategory change;
      * kept for compatibility with existing consumers.

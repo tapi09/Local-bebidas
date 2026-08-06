@@ -1,6 +1,7 @@
 package com.cocolatan.presenter;
 
 import com.cocolatan.model.Category;
+import com.cocolatan.model.PriceTarget;
 import com.cocolatan.model.Product;
 import com.cocolatan.model.Subcategory;
 import com.cocolatan.model.Supplier;
@@ -344,6 +345,127 @@ class ProductPresenterTest {
         assertThatThrownBy(() -> presenter.getSubcategoriesForCategory(1L))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Error al cargar subcategorías");
+    }
+
+    // --- bulk price update ---
+
+    @Test
+    void applyBulkPriceUpdateLocalHappyPath() throws SQLException {
+        List<Product> products = List.of(createProduct("Cerveza"));
+        products.get(0).setId(1L);
+        when(productRepository.findAllByIds(anyList())).thenReturn(products);
+        when(productRepository.bulkUpdatePrices(anyList(), anyBoolean(), anyBoolean(), anyDouble(), anyDouble()))
+                .thenReturn(2);
+
+        int updated = presenter.applyBulkPriceUpdate(List.of(1L), PriceTarget.LOCAL, 5.0);
+
+        assertThat(updated).isEqualTo(2);
+        verify(productRepository).bulkUpdatePrices(List.of(1L), true, false, 1.05, 1.05);
+    }
+
+    @Test
+    void applyBulkPriceUpdateBothTarget() throws SQLException {
+        List<Product> products = List.of(createProduct("Cerveza"));
+        products.get(0).setId(1L);
+        when(productRepository.findAllByIds(anyList())).thenReturn(products);
+        when(productRepository.bulkUpdatePrices(anyList(), anyBoolean(), anyBoolean(), anyDouble(), anyDouble()))
+                .thenReturn(3);
+
+        int updated = presenter.applyBulkPriceUpdate(List.of(1L), PriceTarget.BOTH, 5.0);
+
+        assertThat(updated).isEqualTo(3);
+        verify(productRepository).bulkUpdatePrices(List.of(1L), true, true, 1.05, 1.05);
+    }
+
+    @Test
+    void applyBulkPriceUpdatePedidosyaTarget() throws SQLException {
+        Product product = createProduct("Cerveza");
+        product.setId(1L);
+        product.setCostPrice(100.0);
+        product.setSalePrice(100.0);
+        product.setPedidosyaPrice(90.0);
+        when(productRepository.bulkUpdatePrices(anyList(), anyBoolean(), anyBoolean(), anyDouble(), anyDouble()))
+                .thenReturn(1);
+
+        int updated = presenter.applyBulkPriceUpdate(List.of(1L), PriceTarget.PEDIDOSYA, -10.0);
+
+        assertThat(updated).isEqualTo(1);
+        verify(productRepository).bulkUpdatePrices(List.of(1L), false, true, 0.9, 0.9);
+    }
+
+    @Test
+    void applyBulkPriceUpdateRejectsZeroPercentage() throws SQLException {
+        assertThatThrownBy(() -> presenter.applyBulkPriceUpdate(List.of(1L), PriceTarget.LOCAL, 0.0))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("El porcentaje debe ser distinto de cero");
+
+        verify(productRepository, never()).bulkUpdatePrices(anyList(), anyBoolean(), anyBoolean(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    void applyBulkPriceUpdateLocalBelowCostGuardThrows() throws SQLException {
+        Product product = createProduct("Cerveza");
+        product.setId(1L);
+        product.setCostPrice(100.0);
+        product.setSalePrice(100.0);
+        when(productRepository.findAllByIds(anyList())).thenReturn(List.of(product));
+
+        assertThatThrownBy(() -> presenter.applyBulkPriceUpdate(List.of(1L), PriceTarget.LOCAL, -10.0))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("No se puede aplicar");
+
+        verify(productRepository, never()).bulkUpdatePrices(anyList(), anyBoolean(), anyBoolean(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    void applyBulkPriceUpdateIgnoresInactiveProductsInGuard() throws SQLException {
+        Product inactive = createProduct("Cerveza");
+        inactive.setId(1L);
+        inactive.setActive(false);
+        inactive.setCostPrice(100.0);
+        inactive.setSalePrice(100.0);
+        when(productRepository.findAllByIds(anyList())).thenReturn(List.of(inactive));
+        when(productRepository.bulkUpdatePrices(anyList(), anyBoolean(), anyBoolean(), anyDouble(), anyDouble()))
+                .thenReturn(1);
+
+        int updated = presenter.applyBulkPriceUpdate(List.of(1L), PriceTarget.LOCAL, -10.0);
+
+        assertThat(updated).isEqualTo(1);
+    }
+
+    // --- scoped product passthroughs ---
+
+    @Test
+    void getProductsByCategoryDelegatesToRepository() throws SQLException {
+        when(productRepository.findByCategoryId(1L)).thenReturn(Collections.emptyList());
+
+        assertThat(presenter.getProductsByCategory(1L)).isEmpty();
+        verify(productRepository).findByCategoryId(1L);
+    }
+
+    @Test
+    void getProductsByCategoryThrowsRuntimeExceptionOnSqlException() throws SQLException {
+        when(productRepository.findByCategoryId(1L)).thenThrow(new SQLException("DB error"));
+
+        assertThatThrownBy(() -> presenter.getProductsByCategory(1L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Error al cargar productos");
+    }
+
+    @Test
+    void getProductsBySubcategoryDelegatesToRepository() throws SQLException {
+        when(productRepository.findBySubcategoryId(2L)).thenReturn(Collections.emptyList());
+
+        assertThat(presenter.getProductsBySubcategory(2L)).isEmpty();
+        verify(productRepository).findBySubcategoryId(2L);
+    }
+
+    @Test
+    void getProductsBySupplierDelegatesToRepository() throws SQLException {
+        when(productRepository.findBySupplierId(3L)).thenReturn(Collections.emptyList());
+
+        assertThat(presenter.getProductsBySupplier(3L)).isEmpty();
+        verify(productRepository).findBySupplierId(3L);
     }
 
     private Category createCategory(Long id, String name) {
