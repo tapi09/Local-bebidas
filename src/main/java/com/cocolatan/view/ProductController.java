@@ -92,6 +92,9 @@ public class ProductController implements Refreshable {
     private TableColumn<Product, Integer> colStock;
 
     @FXML
+    private TableColumn<Product, Integer> colMinStock;
+
+    @FXML
     private Button btnNew;
 
     @FXML
@@ -198,6 +201,7 @@ public class ProductController implements Refreshable {
             int stock = stockMap.getOrDefault(product.getId(), 0);
             return new SimpleIntegerProperty(stock).asObject();
         });
+        colMinStock.setCellValueFactory(new PropertyValueFactory<>("minStock"));
     }
 
     /**

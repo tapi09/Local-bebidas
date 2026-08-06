@@ -51,7 +51,8 @@
                 <TableColumn fx:id="colSalePrice" text="Venta" prefWidth="80"/>
                 <TableColumn fx:id="colPedidosyaPrice" text="P. PedidosYa" prefWidth="100"/>
                 <TableColumn fx:id="colBarcode" text="Código" prefWidth="120"/>
-                <TableColumn fx:id="colStock" text="Stock Mín." prefWidth="70"/>
+                <TableColumn fx:id="colStock" text="Stock" prefWidth="70"/>
+                <TableColumn fx:id="colMinStock" text="Stock Mín." prefWidth="80"/>
             </columns>
         </TableView>
 
