@@ -20,8 +20,11 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,6 +42,15 @@ public class CocolatanApp extends Application {
     private static Stage primaryStage;
     private static String businessName = "Cocolatán";
     private BackupScheduler backupScheduler;
+
+    /**
+     * Holds the single-instance lock for the lifetime of the app. The OS
+     * releases it automatically if the process dies, so a stale lock can
+     * never block a later launch. Both fields must stay referenced while the
+     * app runs; closing the channel would release the lock prematurely.
+     */
+    private FileChannel instanceLockChannel;
+    private FileLock instanceLock;
 
     @Override
     public void start(Stage stage) {
@@ -61,6 +73,19 @@ public class CocolatanApp extends Application {
             AlertService.showErrorDialog(
                     "Error",
                     "No se pudieron crear los directorios de datos en " + appDataDir
+            );
+            return;
+        }
+
+        // Single-instance guard: only the first instance may run. A second
+        // launch finds the lock taken, explains why it exits, and stops
+        // before touching the database (concurrent SQLite writers can corrupt
+        // data or cause "database is locked" errors).
+        if (!acquireInstanceLock(appDataDir)) {
+            AlertService.showErrorDialog(
+                    "Cocolatán ya está abierto",
+                    "El programa ya se encuentra en ejecución. Cierre la ventana "
+                            + "abierta y vuelva a intentarlo."
             );
             return;
         }
@@ -129,6 +154,43 @@ public class CocolatanApp extends Application {
         } catch (RuntimeException e) {
             LOGGER.log(Level.SEVERE, "Failed to initialize database", e);
             AlertService.showErrorDialog("Error", "No se pudo inicializar la base de datos.");
+        }
+    }
+
+    /**
+     * Attempts to take an exclusive lock on {@code <appDataDir>/cocolatan.lock}.
+     * <p>
+     * A {@link FileLock} is held for as long as this object keeps its channel
+     * open. The OS drops the lock automatically when the process exits (even
+     * after a crash), so no stale lock file can block a later launch. {@code
+     * tryLock} never blocks: it returns {@code null} when another process owns
+     * the lock, which means Cocolatán is already running.
+     *
+     * @return true when this instance owns the lock and may proceed
+     */
+    private boolean acquireInstanceLock(Path appDataDir) {
+        try {
+            Path lockPath = appDataDir.resolve("cocolatan.lock");
+            instanceLockChannel = FileChannel.open(
+                    lockPath,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE
+            );
+            instanceLock = instanceLockChannel.tryLock();
+            if (instanceLock == null) {
+                LOGGER.warning("Another Cocolatán instance already holds the lock; refusing to start");
+                instanceLockChannel.close();
+                instanceLockChannel = null;
+                return false;
+            }
+            return true;
+        } catch (IOException e) {
+            // Failing to lock should not prevent the app from running; log and
+            // proceed. The lock is a safety net, not a hard requirement.
+            LOGGER.log(Level.WARNING, "Could not acquire single-instance lock", e);
+            instanceLockChannel = null;
+            instanceLock = null;
+            return true;
         }
     }
 
@@ -238,6 +300,30 @@ public class CocolatanApp extends Application {
         }
         if (databaseManager != null) {
             databaseManager.close();
+        }
+        releaseInstanceLock();
+    }
+
+    /**
+     * Releases the single-instance lock. Safe to call even when the lock was
+     * never acquired or was released by the OS.
+     */
+    private void releaseInstanceLock() {
+        if (instanceLock != null) {
+            try {
+                instanceLock.release();
+            } catch (IOException e) {
+                LOGGER.log(Level.FINE, "Failed to release instance lock", e);
+            }
+            instanceLock = null;
+        }
+        if (instanceLockChannel != null) {
+            try {
+                instanceLockChannel.close();
+            } catch (IOException e) {
+                LOGGER.log(Level.FINE, "Failed to close instance lock channel", e);
+            }
+            instanceLockChannel = null;
         }
     }
 
