@@ -5,6 +5,7 @@ import com.cocolatan.model.StockMovement;
 import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.StockMovementRepository;
 import com.cocolatan.service.InventoryService;
+import com.cocolatan.util.StockRisk;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -44,7 +45,7 @@ public class StockPresenter {
             List<ProductStockInfo> dashboard = new ArrayList<>(products.size());
             for (Product product : products) {
                 int stock = stockMap.getOrDefault(product.getId(), 0);
-                String status = (stock == 0) ? "OUT" : (stock <= product.getMinStock() ? "LOW" : "OK");
+                String status = (stock == 0) ? "OUT" : (StockRisk.isAtOrBelowMinimum(stock, product.getMinStock()) ? "LOW" : "OK");
                 dashboard.add(new ProductStockInfo(product, stock, status));
             }
 

@@ -4,6 +4,7 @@ import com.cocolatan.model.*;
 import com.cocolatan.presenter.PurchasePresenter;
 import com.cocolatan.repository.*;
 import com.cocolatan.service.InventoryService;
+import com.cocolatan.service.PurchaseService;
 import com.cocolatan.util.AlertService;
 import com.cocolatan.util.CurrencyFormatter;
 import com.cocolatan.util.DateUtils;
@@ -158,12 +159,12 @@ public class PurchaseController implements Refreshable {
     @FXML
     public void initialize() {
         DatabaseManager dbManager = com.cocolatan.CocolatanApp.getDatabaseManager();
+        PurchaseRepository purchaseRepo = new PurchaseRepository(dbManager);
+        StockMovementRepository stockMovementRepo = new StockMovementRepository(dbManager);
+        ProductRepository productRepo = new ProductRepository(dbManager);
+        SupplierRepository supplierRepo = new SupplierRepository(dbManager);
         presenter = new PurchasePresenter(
-                new PurchaseRepository(dbManager),
-                new StockMovementRepository(dbManager),
-                new ProductRepository(dbManager),
-                new SupplierRepository(dbManager),
-                dbManager
+                new PurchaseService(purchaseRepo, stockMovementRepo, productRepo, supplierRepo, dbManager)
         );
         categoryRepository = new CategoryRepository(dbManager);
         subcategoryRepository = new SubcategoryRepository(dbManager);

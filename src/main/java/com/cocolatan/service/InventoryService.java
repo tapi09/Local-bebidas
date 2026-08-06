@@ -4,6 +4,7 @@ import com.cocolatan.model.Product;
 import com.cocolatan.model.StockMovement;
 import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.StockMovementRepository;
+import com.cocolatan.util.StockRisk;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -23,7 +24,6 @@ public class InventoryService {
     private static final Logger LOGGER = Logger.getLogger(InventoryService.class.getName());
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final int EXPIRY_WARNING_DAYS = 7;
 
     private final StockMovementRepository stockMovementRepository;
     private final ProductRepository productRepository;
@@ -57,7 +57,7 @@ public class InventoryService {
             if (stock <= 0) {
                 return "OUT";
             }
-            if (stock <= product.getMinStock()) {
+            if (StockRisk.isAtOrBelowMinimum(stock, product.getMinStock())) {
                 return "LOW";
             }
             return "OK";
@@ -75,7 +75,7 @@ public class InventoryService {
             List<Product> lowStock = new ArrayList<>();
             for (Product product : allProducts) {
                 int stock = stockMovementRepository.computeCurrentStock(product.getId());
-                if (stock <= product.getMinStock()) {
+                if (StockRisk.isAtOrBelowMinimum(stock, product.getMinStock())) {
                     lowStock.add(product);
                 }
             }
@@ -201,9 +201,7 @@ public class InventoryService {
         }
         try {
             LocalDate expiryDate = LocalDate.parse(expiryDateStr, DATE_FORMATTER);
-            LocalDate now = LocalDate.now();
-            LocalDate warningDate = now.plusDays(EXPIRY_WARNING_DAYS);
-            return !expiryDate.isBefore(now) && !expiryDate.isAfter(warningDate);
+            return StockRisk.isExpiringSoon(expiryDate, LocalDate.now());
         } catch (Exception e) {
             // A malformed date produces no "expiring soon" alert (safe default).
             // Logged at FINE so the bad value is observable without flooding production logs.

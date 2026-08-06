@@ -5,6 +5,7 @@ import com.cocolatan.model.PurchaseItem;
 import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.PurchaseRepository;
 import com.cocolatan.repository.StockMovementRepository;
+import com.cocolatan.util.StockRisk;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -23,7 +24,6 @@ public class AlertService {
     private static final Logger LOGGER = Logger.getLogger(AlertService.class.getName());
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final int EXPIRY_WARNING_DAYS = 7;
 
     private final ProductRepository productRepository;
     private final StockMovementRepository stockMovementRepository;
@@ -66,7 +66,7 @@ public class AlertService {
                             Alert alert = new Alert("EXPIRED", product, item.getLotNumber(),
                                     item.getExpiryDate(), item.getQuantity());
                             alerts.add(alert);
-                        } else if (!expiryDate.isAfter(now.plusDays(EXPIRY_WARNING_DAYS))) {
+                        } else if (StockRisk.isExpiringSoon(expiryDate, now)) {
                             // Expiring soon
                             long daysUntil = java.time.temporal.ChronoUnit.DAYS.between(now, expiryDate);
                             Alert alert = new Alert("EXPIRING_SOON", product, item.getLotNumber(),
@@ -102,7 +102,7 @@ public class AlertService {
                 if (stock == 0) {
                     Alert alert = new Alert("OUT_OF_STOCK", product, null, null, stock);
                     alerts.add(alert);
-                } else if (stock < product.getMinStock()) {
+                } else if (StockRisk.isBelowMinimum(stock, product.getMinStock())) {
                     Alert alert = new Alert("LOW_STOCK", product, null, null, stock);
                     alerts.add(alert);
                 }
@@ -134,11 +134,10 @@ public class AlertService {
         try {
             List<Product> products = productRepository.findAllActive();
             LocalDate now = LocalDate.now();
-            LocalDate warnBefore = now.plusDays(EXPIRY_WARNING_DAYS);
             for (Product product : products) {
                 // Low-stock / out-of-stock
                 int stock = inventoryService.getCurrentStock(product.getId());
-                if (stock == 0 || stock < product.getMinStock()) {
+                if (stock == 0 || StockRisk.isBelowMinimum(stock, product.getMinStock())) {
                     count++;
                 }
                 // Expiry
@@ -150,7 +149,7 @@ public class AlertService {
                     }
                     try {
                         LocalDate expiry = LocalDate.parse(item.getExpiryDate(), DATE_FORMATTER);
-                        if (!expiry.isAfter(warnBefore)) {
+                        if (StockRisk.isExpiryAlert(expiry, now)) {
                             count++;
                         }
                     } catch (Exception e) {

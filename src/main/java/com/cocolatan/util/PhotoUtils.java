@@ -6,16 +6,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Utility for managing product photos stored relative to the app's data directory.
  * Photos live in {@code %APPDATA%/Cocolatan/product-photos/} co-located with DB and logs.
  */
 public class PhotoUtils {
-
-    private static final Logger LOGGER = Logger.getLogger(PhotoUtils.class.getName());
 
     private PhotoUtils() {
     }
@@ -107,22 +103,6 @@ public class PhotoUtils {
         // Fallback for legacy relative data folder
         Path legacy = Paths.get("data", photoPath);
         return Files.exists(legacy) ? legacy.toAbsolutePath() : null;
-    }
-
-    /**
-     * Deletes a product photo file by its relative path. No-op if the path is
-     * blank or the file does not exist.
-     */
-    public static void deleteImage(String photoPath) {
-        if (photoPath == null || photoPath.isBlank()) {
-            return;
-        }
-        Path p = getBaseDir().resolve(photoPath);
-        try {
-            Files.deleteIfExists(p);
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "No se pudo eliminar la foto: " + photoPath, e);
-        }
     }
 
     private static String extractExtension(String name) {

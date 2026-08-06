@@ -3,182 +3,114 @@ package com.cocolatan.presenter;
 import com.cocolatan.model.Purchase;
 import com.cocolatan.model.PurchaseItem;
 import com.cocolatan.model.Supplier;
-import com.cocolatan.repository.DatabaseManager;
-import com.cocolatan.repository.ProductRepository;
-import com.cocolatan.repository.PurchaseRepository;
-import com.cocolatan.repository.StockMovementRepository;
-import com.cocolatan.repository.SupplierRepository;
-import com.cocolatan.model.StockMovement;
+import com.cocolatan.service.PurchaseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PurchasePresenterTest {
 
     @Mock
-    private PurchaseRepository purchaseRepository;
-
-    @Mock
-    private StockMovementRepository stockMovementRepository;
-
-    @Mock
-    private ProductRepository productRepository;
-
-    @Mock
-    private SupplierRepository supplierRepository;
-
-    @Mock
-    private DatabaseManager databaseManager;
-
-    @Mock
-    private Connection connection;
+    private PurchaseService purchaseService;
 
     private PurchasePresenter presenter;
 
     @BeforeEach
     void setUp() {
-        lenient().when(databaseManager.getConnection()).thenReturn(connection);
-        presenter = new PurchasePresenter(purchaseRepository, stockMovementRepository, productRepository, supplierRepository, databaseManager);
+        presenter = new PurchasePresenter(purchaseService);
     }
 
     @Test
-    void savePurchaseCreatesPurchaseAndMovements() throws SQLException {
-        when(purchaseRepository.saveWithItems(any(Connection.class), any(Purchase.class), anyList())).thenReturn(1L);
-
+    void savePurchaseDelegatesToService() {
         Purchase purchase = createPurchase();
         PurchaseItem item = createPurchaseItem(1L, 24, 350.0);
+        when(purchaseService.savePurchase(purchase, Collections.singletonList(item))).thenReturn(true);
 
-        presenter.savePurchase(purchase, Collections.singletonList(item));
+        boolean result = presenter.savePurchase(purchase, Collections.singletonList(item));
 
-        verify(purchaseRepository).saveWithItems(any(Connection.class), eq(purchase), anyList());
-        verify(stockMovementRepository).insert(any(Connection.class), any(StockMovement.class));
+        assertThat(result).isTrue();
+        verify(purchaseService).savePurchase(purchase, Collections.singletonList(item));
     }
 
     @Test
-    void savePurchaseWithMultipleItemsCreatesMultipleMovements() throws SQLException {
-        when(purchaseRepository.saveWithItems(any(Connection.class), any(Purchase.class), anyList())).thenReturn(1L);
-
+    void savePurchasePassesThroughFalseResult() {
         Purchase purchase = createPurchase();
-        PurchaseItem item1 = createPurchaseItem(1L, 10, 100.0);
-        PurchaseItem item2 = createPurchaseItem(2L, 20, 50.0);
+        List<PurchaseItem> items = Collections.emptyList();
+        when(purchaseService.savePurchase(purchase, items)).thenReturn(false);
 
-        presenter.savePurchase(purchase, Arrays.asList(item1, item2));
-
-        verify(stockMovementRepository, times(2)).insert(any(Connection.class), any(StockMovement.class));
-    }
-
-    @Test
-    void savePurchaseUpdatesProductCostPrice() throws SQLException {
-        when(purchaseRepository.saveWithItems(any(Connection.class), any(Purchase.class), anyList())).thenReturn(1L);
-
-        Purchase purchase = createPurchase();
-        PurchaseItem item = createPurchaseItem(1L, 24, 380.0);
-
-        presenter.savePurchase(purchase, Collections.singletonList(item));
-
-        verify(productRepository).updateCostPrice(any(Connection.class), eq(1L), eq(380.0));
-    }
-
-    @Test
-    void savePurchaseRejectsEmptyItemList() throws SQLException {
-        Purchase purchase = createPurchase();
-
-        boolean result = presenter.savePurchase(purchase, Collections.emptyList());
+        boolean result = presenter.savePurchase(purchase, items);
 
         assertThat(result).isFalse();
-        verify(purchaseRepository, never()).saveWithItems(any(Connection.class), any(), any());
+        verify(purchaseService).savePurchase(purchase, items);
     }
 
     @Test
-    void savePurchaseRejectsNullItemList() throws SQLException {
-        Purchase purchase = createPurchase();
-
-        boolean result = presenter.savePurchase(purchase, null);
-
-        assertThat(result).isFalse();
-        verify(purchaseRepository, never()).saveWithItems(any(Connection.class), any(), any());
-    }
-
-    @Test
-    void loadPurchaseHistoryDelegatesToRepository() throws SQLException {
+    void loadPurchaseHistoryDelegatesToService() {
         List<Purchase> history = Arrays.asList(createPurchase());
-        when(purchaseRepository.findHistory()).thenReturn(history);
+        when(purchaseService.loadPurchaseHistory()).thenReturn(history);
 
         List<Purchase> result = presenter.loadPurchaseHistory();
 
         assertThat(result).hasSize(1);
-        verify(purchaseRepository).findHistory();
+        verify(purchaseService).loadPurchaseHistory();
     }
 
     @Test
-    void loadSuppliersForDropdown() throws SQLException {
+    void loadSuppliersDelegatesToService() {
         List<Supplier> suppliers = Arrays.asList(new Supplier());
-        when(supplierRepository.findForDropdown()).thenReturn(suppliers);
+        when(purchaseService.loadSuppliers()).thenReturn(suppliers);
 
         List<Supplier> result = presenter.loadSuppliers();
 
         assertThat(result).hasSize(1);
+        verify(purchaseService).loadSuppliers();
     }
 
     @Test
-    void savePurchaseCalculatesTotalFromItems() throws SQLException {
-        when(purchaseRepository.saveWithItems(any(Connection.class), any(Purchase.class), anyList())).thenAnswer(invocation -> {
-            Purchase p = invocation.getArgument(1);
-            List<PurchaseItem> items = invocation.getArgument(2);
-            double subtotal = items.stream().mapToDouble(i -> i.getQuantity() * i.getUnitCost()).sum();
-            p.setSubtotal(subtotal);
-            p.setTotalAmount(subtotal + p.getTaxAmount());
-            return 1L;
-        });
+    void getSupplierNameDelegatesToService() {
+        when(purchaseService.getSupplierName(7L)).thenReturn("Proveedor X");
 
-        Purchase purchase = createPurchase();
-        PurchaseItem item1 = createPurchaseItem(1L, 10, 100.0); // 1000
-        PurchaseItem item2 = createPurchaseItem(2L, 5, 200.0);  // 1000
+        String result = presenter.getSupplierName(7L);
 
-        presenter.savePurchase(purchase, Arrays.asList(item1, item2));
-
-        ArgumentCaptor<Purchase> captor = ArgumentCaptor.forClass(Purchase.class);
-        verify(purchaseRepository).saveWithItems(any(Connection.class), captor.capture(), anyList());
-        assertThat(captor.getValue().getSubtotal()).isEqualTo(2000.0);
-        assertThat(captor.getValue().getTotalAmount()).isEqualTo(2000.0);
+        assertThat(result).isEqualTo("Proveedor X");
+        verify(purchaseService).getSupplierName(7L);
     }
 
     @Test
-    void savePurchaseWithTaxSetsCorrectTotal() throws SQLException {
-        when(purchaseRepository.saveWithItems(any(Connection.class), any(Purchase.class), anyList())).thenAnswer(invocation -> {
-            Purchase p = invocation.getArgument(1);
-            List<PurchaseItem> items = invocation.getArgument(2);
-            double subtotal = items.stream().mapToDouble(i -> i.getQuantity() * i.getUnitCost()).sum();
-            p.setSubtotal(subtotal);
-            p.setTotalAmount(subtotal + p.getTaxAmount());
-            return 1L;
-        });
+    void loadProductsForDropdownDelegatesToService() {
+        when(purchaseService.loadProductsForDropdown()).thenReturn(Collections.emptyList());
 
-        Purchase purchase = createPurchase();
-        purchase.setTaxAmount(420.0); // IVA 21%
-        PurchaseItem item1 = createPurchaseItem(1L, 10, 100.0); // 1000
+        assertThat(presenter.loadProductsForDropdown()).isEmpty();
+        verify(purchaseService).loadProductsForDropdown();
+    }
 
-        presenter.savePurchase(purchase, Collections.singletonList(item1));
+    @Test
+    void saveSupplierDelegatesToService() {
+        Supplier supplier = new Supplier();
+        when(purchaseService.saveSupplier(supplier)).thenReturn(supplier);
 
-        ArgumentCaptor<Purchase> captor = ArgumentCaptor.forClass(Purchase.class);
-        verify(purchaseRepository).saveWithItems(any(Connection.class), captor.capture(), anyList());
-        assertThat(captor.getValue().getSubtotal()).isEqualTo(1000.0);
-        assertThat(captor.getValue().getTaxAmount()).isEqualTo(420.0);
-        assertThat(captor.getValue().getTotalAmount()).isEqualTo(1420.0);
+        assertThat(presenter.saveSupplier(supplier)).isSameAs(supplier);
+        verify(purchaseService).saveSupplier(supplier);
+    }
+
+    @Test
+    void getPurchaseItemsDelegatesToService() {
+        List<PurchaseItem> items = Arrays.asList(createPurchaseItem(1L, 10, 100.0));
+        when(purchaseService.getPurchaseItems(3L)).thenReturn(items);
+
+        assertThat(presenter.getPurchaseItems(3L)).hasSize(1);
+        verify(purchaseService).getPurchaseItems(3L);
     }
 
     @Test
