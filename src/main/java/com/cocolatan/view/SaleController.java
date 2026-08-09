@@ -271,7 +271,20 @@ public class SaleController implements Refreshable {
             presenter.setSaleDiscount(0, "NONE");
         }
 
-        double discountedTotal = presenter.getDiscountedTotal();
+        double discountedTotal;
+        try {
+            discountedTotal = presenter.getDiscountedTotal();
+        } catch (SalesService.ValidationException e) {
+            // Invalid discount (negative, % above 100, fixed above subtotal):
+            // tell the user and reset the discount state instead of propagating.
+            AlertService.showErrorDialog("Descuento Inválido", e.getMessage());
+            presenter.setSaleDiscount(0, "NONE");
+            discountCombo.getSelectionModel().selectFirst();
+            discountField.setText("0");
+            discountAmountLabel.setVisible(false);
+            totalLabel.setText(CurrencyFormatter.format(presenter.getCartTotal()));
+            return;
+        }
         totalLabel.setText(CurrencyFormatter.format(discountedTotal));
 
         if ("PERCENTAGE".equals(presenter.getSaleDiscountType())) {

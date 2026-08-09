@@ -296,13 +296,32 @@ public class SalePresenter {
 
     /**
      * Calculates cart total with discounts applied.
+     *
+     * <p>Validates the discount before applying it (REQ-DISC-03 / REQ-DISC-04):
+     * a negative discount, a PERCENTAGE above 100, or a FIXED discount above the
+     * subtotal throws a {@link SalesService.ValidationException} instead of being
+     * silently clamped. The Math.max floor remains as defense-in-depth and is
+     * observable at the valid boundaries (100% → 0, FIXED == subtotal → 0).</p>
      */
     public double getDiscountedTotal() {
         double total = getCartTotal();
-        if ("PERCENTAGE".equals(saleDiscountType) && saleDiscount > 0) {
-            total = total * (1 - saleDiscount / 100);
-        } else if ("FIXED".equals(saleDiscountType) && saleDiscount > 0) {
-            total = Math.max(0, total - saleDiscount);
+        if ("PERCENTAGE".equals(saleDiscountType)) {
+            if (saleDiscount < 0) {
+                throw new SalesService.ValidationException("El descuento no puede ser negativo.");
+            }
+            if (saleDiscount > 100) {
+                throw new SalesService.ValidationException("El descuento porcentual no puede superar el 100%.");
+            }
+            return Math.max(0, total * (1 - saleDiscount / 100));
+        }
+        if ("FIXED".equals(saleDiscountType)) {
+            if (saleDiscount < 0) {
+                throw new SalesService.ValidationException("El descuento no puede ser negativo.");
+            }
+            if (saleDiscount > total) {
+                throw new SalesService.ValidationException("El descuento fijo no puede superar el subtotal de la venta.");
+            }
+            return Math.max(0, total - saleDiscount);
         }
         return total;
     }

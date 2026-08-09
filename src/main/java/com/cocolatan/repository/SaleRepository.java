@@ -2,6 +2,7 @@ package com.cocolatan.repository;
 
 import com.cocolatan.model.Sale;
 import com.cocolatan.model.SaleItem;
+import com.cocolatan.service.SalesService;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -105,15 +106,33 @@ public class SaleRepository {
 
     /**
      * Applies the sale-level discount to a subtotal. PERCENTAGE discounts are a
-     * percentage of the subtotal; FIXED discounts are a flat amount capped at the
-     * subtotal. Any other type (including NONE) leaves the subtotal unchanged.
+     * percentage of the subtotal; FIXED discounts are a flat amount. Any other
+     * type (including NONE) leaves the subtotal unchanged.
+     *
+     * <p>Mirrors {@code SalePresenter.getDiscountedTotal} validation (REQ-DISC-03 /
+     * REQ-DISC-04): a negative discount, a PERCENTAGE above 100, or a FIXED
+     * discount above the subtotal is rejected with a
+     * {@link SalesService.ValidationException} before any INSERT happens. The
+     * Math.max floor remains as defense-in-depth at the valid boundaries.</p>
      */
     private double applySaleDiscount(double subtotal, Sale sale) {
         double discount = sale.getDiscount();
-        if ("PERCENTAGE".equals(sale.getDiscountType()) && discount > 0) {
-            return subtotal * (1 - discount / 100);
+        if ("PERCENTAGE".equals(sale.getDiscountType())) {
+            if (discount < 0) {
+                throw new SalesService.ValidationException("El descuento no puede ser negativo.");
+            }
+            if (discount > 100) {
+                throw new SalesService.ValidationException("El descuento porcentual no puede superar el 100%.");
+            }
+            return Math.max(0, subtotal * (1 - discount / 100));
         }
-        if ("FIXED".equals(sale.getDiscountType()) && discount > 0) {
+        if ("FIXED".equals(sale.getDiscountType())) {
+            if (discount < 0) {
+                throw new SalesService.ValidationException("El descuento no puede ser negativo.");
+            }
+            if (discount > subtotal) {
+                throw new SalesService.ValidationException("El descuento fijo no puede superar el subtotal de la venta.");
+            }
             return Math.max(0, subtotal - discount);
         }
         return subtotal;

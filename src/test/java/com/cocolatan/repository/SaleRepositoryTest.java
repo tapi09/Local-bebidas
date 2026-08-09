@@ -4,6 +4,7 @@ import com.cocolatan.model.Product;
 import com.cocolatan.model.Sale;
 import com.cocolatan.model.SaleItem;
 import com.cocolatan.model.Supplier;
+import com.cocolatan.service.SalesService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -165,18 +166,18 @@ class SaleRepositoryTest {
     }
 
     @Test
-    @DisplayName("saveWithItems() no deja el total negativo con descuento fijo mayor al subtotal")
-    void saveWithItemsFixedDiscountFloorsTotalAtZero() throws SQLException {
+    @DisplayName("saveWithItems() rechaza descuento fijo mayor al subtotal (REQ-DISC-04)")
+    void saveWithItemsFixedDiscountAboveSubtotalRejected() throws SQLException {
         Sale sale = createSale("IN", "CASH");
         sale.setDiscount(5000.0);
         sale.setDiscountType("FIXED");
         SaleItem item = createSaleItem(1L, 2, 600.0);  // 1200
 
-        Long id = repository.saveWithItems(sale, Collections.singletonList(item));
+        assertThatThrownBy(() -> repository.saveWithItems(sale, Collections.singletonList(item)))
+                .isInstanceOf(SalesService.ValidationException.class)
+                .hasMessageContaining("subtotal");
 
-        Optional<Sale> found = repository.findById(id);
-        assertThat(found).isPresent();
-        assertThat(found.get().getTotalAmount()).isEqualTo(0.0);
+        assertThat(repository.findHistory()).isEmpty();
     }
 
     @Test
