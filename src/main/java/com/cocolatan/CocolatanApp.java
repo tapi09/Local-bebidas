@@ -26,6 +26,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,6 +42,17 @@ import java.util.logging.Logger;
 public class CocolatanApp extends Application {
 
     private static final Logger LOGGER = Logger.getLogger(CocolatanApp.class.getName());
+
+    /** Bounds how long the crash-path shutdown hook may spend exporting a backup. */
+    static final long SHUTDOWN_EXPORT_TIMEOUT_SECONDS = 5;
+
+    /**
+     * Set when {@link #stop()} already handled the backup export decision on a
+     * normal close. The JVM shutdown hook then skips the crash-path export so
+     * cancelling the folder picker on normal close does not trigger a copy.
+     */
+    private static final AtomicBoolean exportHandledOnNormalClose = new AtomicBoolean(false);
+
     private static DatabaseManager databaseManager;
     private static BackupService backupService;
     private static Path exportDir;
@@ -120,8 +137,17 @@ public class CocolatanApp extends Application {
             // Initialize database
             databaseManager = DatabaseManager.createFromFile(dbPath.toString());
 
-            // Safety net: close DB on JVM shutdown (covers System.exit and crash paths)
+            // Safety net: close DB on JVM shutdown (covers System.exit and crash paths).
+            // The crash-path backup export runs first (headless, bounded timeout)
+            // so the last-known export directory can still be read from the DB.
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                if (shouldExportOnShutdown() && backupService != null && databaseManager != null) {
+                    tryExportOnShutdown(
+                            backupService,
+                            new ConfigRepository(databaseManager),
+                            SHUTDOWN_EXPORT_TIMEOUT_SECONDS
+                    );
+                }
                 if (backupScheduler != null) {
                     backupScheduler.stop();
                 }
@@ -325,6 +351,86 @@ public class CocolatanApp extends Application {
             }
             instanceLockChannel = null;
         }
+    }
+
+    // ──────────────────────────────────────────────
+    // Backup export helpers (normal close + crash path)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Returns the last directory used for backup export, if one was persisted.
+     * A missing/unreadable config value yields an empty result — never throws.
+     */
+    static Optional<Path> lastKnownExportDir(ConfigRepository config) {
+        try {
+            return config.getBackupExportDir()
+                    .filter(s -> !s.isBlank())
+                    .map(Path::of);
+        } catch (SQLException e) {
+            LOGGER.log(Level.FINE, "Could not read last export directory", e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Persists the given directory as the last backup export directory. A
+     * persistence failure is logged, never thrown.
+     */
+    static void persistExportDir(ConfigRepository config, Path dir) {
+        try {
+            config.setBackupExportDir(dir.toString());
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "Could not persist last export directory", e);
+        }
+    }
+
+    /**
+     * Best-effort headless backup export for the JVM shutdown hook (crash or
+     * forced termination). Copies the latest internal backup to the
+     * last-known export directory, bounded by {@code timeoutSeconds}. Runs no
+     * UI, swallows every exception, and logs failures at WARN level only.
+     */
+    public static void tryExportOnShutdown(BackupService service, ConfigRepository config, long timeoutSeconds) {
+        try {
+            Optional<Path> lastDir = lastKnownExportDir(config);
+            if (lastDir.isEmpty()) {
+                return;
+            }
+            Path dest = lastDir.get();
+            ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+                Thread thread = new Thread(r);
+                thread.setDaemon(true);
+                return thread;
+            });
+            try {
+                Future<Path> future = executor.submit(() -> service.exportBackup(dest));
+                Path exported = future.get(timeoutSeconds, TimeUnit.SECONDS);
+                if (exported != null) {
+                    LOGGER.info("Crash-path backup exported to " + exported);
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Crash-path backup export failed", e);
+            } finally {
+                executor.shutdownNow();
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Crash-path backup export failed", e);
+        }
+    }
+
+    /** Records that the normal-close path already handled the export decision. */
+    public static void markExportHandledOnNormalClose() {
+        exportHandledOnNormalClose.set(true);
+    }
+
+    /** True when the JVM shutdown hook should attempt the crash-path export. */
+    public static boolean shouldExportOnShutdown() {
+        return !exportHandledOnNormalClose.get();
+    }
+
+    /** Test hook: resets the normal-close export flag. */
+    public static void resetExportHandledFlag() {
+        exportHandledOnNormalClose.set(false);
     }
 
     /**
