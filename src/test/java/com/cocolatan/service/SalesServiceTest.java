@@ -184,52 +184,62 @@ class SalesServiceTest {
     }
 
     // --- cancelSale tests ---
+    // PR3 (REQ-CANCEL-01): the sale re-read and the CANCELLED status check now
+    // happen INSIDE the transaction using the transactional connection; the
+    // idempotent second attempt throws IllegalStateException("Sale already cancelled").
 
     @Test
-    @DisplayName("cancelSale revierte stock con ENTRY y actualiza status")
+    @DisplayName("cancelSale revierte stock con ENTRY y actualiza status (relectura transaccional)")
     void cancelSaleCreatesEntryMovementsAndUpdatesStatus() throws SQLException {
         Sale sale = createSale("IN", "CASH");
         sale.setId(1L);
         SaleItem item = createSaleItem(1L, 2, 600.0);
 
-        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
-        when(saleRepository.findItemsBySaleId(1L)).thenReturn(Collections.singletonList(item));
+        when(saleRepository.findById(connection, 1L)).thenReturn(Optional.of(sale));
+        when(saleRepository.findItemsBySaleId(connection, 1L)).thenReturn(Collections.singletonList(item));
         when(connection.getAutoCommit()).thenReturn(true);
 
         salesService.cancelSale(1L, "Cliente devolvió producto");
 
-        verify(stockMovementRepository).insert(any(Connection.class), argThat(movement ->
+        verify(saleRepository).findById(connection, 1L);
+        verify(saleRepository).findItemsBySaleId(connection, 1L);
+        verify(stockMovementRepository).insert(eq(connection), argThat(movement ->
                 "ENTRY".equals(movement.getMovementType()) &&
                 "SALE".equals(movement.getReferenceType()) &&
                 movement.getReferenceId() == 1L &&
                 movement.getQuantity() == 2
         ));
-        verify(saleRepository).updateStatus(any(Connection.class), eq(1L), eq("CANCELLED"), anyString(), eq("Cliente devolvió producto"));
+        verify(saleRepository).updateStatus(eq(connection), eq(1L), eq("CANCELLED"), anyString(), eq("Cliente devolvió producto"));
         verify(connection).commit();
     }
 
     @Test
     @DisplayName("cancelSale lanza error si venta no existe")
     void cancelSaleThrowsWhenSaleNotFound() throws SQLException {
-        when(saleRepository.findById(999L)).thenReturn(Optional.empty());
+        when(saleRepository.findById(connection, 999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> salesService.cancelSale(999L, "Motivo test"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Venta no encontrada");
+
+        verify(connection).rollback();
     }
 
     @Test
-    @DisplayName("cancelSale lanza error si venta ya está cancelada")
+    @DisplayName("cancelSale lanza IllegalStateException si venta ya está cancelada")
     void cancelSaleThrowsWhenAlreadyCancelled() throws SQLException {
         Sale sale = createSale("IN", "CASH");
         sale.setId(1L);
         sale.setStatus("CANCELLED");
 
-        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
+        when(saleRepository.findById(connection, 1L)).thenReturn(Optional.of(sale));
 
         assertThatThrownBy(() -> salesService.cancelSale(1L, "Motivo test"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("ya fue anulada");
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Sale already cancelled");
+
+        verify(connection).rollback();
+        verify(stockMovementRepository, never()).insert(any(Connection.class), any(StockMovement.class));
     }
 
     @Test
@@ -239,13 +249,13 @@ class SalesServiceTest {
         sale.setId(1L);
         SaleItem item = createSaleItem(1L, 2, 600.0);
 
-        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
-        when(saleRepository.findItemsBySaleId(1L)).thenReturn(Collections.singletonList(item));
+        when(saleRepository.findById(connection, 1L)).thenReturn(Optional.of(sale));
+        when(saleRepository.findItemsBySaleId(connection, 1L)).thenReturn(Collections.singletonList(item));
         when(connection.getAutoCommit()).thenReturn(true);
 
         salesService.cancelSale(1L, "");
 
-        verify(saleRepository).updateStatus(any(Connection.class), eq(1L), eq("CANCELLED"), anyString(), eq(""));
+        verify(saleRepository).updateStatus(eq(connection), eq(1L), eq("CANCELLED"), anyString(), eq(""));
         verify(connection).commit();
     }
 
@@ -256,10 +266,10 @@ class SalesServiceTest {
         sale.setId(1L);
         SaleItem item = createSaleItem(1L, 2, 600.0);
 
-        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
-        when(saleRepository.findItemsBySaleId(1L)).thenReturn(Collections.singletonList(item));
+        when(saleRepository.findById(connection, 1L)).thenReturn(Optional.of(sale));
+        when(saleRepository.findItemsBySaleId(connection, 1L)).thenReturn(Collections.singletonList(item));
         when(connection.getAutoCommit()).thenReturn(true);
-        doThrow(new SQLException("DB error")).when(stockMovementRepository).insert(any(Connection.class), any(StockMovement.class));
+        doThrow(new SQLException("DB error")).when(stockMovementRepository).insert(eq(connection), any(StockMovement.class));
 
         assertThatThrownBy(() -> salesService.cancelSale(1L, "Motivo"))
                 .isInstanceOf(RuntimeException.class)

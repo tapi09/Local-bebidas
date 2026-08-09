@@ -218,6 +218,28 @@ class SaleRepositoryTest {
     }
 
     @Test
+    @DisplayName("findItemsBySaleId(Connection, Long) usa la conexión provista y devuelve los items (REQ-CANCEL-01)")
+    void findItemsBySaleIdWithConnectionReturnsItems() throws SQLException {
+        Sale sale = createSale("IN", "CASH");
+        SaleItem item = createSaleItem(1L, 2, 600.0);
+
+        Long saleId = repository.saveWithItems(sale, Collections.singletonList(item));
+
+        List<SaleItem> items = repository.findItemsBySaleId(dbManager.getConnection(), saleId);
+        assertThat(items).hasSize(1);
+        assertThat(items.get(0).getProductId()).isEqualTo(1L);
+        assertThat(items.get(0).getQuantity()).isEqualTo(2);
+        assertThat(items.get(0).getUnitPrice()).isEqualTo(600.0);
+    }
+
+    @Test
+    @DisplayName("findItemsBySaleId(Connection, Long) retorna lista vacía para venta sin items")
+    void findItemsBySaleIdWithConnectionReturnsEmptyForNonexistent() throws SQLException {
+        List<SaleItem> items = repository.findItemsBySaleId(dbManager.getConnection(), 999L);
+        assertThat(items).isEmpty();
+    }
+
+    @Test
     @DisplayName("findById() retorna empty para ID de sale inexistente")
     void findByIdReturnsEmptyForNonexistent() throws SQLException {
         Optional<Sale> found = repository.findById(999L);
