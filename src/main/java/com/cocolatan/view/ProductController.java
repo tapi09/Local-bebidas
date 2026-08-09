@@ -692,11 +692,21 @@ public class ProductController implements Refreshable {
                     AlertService.showErrorDialog("Error de Validación", "Verifique que todos los campos sean correctos.");
                     return;
                 }
-                presenter.updateProduct(product);
+                boolean updated = presenter.updateProduct(product);
+                if (!updated) {
+                    AlertService.showWarningDialog("Operación cancelada",
+                            "Operación cancelada: precio en cero no confirmado");
+                    return;
+                }
             } else {
+                if (!presenter.validateProduct(product)) {
+                    AlertService.showErrorDialog("Error de Validación", "Verifique que todos los campos sean correctos.");
+                    return;
+                }
                 boolean saved = presenter.saveProduct(product);
                 if (!saved) {
-                    AlertService.showErrorDialog("Error de Validación", "Verifique que todos los campos sean correctos.");
+                    AlertService.showWarningDialog("Operación cancelada",
+                            "Operación cancelada: precio en cero no confirmado");
                     return;
                 }
             }

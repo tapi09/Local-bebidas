@@ -10,6 +10,7 @@ import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.SubcategoryRepository;
 import com.cocolatan.repository.SupplierRepository;
 import com.cocolatan.service.InventoryService;
+import com.cocolatan.util.AlertService;
 
 import java.sql.SQLException;
 import java.util.Collections;
@@ -97,7 +98,12 @@ public class ProductPresenter {
     /**
      * Validates and saves a new product.
      *
-     * @return true if saved successfully, false if validation failed
+     * <p>A product with {@code salePrice == 0} requires two sequential
+     * confirmation dialogs (REQ-ZERO-PRICE-01); cancelling either aborts the
+     * save before any repository interaction.
+     *
+     * @return true if saved successfully, false if validation failed or the
+     *         user cancelled a zero-price confirmation
      */
     public boolean saveProduct(Product product) {
         if (!validateProduct(product)) {
@@ -105,6 +111,9 @@ public class ProductPresenter {
         }
         if (product.getCategory() == null) {
             product.setCategory("");
+        }
+        if (!confirmZeroPriceIfNeeded(product)) {
+            return false;
         }
         try {
             checkBarcodeDuplicate(product.getBarcode(), null);
@@ -117,17 +126,55 @@ public class ProductPresenter {
 
     /**
      * Updates an existing product.
+     *
+     * <p>A product whose {@code salePrice == 0} requires two sequential
+     * confirmation dialogs (REQ-ZERO-PRICE-02); cancelling either aborts the
+     * update before any repository interaction.
+     *
+     * @return true if updated successfully, false if the user cancelled a
+     *         zero-price confirmation
      */
-    public void updateProduct(Product product) {
+    public boolean updateProduct(Product product) {
         if (product.getCategory() == null) {
             product.setCategory("");
+        }
+        if (!confirmZeroPriceIfNeeded(product)) {
+            return false;
         }
         try {
             checkBarcodeDuplicate(product.getBarcode(), product.getId());
             productRepository.update(product);
+            return true;
         } catch (SQLException e) {
             throw new RuntimeException("Error al actualizar producto", e);
         }
+    }
+
+    /**
+     * Shows the two sequential zero-price confirmation dialogs when the sale
+     * price is zero. The dialogs carry the technical warning texts mandated by
+     * the spec: dialog 1 warns that sales generate no revenue, dialog 2 that
+     * the product is sold at no cost.
+     *
+     * <p>Hooked here (not in {@link #validateProduct(Product)}) because
+     * {@code validateProduct} is called multiple times along the save path and
+     * would otherwise show the dialogs repeatedly.
+     *
+     * @return true when the price is non-zero or both dialogs are confirmed
+     */
+    private boolean confirmZeroPriceIfNeeded(Product product) {
+        if (product.getSalePrice() != 0) {
+            return true;
+        }
+        boolean firstConfirmed = AlertService.showConfirmDialog(
+                "Precio en Cero",
+                "Sale price is zero — sales will generate no revenue. Are you sure?");
+        if (!firstConfirmed) {
+            return false;
+        }
+        return AlertService.showConfirmDialog(
+                "Precio en Cero",
+                "This product will be sold at no cost. Confirm zero price?");
     }
 
     /**
