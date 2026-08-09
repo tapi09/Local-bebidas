@@ -62,4 +62,31 @@ class ConfigRepositoryTest {
 
         assertThat(repository.get("master_reset_hash")).contains(hash);
     }
+
+    @Test
+    void backupExportDirIsEmptyByDefault() throws SQLException {
+        assertThat(repository.getBackupExportDir()).isEmpty();
+    }
+
+    @Test
+    void backupExportDirStoresAndRetrievesValue() throws SQLException {
+        repository.setBackupExportDir("C:\\Users\\test\\exports");
+
+        assertThat(repository.getBackupExportDir()).contains("C:\\Users\\test\\exports");
+    }
+
+    @Test
+    void backupExportDirIsStoredUnderExpectedKey() throws SQLException {
+        repository.setBackupExportDir("D:\\respaldos");
+
+        assertThat(repository.get(ConfigRepository.KEY_BACKUP_EXPORT_DIR)).contains("D:\\respaldos");
+    }
+
+    @Test
+    void setBackupExportDirReplacesPreviousValue() throws SQLException {
+        repository.setBackupExportDir("C:\\first");
+        repository.setBackupExportDir("C:\\second");
+
+        assertThat(repository.getBackupExportDir()).contains("C:\\second");
+    }
 }

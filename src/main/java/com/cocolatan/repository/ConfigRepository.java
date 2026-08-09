@@ -10,6 +10,9 @@ import java.util.Optional;
  */
 public class ConfigRepository {
 
+    /** Config key storing the last directory used for backup export. */
+    public static final String KEY_BACKUP_EXPORT_DIR = "backup_export_dir";
+
     private final DatabaseManager dbManager;
 
     public ConfigRepository(DatabaseManager dbManager) {
@@ -42,5 +45,19 @@ public class ConfigRepository {
             ps.setString(2, value);
             ps.executeUpdate();
         }
+    }
+
+    /**
+     * Returns the last directory used for backup export, if one was persisted.
+     */
+    public Optional<String> getBackupExportDir() throws SQLException {
+        return get(KEY_BACKUP_EXPORT_DIR);
+    }
+
+    /**
+     * Persists the last directory used for backup export.
+     */
+    public void setBackupExportDir(String directory) throws SQLException {
+        set(KEY_BACKUP_EXPORT_DIR, directory);
     }
 }
