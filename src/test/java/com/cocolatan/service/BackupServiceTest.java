@@ -15,6 +15,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class BackupServiceTest {
 
@@ -140,5 +141,77 @@ class BackupServiceTest {
 
         backupService.cleanOldBackups(1);
         assertThat(backupService.listBackups()).hasSize(1);
+    }
+
+    // ──────────────────────────────────────────────
+    // exportBackup(Path destDir)
+    // ──────────────────────────────────────────────
+
+    @Test
+    void exportBackupCopiesLatestBackupToDestination() throws Exception {
+        backupService.createBackup();
+        Path destDir = Files.createDirectories(tempDir.resolve("export-dest"));
+
+        Path exported = backupService.exportBackup(destDir);
+
+        assertThat(exported).isNotNull();
+        assertThat(exported.getParent()).isEqualTo(destDir);
+        assertThat(exported).exists();
+        assertThat(exported.getFileName().toString())
+                .startsWith("cocolatan_backup_")
+                .endsWith(".db");
+        // The copy is a readable SQLite database containing the source data.
+        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + exported);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT name FROM test WHERE id = 1")) {
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getString("name")).isEqualTo("hello");
+        }
+    }
+
+    @Test
+    void exportBackupReturnsNullWhenNoBackupsExist() throws Exception {
+        Path destDir = Files.createDirectories(tempDir.resolve("export-dest"));
+
+        Path exported = backupService.exportBackup(destDir);
+
+        assertThat(exported).isNull();
+        assertThat(destDir).isEmptyDirectory();
+    }
+
+    @Test
+    void exportBackupAddsSuffixWhenDestinationNameCollides() throws Exception {
+        backupService.createBackup();
+        Path destDir = Files.createDirectories(tempDir.resolve("export-dest"));
+
+        Path first = backupService.exportBackup(destDir);
+        Path second = backupService.exportBackup(destDir);
+
+        assertThat(second).isNotEqualTo(first);
+        assertThat(second.getFileName().toString()).matches(".*_\\d+\\.db$");
+        // Original file untouched, second is a full independent copy.
+        assertThat(first).exists();
+        assertThat(second).exists();
+        assertThat(Files.size(second)).isEqualTo(Files.size(first));
+    }
+
+    @Test
+    void exportBackupRejectsMissingDestinationDirectory() throws Exception {
+        backupService.createBackup();
+        Path missing = tempDir.resolve("export-missing");
+
+        assertThatThrownBy(() -> backupService.exportBackup(missing))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("not a directory");
+    }
+
+    @Test
+    void exportBackupRejectsFileAsDestination() throws Exception {
+        backupService.createBackup();
+        Path file = Files.createFile(tempDir.resolve("not-a-directory"));
+
+        assertThatThrownBy(() -> backupService.exportBackup(file))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("not a directory");
     }
 }

@@ -71,6 +71,84 @@ public class BackupService {
         }
     }
 
+    /**
+     * Copies the latest internal backup to the given directory.
+     *
+     * <p>The destination is validated first: it must be an absolute path with
+     * no {@code .} / {@code ..} segments (path-traversal guard), must exist,
+     * and must be a directory. When a file with the backup name already exists
+     * in the destination, a numeric suffix is appended so earlier exports are
+     * never overwritten.</p>
+     *
+     * @param destDir target directory (must exist, be absolute, and be writable)
+     * @return the copied backup file path, or {@code null} if no backups exist
+     * @throws IOException if the destination is invalid or the copy fails
+     *                     (permissions, disk full, etc.)
+     */
+    public Path exportBackup(Path destDir) throws IOException {
+        Path validated = validateDestDir(destDir);
+
+        List<Path> backups = listBackups();
+        if (backups.isEmpty()) {
+            return null;
+        }
+
+        Path latest = backups.get(0);
+        Path destination = uniqueDestination(validated, latest.getFileName());
+        Files.copy(latest, destination);
+        return destination;
+    }
+
+    /**
+     * Validates the export destination directory. Rejects {@code null},
+     * relative paths, and absolute paths containing {@code .} or {@code ..}
+     * segments (the DirectoryChooser never produces these, so a crafted value
+     * is a traversal attempt). Also requires the directory to exist, be a
+     * directory, and be writable.
+     *
+     * @return the normalized destination path
+     * @throws IOException when the destination is unsafe or unusable
+     */
+    static Path validateDestDir(Path destDir) throws IOException {
+        if (destDir == null) {
+            throw new IOException("Destination directory is null");
+        }
+        if (!destDir.isAbsolute()) {
+            throw new IOException("Destination must be an absolute path: " + destDir);
+        }
+        Path normalized = destDir.normalize();
+        if (!normalized.equals(destDir)) {
+            throw new IOException("Destination path must not contain '..' segments: " + destDir);
+        }
+        if (!Files.isDirectory(normalized)) {
+            throw new IOException("Destination is not a directory: " + normalized);
+        }
+        if (!Files.isWritable(normalized)) {
+            throw new IOException("Destination directory is not writable: " + normalized);
+        }
+        return normalized;
+    }
+
+    /**
+     * Picks a non-colliding destination file name inside {@code destDir} for
+     * the given backup file name, appending {@code _1}, {@code _2}, ... before
+     * the extension when the base name already exists.
+     */
+    static Path uniqueDestination(Path destDir, Path fileName) {
+        String name = fileName.getFileName().toString();
+        int dot = name.lastIndexOf('.');
+        String base = dot > 0 ? name.substring(0, dot) : name;
+        String ext = dot > 0 ? name.substring(dot) : "";
+
+        Path candidate = destDir.resolve(name);
+        int suffix = 1;
+        while (Files.exists(candidate)) {
+            candidate = destDir.resolve(base + "_" + suffix + ext);
+            suffix++;
+        }
+        return candidate;
+    }
+
     public void cleanOldBackups(int keepCount) throws IOException {
         List<Path> backups = listBackups();
         if (backups.size() <= keepCount) return;
