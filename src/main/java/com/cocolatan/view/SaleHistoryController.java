@@ -138,6 +138,10 @@ public class SaleHistoryController implements Refreshable {
             AlertService.showInfoDialog("Venta Anulada",
                     "Venta #" + selected.getId() + " anulada exitosamente. Stock restaurado.");
             refresh();
+        } catch (IllegalStateException e) {
+            // Idempotent second attempt (race / double-click): already cancelled
+            AlertService.showWarningDialog("Venta Anulada",
+                    "La venta #" + selected.getId() + " ya fue anulada.");
         } catch (RuntimeException e) {
             AlertService.showErrorDialog("Error", e.getMessage());
         }

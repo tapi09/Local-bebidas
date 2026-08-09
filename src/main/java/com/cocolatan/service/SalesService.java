@@ -121,27 +121,36 @@ public class SalesService {
      * Cancels a sale by reverting stock movements and marking the sale as CANCELLED.
      * Creates StockMovement(ENTRY) for each item sold and updates sale status.
      * The entire operation is wrapped in a single SQL transaction for atomicity.
+     * The sale re-read and the CANCELLED status check happen INSIDE the transaction
+     * using the transactional connection, so concurrent double-cancellation attempts
+     * are serialized: only the first creates stock movements, the second rolls back
+     * and throws IllegalStateException.
      *
      * @param saleId the ID of the sale to cancel
      * @param reason the reason for cancellation
-     * @throws RuntimeException if sale not found or already cancelled
+     * @throws RuntimeException        if sale not found or a SQL error occurs
+     * @throws IllegalStateException   if the sale is already cancelled (idempotent)
      */
     public void cancelSale(Long saleId, String reason) {
         Connection conn = databaseManager.getConnection();
         boolean originalAutoCommit = true;
         try {
-            // Verify sale exists and is not already cancelled
-            Sale sale = saleRepository.findById(saleId)
-                    .orElseThrow(() -> new RuntimeException("Venta no encontrada: " + saleId));
+            originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false); // Transaction START
+
+            // Transactional re-read: sale must exist and not be already cancelled
+            Sale sale = saleRepository.findById(conn, saleId)
+                    .orElseThrow(() -> {
+                        try { conn.rollback(); } catch (SQLException ex) { /* ignore */ }
+                        return new RuntimeException("Venta no encontrada: " + saleId);
+                    });
 
             if ("CANCELLED".equals(sale.getStatus())) {
-                throw new RuntimeException("La venta #" + saleId + " ya fue anulada.");
+                try { conn.rollback(); } catch (SQLException ex) { /* ignore */ }
+                throw new IllegalStateException("Sale already cancelled");
             }
 
-            List<SaleItem> items = saleRepository.findItemsBySaleId(saleId);
-
-            originalAutoCommit = conn.getAutoCommit();
-            conn.setAutoCommit(false);
+            List<SaleItem> items = saleRepository.findItemsBySaleId(conn, saleId);
 
             // Revert stock: create ENTRY movements for each item sold
             for (SaleItem item : items) {
@@ -163,7 +172,7 @@ public class SalesService {
             String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
             saleRepository.updateStatus(conn, saleId, "CANCELLED", now, reason);
 
-            conn.commit();
+            conn.commit(); // Transaction END
         } catch (SQLException e) {
             try { conn.rollback(); } catch (SQLException ex) { /* ignore */ }
             throw new RuntimeException("Error al anular venta #" + saleId, e);

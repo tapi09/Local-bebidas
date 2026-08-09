@@ -309,8 +309,15 @@ public class SaleRepository {
      * Returns all items for a given sale.
      */
     public List<SaleItem> findItemsBySaleId(Long saleId) throws SQLException {
+        return findItemsBySaleId(dbManager.getConnection(), saleId);
+    }
+
+    /**
+     * Returns all items for a given sale using the provided connection
+     * (for transactional use, e.g. inside a cancel-sale transaction).
+     */
+    public List<SaleItem> findItemsBySaleId(Connection conn, Long saleId) throws SQLException {
         String sql = "SELECT * FROM sale_items WHERE sale_id = ?";
-        Connection conn = dbManager.getConnection();
         List<SaleItem> items = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, saleId);
