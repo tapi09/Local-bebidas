@@ -48,6 +48,7 @@
                     <Button text="🗂️  Categorías" fx:id="btnCategorias" onAction="#onCategorias" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
                     <Button text="📈  Reportes" fx:id="btnReportes" onAction="#onReportes" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
                     <Button text="👥  Usuarios" fx:id="btnUsuarios" onAction="#onUsuarios" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="💾  Exportar Respaldo" onAction="#onExportBackup" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
                 </VBox>
             </ScrollPane>
 

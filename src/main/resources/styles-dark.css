@@ -760,3 +760,15 @@
     -fx-padding: 2 8;
     -fx-background-radius: 10;
 }
+
+/* Toast notifications (backup export feedback) */
+.toast {
+    -fx-background-color: rgba(60, 60, 60, 0.95);
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 18;
+    -fx-background-radius: 8;
+    -fx-alignment: CENTER;
+    -fx-translate-y: -60;
+}
