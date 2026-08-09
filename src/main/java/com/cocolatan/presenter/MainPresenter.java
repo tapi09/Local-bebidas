@@ -3,6 +3,7 @@ package com.cocolatan.presenter;
 import com.cocolatan.CocolatanApp;
 import com.cocolatan.repository.ConfigRepository;
 import com.cocolatan.service.AuthService;
+import com.cocolatan.service.BackupService;
 import com.cocolatan.ui.ToastService;
 import com.cocolatan.util.AlertService;
 import com.cocolatan.util.LogoUtils;
@@ -20,6 +21,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.StackPane;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.Window;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -388,6 +391,48 @@ public class MainPresenter {
         if (clockThread != null) {
             clockThread.interrupt();
             clockThread = null;
+        }
+    }
+
+    /**
+     * Manual "Export Backup" action (sidebar button). Opens a folder picker
+     * every time, copies the latest internal backup to the selected directory,
+     * remembers the directory for the next export and the crash fallback, and
+     * shows a success/failure toast. Cancelling the picker does nothing.
+     */
+    @FXML
+    public void onExportBackup() {
+        try {
+            BackupService backupService = CocolatanApp.getBackupService();
+            if (backupService == null) {
+                showToast("Error al exportar respaldo: servicio no disponible");
+                return;
+            }
+            ConfigRepository config = configRepository();
+            DirectoryChooser chooser = new DirectoryChooser();
+            chooser.setTitle("Exportar copia de seguridad");
+            CocolatanApp.lastKnownExportDir(config)
+                    .ifPresent(dir -> chooser.setInitialDirectory(dir.toFile()));
+
+            Window owner = (contentArea != null && contentArea.getScene() != null)
+                    ? contentArea.getScene().getWindow()
+                    : null;
+            java.io.File chosen = chooser.showDialog(owner);
+            if (chosen == null) {
+                return; // user cancelled the folder picker
+            }
+            Path dest = chosen.toPath();
+
+            CocolatanApp.persistExportDir(config, dest);
+            Path exported = backupService.exportBackup(dest);
+            if (exported != null) {
+                showToast("Respaldo exportado a " + dest);
+            } else {
+                showToast("No hay respaldos para exportar");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Manual backup export failed", e);
+            showToast("Error al exportar respaldo: " + e.getMessage());
         }
     }
 

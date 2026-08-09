@@ -412,7 +412,7 @@ public class CocolatanApp extends Application {
      * Returns the last directory used for backup export, if one was persisted.
      * A missing/unreadable config value yields an empty result — never throws.
      */
-    static Optional<Path> lastKnownExportDir(ConfigRepository config) {
+    public static Optional<Path> lastKnownExportDir(ConfigRepository config) {
         try {
             return config.getBackupExportDir()
                     .filter(s -> !s.isBlank())
@@ -427,7 +427,7 @@ public class CocolatanApp extends Application {
      * Persists the given directory as the last backup export directory. A
      * persistence failure is logged, never thrown.
      */
-    static void persistExportDir(ConfigRepository config, Path dir) {
+    public static void persistExportDir(ConfigRepository config, Path dir) {
         try {
             config.setBackupExportDir(dir.toString());
         } catch (SQLException e) {

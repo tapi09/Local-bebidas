@@ -1,12 +1,20 @@
 package com.cocolatan.integration;
 
 import com.cocolatan.CocolatanApp;
+import com.cocolatan.presenter.MainPresenter;
 import com.cocolatan.repository.ConfigRepository;
 import com.cocolatan.repository.DatabaseManager;
 import com.cocolatan.service.BackupService;
+import javafx.application.Platform;
+import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
+import javafx.stage.DirectoryChooser;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,6 +26,10 @@ import java.util.Comparator;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 /**
  * Integration tests for the backup export flows (SDD change fix-audit-findings).
@@ -38,6 +50,16 @@ class BackupExportIntegrationTest {
     private DatabaseManager dbManager;
     private ConfigRepository config;
     private BackupService backupService;
+
+    @BeforeAll
+    static void initJavaFxToolkit() {
+        try {
+            Platform.startup(() -> {
+            });
+        } catch (Exception e) {
+            // already started or headless
+        }
+    }
 
     @BeforeEach
     void setUp() throws Exception {
@@ -139,5 +161,98 @@ class BackupExportIntegrationTest {
             assertThat(exported).isPresent();
             assertThat(exported.get().getFileName().toString()).startsWith("cocolatan_backup_");
         }
+    }
+
+    // ──────────────────────────────────────────────
+    // Manual "Export Backup" button (MainPresenter)
+    // ──────────────────────────────────────────────
+
+    @Test
+    void manualExportButtonCopiesBackupShowsToastAndRemembersDirectory() throws Exception {
+        Path chosen = Files.createDirectories(tempDir.resolve("manual-chosen"));
+        MainPresenter presenter = newMainPresenter();
+
+        withMockedDirectoryChooserAndService(presenter, chosen, () -> presenter.onExportBackup());
+
+        // Backup copied to the chosen directory.
+        try (var files = Files.list(chosen)) {
+            Optional<Path> exported = files.findFirst();
+            assertThat(exported).isPresent();
+            assertThat(exported.get().getFileName().toString()).startsWith("cocolatan_backup_");
+        }
+        // Success toast shown in the content area.
+        assertThat(presenterContentArea(presenter)).hasSize(1);
+        assertThat(((Label) presenterContentArea(presenter).get(0)).getText())
+                .startsWith("Respaldo exportado a ");
+        // Directory remembered for next export / crash fallback.
+        assertThat(config.getBackupExportDir()).contains(chosen.toString());
+    }
+
+    @Test
+    void manualExportButtonWithCancelledChooserDoesNothing() throws Exception {
+        Path chosen = Files.createDirectories(tempDir.resolve("manual-cancelled"));
+        MainPresenter presenter = newMainPresenter();
+
+        withMockedDirectoryChooserAndService(presenter, null, () -> presenter.onExportBackup());
+
+        assertThat(chosen).isEmptyDirectory();
+        assertThat(presenterContentArea(presenter)).isEmpty();
+        assertThat(config.getBackupExportDir()).isEmpty();
+    }
+
+    @Test
+    void manualExportButtonWithFailedCopyShowsErrorToast() throws Exception {
+        Path notADirectory = Files.createFile(tempDir.resolve("blocked-dest"));
+        MainPresenter presenter = newMainPresenter();
+
+        withMockedDirectoryChooserAndService(presenter, notADirectory, () -> presenter.onExportBackup());
+
+        assertThat(presenterContentArea(presenter)).hasSize(1);
+        assertThat(((Label) presenterContentArea(presenter).get(0)).getText())
+                .startsWith("Error al exportar respaldo:");
+    }
+
+    /**
+     * Runs {@code action} while {@code new DirectoryChooser()} returns a mock
+     * whose {@code showDialog} returns the given directory (or null for
+     * cancel), and {@code CocolatanApp.getBackupService()} returns the real
+     * backup service.
+     */
+    private void withMockedDirectoryChooserAndService(MainPresenter presenter, Path chosenDir,
+                                                      Runnable action) {
+        try (MockedConstruction<DirectoryChooser> construction =
+                     mockConstruction(DirectoryChooser.class, (mock, ctx) ->
+                             when(mock.showDialog(any())).thenReturn(
+                                     chosenDir != null ? chosenDir.toFile() : null));
+             MockedStatic<CocolatanApp> app = mockStatic(CocolatanApp.class)) {
+            app.when(CocolatanApp::getBackupService).thenReturn(backupService);
+            // Real persistence: the config must actually be written, not no-op'd.
+            app.when(() -> CocolatanApp.persistExportDir(any(ConfigRepository.class), any(Path.class)))
+                    .thenCallRealMethod();
+            action.run();
+        }
+    }
+
+    private MainPresenter newMainPresenter() throws Exception {
+        MainPresenter presenter = new MainPresenter();
+        setField(presenter, "contentArea", new StackPane());
+        setField(presenter, "configRepository", config);
+        return presenter;
+    }
+
+    private javafx.collections.ObservableList<javafx.scene.Node> presenterContentArea(MainPresenter presenter) {
+        try {
+            java.lang.reflect.Field f = presenter.getClass().getDeclaredField("contentArea");
+            f.setAccessible(true);
+            return ((StackPane) f.get(presenter)).getChildren();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void setField(Object target, String name, Object value) throws Exception {
+        java.lang.reflect.Field f = target.getClass().getDeclaredField(name);
+        f.setAccessible(true);
+        f.set(target, value);
     }
 }
