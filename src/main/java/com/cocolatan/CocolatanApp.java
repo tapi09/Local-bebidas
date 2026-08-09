@@ -16,6 +16,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -32,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -317,17 +319,66 @@ public class CocolatanApp extends Application {
 
     @Override
     public void stop() {
-        MainPresenter mainPresenter = MainPresenter.getInstance();
-        if (mainPresenter != null) {
-            mainPresenter.dispose();
+        try {
+            MainPresenter mainPresenter = MainPresenter.getInstance();
+            if (mainPresenter != null) {
+                mainPresenter.dispose();
+            }
+            exportOnNormalClose(mainPresenter);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error during shutdown backup export", e);
+        } finally {
+            // The normal-close path already made the export decision (even when
+            // the user cancelled); the crash-path shutdown hook must not repeat it.
+            markExportHandledOnNormalClose();
+            if (backupScheduler != null) {
+                backupScheduler.stop();
+            }
+            if (databaseManager != null) {
+                databaseManager.close();
+            }
+            releaseInstanceLock();
         }
-        if (backupScheduler != null) {
-            backupScheduler.stop();
+    }
+
+    /**
+     * Normal-close backup export: asks the user for a destination directory
+     * and copies the latest internal backup there, with success/failure toast
+     * feedback. Never blocks shutdown on failure — everything is best-effort.
+     */
+    private void exportOnNormalClose(MainPresenter mainPresenter) {
+        if (backupService == null || databaseManager == null) {
+            return;
         }
-        if (databaseManager != null) {
-            databaseManager.close();
+        ConfigRepository config = new ConfigRepository(databaseManager);
+        Path dest = resolveExportDestination(config, this::showExportDirectoryChooser);
+        if (dest == null) {
+            return; // user cancelled the folder picker — close without copying
         }
-        releaseInstanceLock();
+        try {
+            Path exported = backupService.exportBackup(dest);
+            if (mainPresenter != null) {
+                if (exported != null) {
+                    mainPresenter.showToast("Respaldo exportado a " + dest);
+                } else {
+                    mainPresenter.showToast("No hay respaldos para exportar");
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Backup export on close failed", e);
+            if (mainPresenter != null) {
+                mainPresenter.showToast("Error al exportar respaldo: " + e.getMessage());
+            }
+        }
+    }
+
+    private Path showExportDirectoryChooser() {
+        ConfigRepository config = new ConfigRepository(databaseManager);
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Exportar copia de seguridad");
+        lastKnownExportDir(config).ifPresent(dir -> chooser.setInitialDirectory(dir.toFile()));
+        java.io.File chosen = chooser.showDialog(primaryStage);
+        return chosen != null ? chosen.toPath() : null;
     }
 
     /**
@@ -381,6 +432,28 @@ public class CocolatanApp extends Application {
             config.setBackupExportDir(dir.toString());
         } catch (SQLException e) {
             LOGGER.log(Level.WARNING, "Could not persist last export directory", e);
+        }
+    }
+
+    /**
+     * Decides the export destination for the normal-close flow. The folder
+     * picker is invoked through {@code directoryChooser}: on a user pick the
+     * directory is persisted as the last export dir; on cancel (null) nothing
+     * is persisted and {@code null} is returned; if the picker itself fails
+     * (e.g. the stage is already gone during {@code stop()}), the last-known
+     * directory is used as fallback, or {@code null} when none exists.
+     */
+    public static Path resolveExportDestination(ConfigRepository config, Supplier<Path> directoryChooser) {
+        try {
+            Path chosen = directoryChooser.get();
+            if (chosen != null) {
+                persistExportDir(config, chosen);
+                return chosen;
+            }
+            return null; // user cancelled the folder picker
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Directory chooser failed; falling back to last export directory", e);
+            return lastKnownExportDir(config).orElse(null);
         }
     }
 
