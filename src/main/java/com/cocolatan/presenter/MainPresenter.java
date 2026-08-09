@@ -3,6 +3,7 @@ package com.cocolatan.presenter;
 import com.cocolatan.CocolatanApp;
 import com.cocolatan.repository.ConfigRepository;
 import com.cocolatan.service.AuthService;
+import com.cocolatan.ui.ToastService;
 import com.cocolatan.util.AlertService;
 import com.cocolatan.util.LogoUtils;
 import com.cocolatan.util.Refreshable;
@@ -388,6 +389,17 @@ public class MainPresenter {
             clockThread.interrupt();
             clockThread = null;
         }
+    }
+
+    /**
+     * Shows a non-blocking toast over the content area (no-op when the view
+     * is detached, e.g. during shutdown). Used for backup export feedback.
+     */
+    public void showToast(String message) {
+        if (contentArea == null) {
+            return;
+        }
+        ToastService.show(contentArea, message);
     }
 
     private boolean checkAdminAccess() {
