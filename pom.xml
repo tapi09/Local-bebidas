@@ -6,7 +6,7 @@
 
     <groupId>com.cocolatan</groupId>
     <artifactId>cocolatan</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
 
     <name>Cocolatán - Central de Bebidas</name>
