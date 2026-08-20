@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,12 +76,12 @@ class AlertPresenterTest {
     }
 
     @Test
-    void dismissAlertSetsDismissedFlag() {
+    void dismissAlertDelegatesToService() {
         AlertService.Alert alert = createAlert("LOW_STOCK");
 
         presenter.dismissAlert(alert);
 
-        assertThat(alert.isDismissed()).isTrue();
+        verify(alertService).dismiss(alert);
     }
 
     @Test

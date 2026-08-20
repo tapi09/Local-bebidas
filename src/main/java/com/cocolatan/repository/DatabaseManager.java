@@ -302,6 +302,9 @@ public class DatabaseManager {
              // anyone reset a user's password from the login screen. The provider
              // must configure it once through the Users screen (first-time setup
              // accepts an empty current key); recovery only works after that.
+             // Migration v13: persist dismissed alerts across restarts
+             runMigration(stmt, "CREATE TABLE IF NOT EXISTS alert_dismissals (id INTEGER PRIMARY KEY AUTOINCREMENT, alert_type TEXT NOT NULL, product_id INTEGER NOT NULL, lot_number TEXT, dismissed_at TEXT NOT NULL DEFAULT (datetime('now','localtime')), UNIQUE (alert_type, product_id, lot_number))");
+             runMigration(stmt, "CREATE INDEX IF NOT EXISTS idx_alert_dismissals_lookup ON alert_dismissals(alert_type, product_id)");
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize schema", e);
         }

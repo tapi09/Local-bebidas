@@ -2,6 +2,7 @@ package com.cocolatan.service;
 
 import com.cocolatan.model.Product;
 import com.cocolatan.model.PurchaseItem;
+import com.cocolatan.repository.AlertDismissalRepository;
 import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.PurchaseRepository;
 import com.cocolatan.repository.StockMovementRepository;
@@ -26,6 +27,7 @@ import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,11 +47,15 @@ class AlertServiceTest {
     @Mock
     private InventoryService inventoryService;
 
+    @Mock
+    private AlertDismissalRepository alertDismissalRepository;
+
     private AlertService alertService;
 
     @BeforeEach
     void setUp() {
-        alertService = new AlertService(productRepository, stockMovementRepository, purchaseRepository, inventoryService);
+        alertService = new AlertService(productRepository, stockMovementRepository, purchaseRepository,
+                inventoryService, alertDismissalRepository);
     }
 
     // --- Expiry alert tests ---
@@ -385,6 +391,106 @@ class AlertServiceTest {
         alertService.clearHistory();
 
         assertThat(alertService.getAlertHistory()).isEmpty();
+    }
+
+    // --- Dismissal persistence tests ---
+
+    @Test
+    void dismissPersistsAlert() throws SQLException {
+        Product product = createProduct(1L, "Test Product");
+        AlertService.Alert alert = new AlertService.Alert("LOW_STOCK", product, null, null, 3);
+
+        alertService.dismiss(alert);
+
+        verify(alertDismissalRepository).dismiss("LOW_STOCK", 1L, null);
+        assertThat(alert.isDismissed()).isTrue();
+    }
+
+    @Test
+    void dismissPersistsExpiryAlertWithLotNumber() throws SQLException {
+        Product product = createProduct(1L, "Test Product");
+        AlertService.Alert alert = new AlertService.Alert("EXPIRED", product, "LOT-001", "01/01/2025", 5);
+
+        alertService.dismiss(alert);
+
+        verify(alertDismissalRepository).dismiss("EXPIRED", 1L, "LOT-001");
+    }
+
+    @Test
+    void dismissedExpiryAlertDoesNotReappear() throws SQLException {
+        Product product = createProduct(1L, "Coca-Cola 500ml");
+        when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
+
+        PurchaseItem item = createPurchaseItem(1L, "LOT-001", "01/01/2025", 10);
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
+
+        when(alertDismissalRepository.findAll())
+                .thenReturn(Collections.singletonList(
+                        new AlertDismissalRepository.Dismissal(7L, "EXPIRED", 1L, "LOT-001")));
+
+        List<AlertService.Alert> alerts = alertService.getExpiryAlerts();
+
+        assertThat(alerts).isEmpty();
+        // The still-applicable dismissal is kept by the cleanup.
+        verify(alertDismissalRepository).deleteAllExcept(Collections.singletonList(7L));
+    }
+
+    @Test
+    void expiryAlertsCleanupRemovesOnlyInactiveDismissals() throws SQLException {
+        Product product = createProduct(1L, "Coca-Cola 500ml");
+        when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
+
+        // LOT-001 is expired in the data: its dismissal is still applicable (kept).
+        // LOT-002 has no purchase item: its dismissal no longer applies (cleaned up).
+        PurchaseItem item = createPurchaseItem(1L, "LOT-001", "01/01/2025", 10);
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
+
+        AlertDismissalRepository.Dismissal active = new AlertDismissalRepository.Dismissal(1L, "EXPIRED", 1L, "LOT-001");
+        AlertDismissalRepository.Dismissal inactive = new AlertDismissalRepository.Dismissal(2L, "EXPIRED", 1L, "LOT-002");
+        when(alertDismissalRepository.findAll()).thenReturn(Arrays.asList(active, inactive));
+
+        List<AlertService.Alert> alerts = alertService.getExpiryAlerts();
+
+        // The still-applicable dismissal suppresses the alert; the stale one is dropped.
+        assertThat(alerts).isEmpty();
+        verify(alertDismissalRepository).deleteAllExcept(Collections.singletonList(1L));
+    }
+
+    @Test
+    void lowStockAlertDismissedNotCounted() throws SQLException {
+        Product product = createProduct(1L, "Agua 500ml");
+        product.setMinStock(10);
+        when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
+        when(inventoryService.getStocksForProducts(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 8));
+
+        when(alertDismissalRepository.findAll())
+                .thenReturn(Collections.singletonList(
+                        new AlertDismissalRepository.Dismissal(3L, "LOW_STOCK", 1L, null)));
+
+        assertThat(alertService.getLowStockAlerts()).isEmpty();
+        assertThat(alertService.getAlertCount()).isZero();
+        // Still applicable, so the dismissal survives the low-stock cleanup.
+        verify(alertDismissalRepository).deleteAllExcept(Collections.singletonList(3L));
+    }
+
+    @Test
+    void expiryCleanupPreservesDismissalsOfOtherTypes() throws SQLException {
+        // No expiry alerts at all, but a low-stock dismissal exists. The expiry
+        // cleanup must NOT delete it — the alerts view calls both getters back
+        // to back on every refresh, so a cross-family wipe would resurrect alerts.
+        Product product = createProduct(1L, "Coca-Cola 500ml");
+        when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
+
+        AlertDismissalRepository.Dismissal lowStockDismissal =
+                new AlertDismissalRepository.Dismissal(9L, "LOW_STOCK", 1L, null);
+        when(alertDismissalRepository.findAll()).thenReturn(Collections.singletonList(lowStockDismissal));
+
+        alertService.getExpiryAlerts();
+
+        verify(alertDismissalRepository).deleteAllExcept(Collections.singletonList(9L));
     }
 
     private Product createProduct(Long id, String name) {

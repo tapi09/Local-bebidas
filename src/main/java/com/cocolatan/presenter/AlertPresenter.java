@@ -45,10 +45,11 @@ public class AlertPresenter {
     }
 
     /**
-     * Dismisses an alert.
+     * Dismisses an alert and persists the dismissal so it stays dismissed after
+     * a restart.
      */
     public void dismissAlert(AlertService.Alert alert) {
-        alert.dismiss();
+        alertService.dismiss(alert);
     }
 
     /**

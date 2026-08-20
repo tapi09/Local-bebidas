@@ -5,6 +5,7 @@ import com.cocolatan.model.Sale;
 import com.cocolatan.presenter.AlertPresenter;
 import com.cocolatan.presenter.HomePresenter;
 import com.cocolatan.presenter.MainPresenter;
+import com.cocolatan.repository.AlertDismissalRepository;
 import com.cocolatan.repository.DatabaseManager;
 import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.PurchaseRepository;
@@ -80,7 +81,8 @@ public class HomeController implements Refreshable {
                         new ProductRepository(dbManager),
                         new StockMovementRepository(dbManager),
                         new PurchaseRepository(dbManager),
-                        new InventoryService(new StockMovementRepository(dbManager), new ProductRepository(dbManager))
+                        new InventoryService(new StockMovementRepository(dbManager), new ProductRepository(dbManager)),
+                        new AlertDismissalRepository(dbManager)
                 )
         );
         setupTable();

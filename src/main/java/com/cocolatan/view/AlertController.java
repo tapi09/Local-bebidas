@@ -1,6 +1,7 @@
 package com.cocolatan.view;
 
 import com.cocolatan.presenter.AlertPresenter;
+import com.cocolatan.repository.AlertDismissalRepository;
 import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.PurchaseRepository;
 import com.cocolatan.repository.StockMovementRepository;
@@ -79,7 +80,8 @@ public class AlertController implements Refreshable {
                         new ProductRepository(dbManager),
                         new StockMovementRepository(dbManager),
                         new PurchaseRepository(dbManager),
-                        new InventoryService(new StockMovementRepository(dbManager), new ProductRepository(dbManager))
+                        new InventoryService(new StockMovementRepository(dbManager), new ProductRepository(dbManager)),
+                        new AlertDismissalRepository(dbManager)
                 )
         );
 

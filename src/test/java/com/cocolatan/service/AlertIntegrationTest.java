@@ -3,6 +3,7 @@ package com.cocolatan.service;
 import com.cocolatan.model.Product;
 import com.cocolatan.model.PurchaseItem;
 import com.cocolatan.model.StockMovement;
+import com.cocolatan.repository.AlertDismissalRepository;
 import com.cocolatan.repository.DatabaseManager;
 import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.PurchaseRepository;
@@ -32,6 +33,7 @@ class AlertIntegrationTest {
     private PurchaseRepository purchaseRepository;
     private StockMovementRepository stockMovementRepository;
     private InventoryService inventoryService;
+    private AlertDismissalRepository alertDismissalRepository;
     private AlertService alertService;
 
     @BeforeEach
@@ -41,7 +43,9 @@ class AlertIntegrationTest {
         purchaseRepository = new PurchaseRepository(dbManager);
         stockMovementRepository = new StockMovementRepository(dbManager);
         inventoryService = new InventoryService(stockMovementRepository, productRepository);
-        alertService = new AlertService(productRepository, stockMovementRepository, purchaseRepository, inventoryService);
+        alertDismissalRepository = new AlertDismissalRepository(dbManager);
+        alertService = new AlertService(productRepository, stockMovementRepository, purchaseRepository,
+                inventoryService, alertDismissalRepository);
 
         // Seed: supplier
         SupplierRepository supplierRepository = new SupplierRepository(dbManager);
