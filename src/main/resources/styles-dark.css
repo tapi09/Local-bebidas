@@ -62,7 +62,7 @@
 
 .sidebar-button {
     -fx-background-color: transparent;
-    -fx-text-fill: #94a3b8;
+    -fx-text-fill: #a3b1c8;
 }
 
 .sidebar-button:hover {
@@ -145,10 +145,10 @@
 /* ---- Dashboard Kiosk Cards ---- */
 .dashboard-card {
     -fx-background-color: #1e293b;
-    -fx-background-radius: 10;
+    -fx-background-radius: 12;
     -fx-border-color: #334155;
-    -fx-border-radius: 10;
-    -fx-padding: 14 16;
+    -fx-border-radius: 12;
+    -fx-padding: 16 18;
 }
 
 .dashboard-card-title {
@@ -189,8 +189,8 @@
 .table-view {
     -fx-background-color: #1e293b;
     -fx-border-color: #334155;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
     -fx-padding: 0;
 }
 
@@ -275,9 +275,9 @@
 .text-field, .password-field, .text-area {
     -fx-background-color: #1e293b;
     -fx-border-color: #475569;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 6 10;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 7 12;
     -fx-text-fill: #f1f5f9;
 }
 
@@ -314,8 +314,8 @@
 .combo-box, .combo-box-base {
     -fx-background-color: #1e293b;
     -fx-border-color: #475569;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
 }
 
 .combo-box .text-field {
@@ -366,8 +366,8 @@
 .date-picker {
     -fx-background-color: #1e293b;
     -fx-border-color: #475569;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
 }
 
 .date-picker .text-field {
@@ -422,8 +422,8 @@
 .spinner {
     -fx-background-color: #1e293b;
     -fx-border-color: #475569;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
 }
 
 .spinner:focused {
@@ -487,7 +487,7 @@
     -fx-min-width: 30px;
     -fx-min-height: 30px;
     -fx-max-height: 30px;
-    -fx-background-radius: 4;
+    -fx-background-radius: 6;
     -fx-cursor: hand;
     -fx-padding: 0;
 }
@@ -548,8 +548,8 @@
 
 .quick-action-btn {
     -fx-font-size: 13px;
-    -fx-padding: 10 18;
-    -fx-background-radius: 6;
+    -fx-padding: 11 20;
+    -fx-background-radius: 8;
 }
 
 /* ---- Custom Scrollbars ---- */
@@ -618,9 +618,9 @@
 .card {
     -fx-background-color: #1e293b;
     -fx-border-color: #334155;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
-    -fx-padding: 14;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 16;
 }
 
 .section-separator {
@@ -739,7 +739,7 @@
 
 .sidebar-user-panel {
     -fx-background-color: rgba(255, 255, 255, 0.04);
-    -fx-background-radius: 8;
+    -fx-background-radius: 10;
     -fx-padding: 8 10;
 }
 

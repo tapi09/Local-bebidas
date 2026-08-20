@@ -33,7 +33,7 @@
 
 .sidebar-logo {
     -fx-text-fill: #ffffff;
-    -fx-font-size: 20px;
+    -fx-font-size: 21px;
     -fx-font-weight: bold;
     -fx-padding: 0;
 }
@@ -70,16 +70,16 @@
 
 .sidebar-button {
     -fx-background-color: transparent;
-    -fx-text-fill: #a2a3b7;
+    -fx-text-fill: #b9bbca;
     -fx-font-size: 13px;
     -fx-font-weight: 500;
     -fx-alignment: CENTER_LEFT;
-    -fx-padding: 8 12;
-    -fx-background-radius: 6;
+    -fx-padding: 9 14;
+    -fx-background-radius: 8;
     -fx-cursor: hand;
     -fx-graphic-text-gap: 8;
-    -fx-min-height: 36;
-    -fx-max-height: 36;
+    -fx-min-height: 38;
+    -fx-max-height: 38;
 }
 
 .sidebar-button:hover {
@@ -91,7 +91,7 @@
     -fx-background-color: #2563eb;
     -fx-text-fill: #ffffff;
     -fx-font-weight: bold;
-    -fx-background-radius: 6;
+    -fx-background-radius: 8;
 }
 
 .sidebar-button-exit {
@@ -100,10 +100,10 @@
     -fx-font-size: 13px;
     -fx-font-weight: 500;
     -fx-alignment: CENTER_LEFT;
-    -fx-padding: 8 12;
-    -fx-background-radius: 6;
+    -fx-padding: 9 14;
+    -fx-background-radius: 8;
     -fx-cursor: hand;
-    -fx-min-height: 36;
+    -fx-min-height: 38;
 }
 
 .sidebar-button-exit:hover {
@@ -121,7 +121,7 @@
 
 .top-bar-title {
     -fx-text-fill: #1e1e2d;
-    -fx-font-size: 15px;
+    -fx-font-size: 16px;
     -fx-font-weight: bold;
 }
 
@@ -149,7 +149,7 @@
 
 .placeholder-label {
     -fx-text-fill: #9ca3af;
-    -fx-font-size: 15px;
+    -fx-font-size: 16px;
     -fx-alignment: center;
 }
 
@@ -162,16 +162,16 @@
 /* ---- Dashboard Kiosk Cards ---- */
 .dashboard-card {
     -fx-background-color: #ffffff;
-    -fx-background-radius: 10;
+    -fx-background-radius: 12;
     -fx-border-color: #e5e7eb;
-    -fx-border-radius: 10;
+    -fx-border-radius: 12;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.04), 8, 0, 0, 3);
-    -fx-padding: 14 16;
+    -fx-padding: 16 18;
     -fx-min-width: 180;
 }
 
 .dashboard-card-title {
-    -fx-font-size: 12px;
+    -fx-font-size: 13px;
     -fx-font-weight: 600;
     -fx-text-fill: #6b7280;
 }
@@ -199,18 +199,18 @@
 
 /* ---- Typography ---- */
 .title-label {
-    -fx-font-size: 20px;
+    -fx-font-size: 21px;
     -fx-font-weight: bold;
     -fx-text-fill: #1e1e2d;
 }
 
 .subtitle-label {
-    -fx-font-size: 12px;
+    -fx-font-size: 13px;
     -fx-text-fill: #6b7280;
 }
 
 .section-title {
-    -fx-font-size: 15px;
+    -fx-font-size: 16px;
     -fx-font-weight: bold;
     -fx-text-fill: #1e1e2d;
 }
@@ -219,8 +219,8 @@
 .table-view {
     -fx-background-color: #ffffff;
     -fx-border-color: #e5e7eb;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
     -fx-padding: 0;
 }
 
@@ -258,9 +258,9 @@
 .text-field, .password-field, .text-area {
     -fx-background-color: #ffffff;
     -fx-border-color: #d1d5db;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 6 10;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 7 12;
     -fx-font-size: 13px;
 }
 
@@ -273,8 +273,8 @@
 .combo-box {
     -fx-background-color: #ffffff;
     -fx-border-color: #d1d5db;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
 }
 
 .combo-box:focused {
@@ -284,16 +284,16 @@
 .date-picker {
     -fx-background-color: #ffffff;
     -fx-border-color: #d1d5db;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
 }
 
 /* ---- Spinner ---- */
 .spinner {
     -fx-background-color: #ffffff;
     -fx-border-color: #d1d5db;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
 }
 
 .spinner:focused {
@@ -344,6 +344,7 @@
     -fx-font-size: 14px;
     -fx-font-weight: bold;
     -fx-padding: 2 6;
+    -fx-background-radius: 6;
 }
 
 .qty-btn {
@@ -354,7 +355,7 @@
     -fx-min-width: 30px;
     -fx-min-height: 30px;
     -fx-max-height: 30px;
-    -fx-background-radius: 4;
+    -fx-background-radius: 6;
     -fx-cursor: hand;
     -fx-padding: 0;
 }
@@ -379,8 +380,8 @@
     -fx-text-fill: #ffffff;
     -fx-font-size: 13px;
     -fx-font-weight: 600;
-    -fx-padding: 6 14;
-    -fx-background-radius: 6;
+    -fx-padding: 8 18;
+    -fx-background-radius: 8;
     -fx-cursor: hand;
 }
 
@@ -396,10 +397,10 @@
     -fx-background-color: #f3f4f6;
     -fx-text-fill: #374151;
     -fx-border-color: #d1d5db;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
     -fx-font-weight: 500;
-    -fx-padding: 6 14;
+    -fx-padding: 8 18;
 }
 
 .button-secondary:hover {
@@ -410,8 +411,8 @@
     -fx-background-color: #059669;
     -fx-text-fill: #ffffff;
     -fx-font-weight: bold;
-    -fx-background-radius: 6;
-    -fx-padding: 6 16;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18;
 }
 
 .button-success:hover {
@@ -422,8 +423,8 @@
     -fx-background-color: #dc2626;
     -fx-text-fill: #ffffff;
     -fx-font-weight: bold;
-    -fx-background-radius: 6;
-    -fx-padding: 6 14;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18;
 }
 
 .button-danger:hover {
@@ -432,8 +433,8 @@
 
 .quick-action-btn {
     -fx-font-size: 13px;
-    -fx-padding: 10 18;
-    -fx-background-radius: 6;
+    -fx-padding: 11 20;
+    -fx-background-radius: 8;
     -fx-min-width: 140;
 }
 
@@ -498,9 +499,9 @@
 .card {
     -fx-background-color: #ffffff;
     -fx-border-color: #e5e7eb;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
-    -fx-padding: 14;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 16;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 6, 0, 0, 2);
 }
 
@@ -560,9 +561,9 @@
 .login-field {
     -fx-background-color: #ffffff;
     -fx-border-color: #d1d5db;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 8 12;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 9 14;
     -fx-font-size: 14px;
 }
 
@@ -582,7 +583,8 @@
     -fx-text-fill: #ffffff;
     -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-background-radius: 6;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18;
     -fx-cursor: hand;
 }
 
@@ -618,7 +620,7 @@
 
 .sidebar-user-panel {
     -fx-background-color: rgba(255, 255, 255, 0.05);
-    -fx-background-radius: 8;
+    -fx-background-radius: 10;
     -fx-padding: 8 10;
 }
 
