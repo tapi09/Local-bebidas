@@ -115,6 +115,35 @@ public class StockMovementRepository {
     }
 
     /**
+     * Exposes the underlying connection for callers that need to wrap multiple
+     * repository calls in a single transaction.
+     */
+    public Connection getConnection() {
+        return dbManager.getConnection();
+    }
+
+    /**
+     * Computes current stock using a caller-provided connection (for use inside
+     * a transaction).
+     */
+    public int computeCurrentStock(Connection conn, Long productId) throws SQLException {
+        String sql = "SELECT "
+                + "COALESCE(SUM(CASE WHEN movement_type IN ('ENTRY', 'ADJUSTMENT') THEN quantity ELSE 0 END), 0) "
+                + "- COALESCE(SUM(CASE WHEN movement_type = 'EXIT' THEN quantity ELSE 0 END), 0) "
+                + "AS current_stock "
+                + "FROM stock_movements WHERE product_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("current_stock");
+                }
+                return 0;
+            }
+        }
+    }
+
+    /**
      * Computes current stock for multiple products in a single query.
      * Returns a map of productId -> currentStock. Products not in the map have 0 stock.
      */

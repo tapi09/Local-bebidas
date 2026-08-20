@@ -79,7 +79,7 @@ class UserPresenterTest {
         verify(userRepository).save(captor.capture());
         User saved = captor.getValue();
         assertThat(saved.getUsername()).isEqualTo("cajero1");
-        assertThat(saved.getPasswordHash()).isEqualTo(AuthService.hashPassword("pass123"));
+        assertThat(AuthService.verifyPassword("pass123", saved.getPasswordHash())).isTrue();
         assertThat(saved.getRole()).isEqualTo("CAJERO");
         assertThat(saved.getDisplayName()).isEqualTo("Cajero Uno");
         assertThat(saved.isMustChangePassword()).isTrue();
@@ -170,7 +170,9 @@ class UserPresenterTest {
     void changePasswordHashesAndSetsMustChangeFlag() throws SQLException {
         presenter.changePassword(5L, "newpass", "newpass");
 
-        verify(userRepository).updatePassword(5L, AuthService.hashPassword("newpass"));
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(userRepository).updatePassword(org.mockito.ArgumentMatchers.eq(5L), captor.capture());
+        assertThat(AuthService.verifyPassword("newpass", captor.getValue())).isTrue();
         verify(userRepository).setMustChangePassword(5L, true);
     }
 

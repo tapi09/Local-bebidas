@@ -26,7 +26,7 @@ public class LoginPresenter {
         if (user == null || password == null) {
             return false;
         }
-        return AuthService.hashPassword(password).equals(user.getPasswordHash());
+        return AuthService.verifyPassword(password, user.getPasswordHash());
     }
 
     public void changePassword(Long userId, String newPassword) {

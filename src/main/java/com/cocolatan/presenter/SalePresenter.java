@@ -336,6 +336,16 @@ public class SalePresenter {
             return null;
         }
 
+        // Revalidate stock right before persisting: the cart may have been built
+        // earlier and stock could have changed since addToCart. The single-instance
+        // file lock makes this a defense-in-depth check today, but it becomes the
+        // correctness boundary if the app ever scales to multiple terminals.
+        for (SaleItem item : cartItems) {
+            if (!inventoryService.validateStock(item.getProductId(), item.getQuantity())) {
+                return null;
+            }
+        }
+
         Sale sale = new Sale();
         sale.setChannel(currentChannel);
         sale.setPaymentMethod(currentPaymentMethod);

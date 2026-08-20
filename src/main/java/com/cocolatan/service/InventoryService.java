@@ -6,6 +6,7 @@ import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.StockMovementRepository;
 import com.cocolatan.util.StockRisk;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -72,9 +73,13 @@ public class InventoryService {
     public List<Product> getLowStockProducts() {
         try {
             List<Product> allProducts = productRepository.findAllActive();
+            List<Long> productIds = allProducts.stream().map(Product::getId).toList();
+            Map<Long, Integer> stocks = productIds.isEmpty()
+                    ? Map.of()
+                    : stockMovementRepository.computeCurrentStocks(productIds);
             List<Product> lowStock = new ArrayList<>();
             for (Product product : allProducts) {
-                int stock = stockMovementRepository.computeCurrentStock(product.getId());
+                int stock = stocks.getOrDefault(product.getId(), 0);
                 if (StockRisk.isAtOrBelowMinimum(stock, product.getMinStock())) {
                     lowStock.add(product);
                 }
@@ -154,16 +159,40 @@ public class InventoryService {
             movement.setMovementType("ADJUSTMENT");
             movement.setQuantity(quantityDifference);
         } else {
-            int currentStock = getCurrentStock(productId);
             int removeQty = Math.abs(quantityDifference);
-            if (removeQty > currentStock) {
-                throw new IllegalArgumentException(
-                        "Stock insuficiente. Stock actual: " + currentStock +
-                        ", intentó quitar: " + removeQty
-                );
-            }
             movement.setMovementType("EXIT");
             movement.setQuantity(removeQty);
+            Connection conn = stockMovementRepository.getConnection();
+            boolean originalAutoCommit = true;
+            try {
+                originalAutoCommit = conn.getAutoCommit();
+                conn.setAutoCommit(false);
+                int currentStock = stockMovementRepository.computeCurrentStock(conn, productId);
+                if (removeQty > currentStock) {
+                    throw new IllegalArgumentException(
+                            "Stock insuficiente. Stock actual: " + currentStock +
+                            ", intentó quitar: " + removeQty
+                    );
+                }
+                stockMovementRepository.insert(conn, movement);
+                conn.commit();
+            } catch (SQLException e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    // Best-effort rollback; the original failure is the one surfaced.
+                    LOGGER.log(Level.FINE, "Rollback falló al ajustar stock", rollbackEx);
+                }
+                throw new RuntimeException("Error al registrar ajuste de stock", e);
+            } finally {
+                try {
+                    conn.setAutoCommit(originalAutoCommit);
+                } catch (SQLException e) {
+                    // Best-effort restore; the connection is owned by the caller.
+                    LOGGER.log(Level.FINE, "No se pudo restaurar autoCommit al ajustar stock", e);
+                }
+            }
+            return;
         }
 
         try {

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -109,9 +110,8 @@ class InventoryServiceTest {
         p3.setMinStock(0);
 
         when(productRepository.findAllActive()).thenReturn(Arrays.asList(p1, p2, p3));
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(5);  // LOW
-        when(stockMovementRepository.computeCurrentStock(2L)).thenReturn(0);  // OUT
-        when(stockMovementRepository.computeCurrentStock(3L)).thenReturn(20); // OK
+        when(stockMovementRepository.computeCurrentStocks(Arrays.asList(1L, 2L, 3L)))
+                .thenReturn(java.util.Map.of(1L, 5, 2L, 0, 3L, 20)); // LOW, OUT, OK
 
         List<Product> lowStock = inventoryService.getLowStockProducts();
 
@@ -380,17 +380,56 @@ class InventoryServiceTest {
 
     @Test
     void adjustStockNegativeCreatesExitMovement() throws SQLException {
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(10);
-        when(stockMovementRepository.insert(any(StockMovement.class))).thenReturn(1L);
+        Connection conn = mock(Connection.class);
+        when(stockMovementRepository.getConnection()).thenReturn(conn);
+        when(conn.getAutoCommit()).thenReturn(true);
+        when(stockMovementRepository.computeCurrentStock(conn, 1L)).thenReturn(10);
 
         inventoryService.adjustStock(1L, -5, "Producto dañado");
 
-        verify(stockMovementRepository).insert(argThat(m ->
+        verify(stockMovementRepository).insert(eq(conn), argThat(m ->
                 "EXIT".equals(m.getMovementType()) &&
                 m.getQuantity() == 5 &&
                 "ADJUSTMENT".equals(m.getReferenceType()) &&
                 "Producto dañado".equals(m.getNotes())
         ));
+        verify(conn).setAutoCommit(false);
+        verify(conn).commit();
+        verify(conn).setAutoCommit(true); // restore original value
+    }
+
+    @Test
+    void adjustStockNegativeThrowsWhenRemovingMoreThanStock() throws SQLException {
+        Connection conn = mock(Connection.class);
+        when(stockMovementRepository.getConnection()).thenReturn(conn);
+        when(conn.getAutoCommit()).thenReturn(true);
+        when(stockMovementRepository.computeCurrentStock(conn, 1L)).thenReturn(3);
+
+        assertThatThrownBy(() -> inventoryService.adjustStock(1L, -5, "Sin stock"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Stock insuficiente");
+
+        verify(stockMovementRepository, never()).insert(eq(conn), any(StockMovement.class));
+        verify(conn, never()).commit();
+        verify(conn).setAutoCommit(true); // autoCommit restored by finally
+    }
+
+    @Test
+    void adjustStockNegativeRollsBackOnSqlException() throws SQLException {
+        Connection conn = mock(Connection.class);
+        when(stockMovementRepository.getConnection()).thenReturn(conn);
+        when(conn.getAutoCommit()).thenReturn(true);
+        when(stockMovementRepository.computeCurrentStock(conn, 1L)).thenReturn(10);
+        when(stockMovementRepository.insert(eq(conn), any(StockMovement.class)))
+                .thenThrow(new SQLException("DB error"));
+
+        assertThatThrownBy(() -> inventoryService.adjustStock(1L, -5, "Falla"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Error al registrar ajuste");
+
+        verify(conn).rollback();
+        verify(conn, never()).commit();
+        verify(conn).setAutoCommit(true);
     }
 
     @Test
@@ -499,7 +538,8 @@ class InventoryServiceTest {
         product.setName("Producto OK");
         product.setMinStock(5);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(stockMovementRepository.computeCurrentStock(1L)).thenReturn(20);
+        when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 20));
 
         List<Product> result = inventoryService.getLowStockProducts();
 

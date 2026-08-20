@@ -2,8 +2,6 @@ package com.cocolatan.service;
 
 import com.cocolatan.model.DailySalesDetailRow;
 import com.cocolatan.model.DailySalesDetailReport;
-import com.cocolatan.model.DailySalesDetailRow;
-import com.cocolatan.model.DailySalesDetailReport;
 import com.cocolatan.model.Product;
 import com.cocolatan.model.Sale;
 import com.cocolatan.model.SaleItem;
@@ -244,8 +242,8 @@ public class ReportService {
             return r;
         });
         row.setQuantity(row.getQuantity() + quantity);
-        row.setUnitPrice(unitPrice);
-        row.setLineTotal(row.getQuantity() * row.getUnitPrice());
+        row.setLineTotal(row.getLineTotal() + quantity * unitPrice);
+        row.setUnitPrice(row.getQuantity() != 0 ? row.getLineTotal() / row.getQuantity() : unitPrice);
     }
 
     /**

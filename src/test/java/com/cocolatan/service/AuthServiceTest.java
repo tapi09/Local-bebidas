@@ -7,6 +7,7 @@ import com.cocolatan.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -60,6 +61,25 @@ class AuthServiceTest {
         User result = authService.login("admin", "wrongpass");
 
         assertThat(result).isNull();
+    }
+
+    @Test
+    void loginUpgradesLegacySha256HashToBCrypt() throws SQLException {
+        User legacyUser = new User();
+        legacyUser.setId(1L);
+        legacyUser.setUsername("admin");
+        legacyUser.setPasswordHash(AuthService.legacySha256("admin123"));
+        legacyUser.setRole("ADMIN");
+        legacyUser.setDisplayName("Administrador");
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(legacyUser));
+
+        User result = authService.login("admin", "admin123");
+
+        assertThat(result).isNotNull();
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(userRepository).updatePassword(org.mockito.ArgumentMatchers.eq(1L), captor.capture());
+        assertThat(captor.getValue()).startsWith("$2");
+        assertThat(AuthService.verifyPassword("admin123", captor.getValue())).isTrue();
     }
 
     @Test
@@ -123,26 +143,28 @@ class AuthServiceTest {
     }
 
     @Test
-    void hashPasswordProducesConsistentHash() {
-        String hash1 = AuthService.hashPassword("admin123");
-        String hash2 = AuthService.hashPassword("admin123");
+    void verifyPasswordAcceptsBCryptHashes() {
+        String hash = AuthService.hashPassword("admin123");
 
-        assertThat(hash1).isEqualTo(hash2);
-        assertThat(hash1).hasSize(64);
+        assertThat(AuthService.verifyPassword("admin123", hash)).isTrue();
+        assertThat(AuthService.verifyPassword("wrongpass", hash)).isFalse();
+        assertThat(hash).startsWith("$2");
     }
 
     @Test
-    void hashPasswordDifferentInputsProduceDifferentHashes() {
-        String hash1 = AuthService.hashPassword("admin123");
-        String hash2 = AuthService.hashPassword("admin456");
+    void verifyPasswordAcceptsLegacySha256Hashes() {
+        String legacy = AuthService.legacySha256("admin123");
 
-        assertThat(hash1).isNotEqualTo(hash2);
+        assertThat(AuthService.verifyPassword("admin123", legacy)).isTrue();
+        assertThat(AuthService.verifyPassword("otra", legacy)).isFalse();
     }
 
     @Test
-    void hashPasswordHandlesEmptyString() {
-        String hash = AuthService.hashPassword("");
-        assertThat(hash).hasSize(64);
+    void verifyPasswordRejectsNullOrEmptyInput() {
+        assertThat(AuthService.verifyPassword(null, AuthService.hashPassword("admin123"))).isFalse();
+        assertThat(AuthService.verifyPassword("admin123", null)).isFalse();
+        assertThat(AuthService.verifyPassword("admin123", "")).isFalse();
+        assertThat(AuthService.verifyPassword("", AuthService.hashPassword("x"))).isFalse();
     }
 
     @Test
@@ -163,7 +185,9 @@ class AuthServiceTest {
 
         authService.changePassword(1L, "nuevapass");
 
-        verify(userRepository).updatePassword(1L, AuthService.hashPassword("nuevapass"));
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(userRepository).updatePassword(org.mockito.ArgumentMatchers.eq(1L), captor.capture());
+        assertThat(AuthService.verifyPassword("nuevapass", captor.getValue())).isTrue();
     }
 
     @Test
@@ -304,7 +328,7 @@ class AuthServiceTest {
             service.resetPassword(target.getId(), "nueva");
 
             User updated = userRepo.findByUsername("olvidado").orElseThrow();
-            assertThat(updated.getPasswordHash()).isEqualTo(AuthService.hashPassword("nueva"));
+            assertThat(AuthService.verifyPassword("nueva", updated.getPasswordHash())).isTrue();
             assertThat(updated.isMustChangePassword()).isFalse();
         } finally {
             db.close();

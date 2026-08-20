@@ -3,6 +3,7 @@ package com.cocolatan.service;
 import com.cocolatan.model.User;
 import com.cocolatan.repository.ConfigRepository;
 import com.cocolatan.repository.UserRepository;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -74,7 +75,7 @@ public class AuthService {
         }
         try {
             return configRepository.get(MASTER_RESET_HASH_KEY)
-                    .map(stored -> stored.equals(hashPassword(LEGACY_DEFAULT_MASTER_KEY)))
+                    .map(stored -> verifyPassword(LEGACY_DEFAULT_MASTER_KEY, stored))
                     .orElse(false);
         } catch (SQLException e) {
             return false;
@@ -91,9 +92,13 @@ public class AuthService {
             if (user == null) {
                 return null;
             }
-            String hash = hashPassword(password);
-            if (!user.getPasswordHash().equals(hash)) {
+            String storedHash = user.getPasswordHash();
+            if (!verifyPassword(password, storedHash)) {
                 return null;
+            }
+            // Upgrade legacy SHA-256 hashes to BCrypt on successful login.
+            if (!storedHash.startsWith("$2")) {
+                userRepository.updatePassword(user.getId(), hashPassword(password));
             }
             currentUser = user;
             return user;
@@ -164,7 +169,7 @@ public class AuthService {
         }
         try {
             return configRepository.get(MASTER_RESET_HASH_KEY)
-                    .map(stored -> stored.equals(hashPassword(candidate)))
+                    .map(stored -> verifyPassword(candidate, stored))
                     .orElse(false);
         } catch (SQLException e) {
             throw new RuntimeException("Error al verificar la clave de recuperación", e);
@@ -172,7 +177,7 @@ public class AuthService {
     }
 
     /**
-     * Persists the SHA-256 hash of a new provider master key. The plaintext key
+     * Persists the hash (BCrypt) of a new provider master key. The plaintext key
      * is never stored.
      */
     public void setMasterKey(String newKey) {
@@ -202,6 +207,30 @@ public class AuthService {
     }
 
     public static String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+
+    /**
+     * Verifies a candidate password against a stored hash. Supports the current
+     * BCrypt format and legacy unsalted SHA-256 hashes so existing databases keep
+     * working. Returns false for null/empty/unknown formats.
+     */
+    public static boolean verifyPassword(String password, String storedHash) {
+        if (password == null || storedHash == null || storedHash.isEmpty()) {
+            return false;
+        }
+        if (storedHash.startsWith("$2")) {
+            return BCrypt.checkpw(password, storedHash);
+        }
+        // Legacy unsalted SHA-256 (64 lowercase hex chars).
+        return storedHash.equals(legacySha256(password));
+    }
+
+    /**
+     * Legacy unsalted SHA-256 used by databases created before BCrypt migration.
+     * Kept ONLY to verify and upgrade old hashes during login.
+     */
+    public static String legacySha256(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(password.getBytes(StandardCharsets.UTF_8));

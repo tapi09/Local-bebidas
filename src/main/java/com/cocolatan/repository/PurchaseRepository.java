@@ -66,10 +66,10 @@ public class PurchaseRepository {
             ps.setDouble(4, purchase.getSubtotal());
             ps.setDouble(5, purchase.getTaxAmount());
             ps.setDouble(6, purchase.getTotalAmount());
-ps.setString(7, purchase.getNotes());
-             ps.setString(8, purchase.getInvoicePhotoPath());
-             ps.setString(9, purchase.getPaymentMethod());
-             ps.executeUpdate();
+            ps.setString(7, purchase.getNotes());
+            ps.setString(8, purchase.getInvoicePhotoPath());
+            ps.setString(9, purchase.getPaymentMethod());
+            ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
                     purchaseId = rs.getLong(1);
@@ -118,7 +118,7 @@ ps.setString(7, purchase.getNotes());
      * Returns purchase history sorted by date descending.
      */
     public List<Purchase> findHistory() throws SQLException {
-        String sql = "SELECT * FROM purchases ORDER BY substr(purchase_date,7,4) DESC, substr(purchase_date,4,2) DESC, substr(purchase_date,1,2) DESC, id DESC";
+        String sql = "SELECT * FROM purchases ORDER BY id DESC";
         Connection conn = dbManager.getConnection();
         List<Purchase> purchases = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql);
@@ -127,7 +127,42 @@ ps.setString(7, purchase.getNotes());
                 purchases.add(mapPurchase(rs));
             }
         }
+        // purchase_date is user-facing dd/MM/yyyy, so SQL substr ordering was fragile;
+        // sort in Java with defensive parsing instead.
+        purchases.sort((a, b) -> {
+            int c = compareDatesDesc(a.getPurchaseDate(), b.getPurchaseDate());
+            if (c != 0) {
+                return c;
+            }
+            return Long.compare(b.getId(), a.getId());
+        });
         return purchases;
+    }
+
+    private static final java.time.format.DateTimeFormatter DATE_FMT =
+            java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    /**
+     * Compares two dd/MM/yyyy date strings descending by date. Dates that cannot
+     * be parsed sort last (treated as the oldest). Falls back to id ordering.
+     */
+    private static int compareDatesDesc(String a, String b) {
+        try {
+            java.time.LocalDate da = java.time.LocalDate.parse(a, DATE_FMT);
+            try {
+                java.time.LocalDate db = java.time.LocalDate.parse(b, DATE_FMT);
+                return db.compareTo(da);
+            } catch (Exception e) {
+                return -1; // b unparseable -> b sorts after a
+            }
+        } catch (Exception e) {
+            try {
+                java.time.LocalDate.parse(b, DATE_FMT);
+                return 1; // a unparseable -> a sorts after b
+            } catch (Exception e2) {
+                return 0; // both unparseable
+            }
+        }
     }
 
     /**
@@ -166,6 +201,31 @@ ps.setString(7, purchase.getNotes());
         return items;
     }
 
+    /**
+     * Returns all purchase items for multiple products in a single query,
+     * avoiding per-product round trips. Ordered by product_id for stable grouping.
+     */
+    public List<PurchaseItem> findItemsByProductIds(List<Long> productIds) throws SQLException {
+        if (productIds == null || productIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        String placeholders = productIds.stream().map(id -> "?").collect(java.util.stream.Collectors.joining(","));
+        String sql = "SELECT * FROM purchase_items WHERE product_id IN (" + placeholders + ") ORDER BY product_id";
+        Connection conn = dbManager.getConnection();
+        List<PurchaseItem> items = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < productIds.size(); i++) {
+                ps.setLong(i + 1, productIds.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    items.add(mapItem(rs));
+                }
+            }
+        }
+        return items;
+    }
+
     private Purchase mapPurchase(ResultSet rs) throws SQLException {
         Purchase purchase = new Purchase();
         purchase.setId(rs.getLong("id"));
@@ -175,11 +235,11 @@ ps.setString(7, purchase.getNotes());
         purchase.setSubtotal(rs.getDouble("subtotal"));
         purchase.setTaxAmount(rs.getDouble("tax_amount"));
         purchase.setTotalAmount(rs.getDouble("total_amount"));
-purchase.setNotes(rs.getString("notes"));
-         purchase.setCreatedAt(rs.getString("created_at"));
-         purchase.setInvoicePhotoPath(rs.getString("invoice_photo_path"));
-         purchase.setPaymentMethod(rs.getString("payment_method"));
-         return purchase;
+        purchase.setNotes(rs.getString("notes"));
+        purchase.setCreatedAt(rs.getString("created_at"));
+        purchase.setInvoicePhotoPath(rs.getString("invoice_photo_path"));
+        purchase.setPaymentMethod(rs.getString("payment_method"));
+        return purchase;
     }
 
     private PurchaseItem mapItem(ResultSet rs) throws SQLException {

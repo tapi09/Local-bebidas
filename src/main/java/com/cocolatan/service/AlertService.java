@@ -12,8 +12,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Service for alert detection: expiry warnings, low-stock alerts, alert history.
@@ -52,9 +54,15 @@ public class AlertService {
             List<Product> products = productRepository.findAllActive();
             LocalDate now = LocalDate.now();
 
+            // Single batched query for all purchase items instead of one per product.
+            List<Long> productIds = products.stream().map(Product::getId).toList();
+            Map<Long, List<PurchaseItem>> itemsByProduct = productIds.isEmpty()
+                    ? Map.of()
+                    : purchaseRepository.findItemsByProductIds(productIds).stream()
+                            .collect(Collectors.groupingBy(PurchaseItem::getProductId));
+
             for (Product product : products) {
-                // Get all purchase items for this product
-                List<PurchaseItem> purchaseItems = purchaseRepository.findItemsByProductId(product.getId());
+                List<PurchaseItem> purchaseItems = itemsByProduct.getOrDefault(product.getId(), List.of());
                 for (PurchaseItem item : purchaseItems) {
                     if (item.getExpiryDate() == null || item.getExpiryDate().isEmpty()) {
                         continue;
@@ -97,8 +105,12 @@ public class AlertService {
         List<Alert> alerts = new ArrayList<>();
         try {
             List<Product> products = productRepository.findAllActive();
+            List<Long> productIds = products.stream().map(Product::getId).toList();
+            Map<Long, Integer> stocks = productIds.isEmpty()
+                    ? Map.of()
+                    : inventoryService.getStocksForProducts(productIds);
             for (Product product : products) {
-                int stock = inventoryService.getCurrentStock(product.getId());
+                int stock = stocks.getOrDefault(product.getId(), 0);
                 if (stock == 0) {
                     Alert alert = new Alert("OUT_OF_STOCK", product, null, null, stock);
                     alerts.add(alert);
@@ -134,15 +146,23 @@ public class AlertService {
         try {
             List<Product> products = productRepository.findAllActive();
             LocalDate now = LocalDate.now();
+            List<Long> productIds = products.stream().map(Product::getId).toList();
+            Map<Long, Integer> stocks = productIds.isEmpty()
+                    ? Map.of()
+                    : inventoryService.getStocksForProducts(productIds);
+            Map<Long, List<com.cocolatan.model.PurchaseItem>> itemsByProduct = productIds.isEmpty()
+                    ? Map.of()
+                    : purchaseRepository.findItemsByProductIds(productIds).stream()
+                            .collect(Collectors.groupingBy(com.cocolatan.model.PurchaseItem::getProductId));
             for (Product product : products) {
                 // Low-stock / out-of-stock
-                int stock = inventoryService.getCurrentStock(product.getId());
+                int stock = stocks.getOrDefault(product.getId(), 0);
                 if (stock == 0 || StockRisk.isBelowMinimum(stock, product.getMinStock())) {
                     count++;
                 }
                 // Expiry
                 List<com.cocolatan.model.PurchaseItem> purchaseItems =
-                        purchaseRepository.findItemsByProductId(product.getId());
+                        itemsByProduct.getOrDefault(product.getId(), List.of());
                 for (com.cocolatan.model.PurchaseItem item : purchaseItems) {
                     if (item.getExpiryDate() == null || item.getExpiryDate().isEmpty()) {
                         continue;

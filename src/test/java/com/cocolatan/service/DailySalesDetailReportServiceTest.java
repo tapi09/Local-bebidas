@@ -137,6 +137,33 @@ class DailySalesDetailReportServiceTest {
         assertThat(report.getGrandTotal()).isEqualTo(5200.0);
     }
 
+    @Test
+    void dailySalesDetailAccumulatesMixedPricesWithWeightedAverage() throws SQLException {
+        Sale sale1 = createSale("03/08/2026", "IN", 1L);
+        SaleItem item1 = createSaleItem(1L, 1L, 1L, 1, 100.0);
+
+        Sale sale2 = createSale("03/08/2026", "IN", 2L);
+        SaleItem item2 = createSaleItem(2L, 2L, 1L, 2, 80.0);
+
+        when(saleRepository.findAllByDateRange("01/08/2026", "05/08/2026"))
+                .thenReturn(Arrays.asList(sale1, sale2));
+        when(saleRepository.findItemsBySaleIds(Arrays.asList(1L, 2L)))
+                .thenReturn(Arrays.asList(item1, item2));
+        when(productRepository.findAllByIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(createProduct(1L, "Coca-Cola 500ml")));
+
+        DailySalesDetailReport report = reportService.getDailySalesDetailReport("01/08/2026", "05/08/2026");
+
+        assertThat(report.getRows()).hasSize(1);
+        DailySalesDetailRow row = report.getRows().get(0);
+        // Same product sold the same day at two different prices: quantities and
+        // totals accumulate, unit price becomes the weighted average.
+        assertThat(row.getQuantity()).isEqualTo(3);
+        assertThat(row.getLineTotal()).isEqualTo(260.0);
+        assertThat(row.getUnitPrice()).isCloseTo(260.0 / 3,
+                org.assertj.core.data.Offset.offset(0.01));
+    }
+
     private Sale createSale(String date, String channel, Long id) {
         Sale sale = new Sale();
         sale.setId(id);

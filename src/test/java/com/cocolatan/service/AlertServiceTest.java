@@ -60,7 +60,8 @@ class AlertServiceTest {
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
 
         PurchaseItem item = createPurchaseItem(1L, "LOT-001", "01/01/2025", 10);
-        when(purchaseRepository.findItemsByProductId(1L)).thenReturn(Collections.singletonList(item));
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
 
         List<AlertService.Alert> alerts = alertService.getExpiryAlerts();
 
@@ -77,7 +78,8 @@ class AlertServiceTest {
 
         LocalDate nearFuture = LocalDate.now().plusDays(3);
         PurchaseItem item = createPurchaseItem(1L, "LOT-002", nearFuture.format(DATE_FORMATTER), 5);
-        when(purchaseRepository.findItemsByProductId(1L)).thenReturn(Collections.singletonList(item));
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
 
         List<AlertService.Alert> alerts = alertService.getExpiryAlerts();
 
@@ -94,7 +96,8 @@ class AlertServiceTest {
 
         LocalDate farFuture = LocalDate.now().plusDays(30);
         PurchaseItem item = createPurchaseItem(1L, "LOT-003", farFuture.format(DATE_FORMATTER), 20);
-        when(purchaseRepository.findItemsByProductId(1L)).thenReturn(Collections.singletonList(item));
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
 
         List<AlertService.Alert> alerts = alertService.getExpiryAlerts();
 
@@ -107,7 +110,8 @@ class AlertServiceTest {
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
 
         PurchaseItem item = createPurchaseItem(1L, null, null, 10);
-        when(purchaseRepository.findItemsByProductId(1L)).thenReturn(Collections.singletonList(item));
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
 
         List<AlertService.Alert> alerts = alertService.getExpiryAlerts();
 
@@ -120,7 +124,8 @@ class AlertServiceTest {
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
 
         PurchaseItem item = createPurchaseItem(1L, null, "", 10);
-        when(purchaseRepository.findItemsByProductId(1L)).thenReturn(Collections.singletonList(item));
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
 
         List<AlertService.Alert> alerts = alertService.getExpiryAlerts();
 
@@ -134,7 +139,8 @@ class AlertServiceTest {
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
 
         PurchaseItem item = createPurchaseItem(1L, "LOT-BAD", "not-a-date", 10);
-        when(purchaseRepository.findItemsByProductId(1L)).thenReturn(Collections.singletonList(item));
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
 
         Logger logger = Logger.getLogger(AlertService.class.getName());
         Level originalLevel = logger.getLevel();
@@ -170,11 +176,13 @@ class AlertServiceTest {
         Product product = createProduct(1L, "Test Product");
         product.setMinStock(10);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(inventoryService.getCurrentStock(1L)).thenReturn(5);
+        when(inventoryService.getStocksForProducts(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 5));
 
         PurchaseItem invalid = createPurchaseItem(1L, "LOT-BAD", "not-a-date", 10);
         PurchaseItem valid = createPurchaseItem(1L, "LOT-OK", "01/01/2025", 10);
-        when(purchaseRepository.findItemsByProductId(1L)).thenReturn(Arrays.asList(invalid, valid));
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Arrays.asList(invalid, valid));
 
         Logger logger = Logger.getLogger(AlertService.class.getName());
         Level originalLevel = logger.getLevel();
@@ -211,7 +219,8 @@ class AlertServiceTest {
         Product product = createProduct(1L, "Sprite 500ml");
         product.setMinStock(5);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(inventoryService.getCurrentStock(1L)).thenReturn(0);
+        when(inventoryService.getStocksForProducts(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 0));
 
         List<AlertService.Alert> alerts = alertService.getLowStockAlerts();
 
@@ -225,7 +234,8 @@ class AlertServiceTest {
         Product product = createProduct(1L, "Agua 500ml");
         product.setMinStock(10);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(inventoryService.getCurrentStock(1L)).thenReturn(8);
+        when(inventoryService.getStocksForProducts(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 8));
 
         List<AlertService.Alert> alerts = alertService.getLowStockAlerts();
 
@@ -239,7 +249,8 @@ class AlertServiceTest {
         Product product = createProduct(1L, "Coca-Cola 500ml");
         product.setMinStock(5);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(inventoryService.getCurrentStock(1L)).thenReturn(24);
+        when(inventoryService.getStocksForProducts(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 24));
 
         List<AlertService.Alert> alerts = alertService.getLowStockAlerts();
 
@@ -252,9 +263,8 @@ class AlertServiceTest {
         Product p2 = createProduct(2L, "Pepsi", 5);
         Product p3 = createProduct(3L, "Sprite", 5);
         when(productRepository.findAllActive()).thenReturn(Arrays.asList(p1, p2, p3));
-        when(inventoryService.getCurrentStock(1L)).thenReturn(24); // OK
-        when(inventoryService.getCurrentStock(2L)).thenReturn(3);  // LOW
-        when(inventoryService.getCurrentStock(3L)).thenReturn(0);  // OUT
+        when(inventoryService.getStocksForProducts(Arrays.asList(1L, 2L, 3L)))
+                .thenReturn(java.util.Map.of(1L, 24, 2L, 3, 3L, 0)); // OK, LOW, OUT
 
         List<AlertService.Alert> alerts = alertService.getLowStockAlerts();
 
@@ -270,11 +280,13 @@ class AlertServiceTest {
         Product product = createProduct(1L, "Coca-Cola 500ml");
         product.setMinStock(10);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(inventoryService.getCurrentStock(1L)).thenReturn(5);
+        when(inventoryService.getStocksForProducts(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 5));
 
         LocalDate pastDate = LocalDate.now().minusDays(5);
         PurchaseItem item = createPurchaseItem(1L, "LOT-001", pastDate.format(DATE_FORMATTER), 10);
-        when(purchaseRepository.findItemsByProductId(1L)).thenReturn(Collections.singletonList(item));
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
 
         List<AlertService.Alert> allAlerts = alertService.getAllAlerts();
 
@@ -286,11 +298,13 @@ class AlertServiceTest {
         Product product = createProduct(1L, "Coca-Cola 500ml");
         product.setMinStock(10);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(inventoryService.getCurrentStock(1L)).thenReturn(5);
+        when(inventoryService.getStocksForProducts(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 5));
 
         LocalDate pastDate = LocalDate.now().minusDays(5);
         PurchaseItem item = createPurchaseItem(1L, "LOT-001", pastDate.format(DATE_FORMATTER), 10);
-        when(purchaseRepository.findItemsByProductId(1L)).thenReturn(Collections.singletonList(item));
+        when(purchaseRepository.findItemsByProductIds(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonList(item));
 
         int count = alertService.getAlertCount();
 
@@ -349,7 +363,8 @@ class AlertServiceTest {
         Product product = createProduct(1L, "Coca-Cola 500ml");
         product.setMinStock(10);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(inventoryService.getCurrentStock(1L)).thenReturn(5);
+        when(inventoryService.getStocksForProducts(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 5));
 
         alertService.getLowStockAlerts();
         alertService.getLowStockAlerts();
@@ -363,7 +378,8 @@ class AlertServiceTest {
         Product product = createProduct(1L, "Coca-Cola 500ml");
         product.setMinStock(10);
         when(productRepository.findAllActive()).thenReturn(Collections.singletonList(product));
-        when(inventoryService.getCurrentStock(1L)).thenReturn(5);
+        when(inventoryService.getStocksForProducts(Collections.singletonList(1L)))
+                .thenReturn(Collections.singletonMap(1L, 5));
 
         alertService.getLowStockAlerts();
         alertService.clearHistory();

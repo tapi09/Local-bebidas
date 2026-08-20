@@ -132,6 +132,48 @@ class PurchaseRepositoryTest {
     }
 
     @Test
+    void findHistorySortsByDateDescending() throws SQLException {
+        Purchase p1 = createPurchase(1L);
+        p1.setPurchaseDate("15/01/2026");
+        repository.saveWithItems(p1, Collections.singletonList(createPurchaseItem(1L, 10, 100.0)));
+
+        Purchase p2 = createPurchase(1L);
+        p2.setPurchaseDate("02/12/2025");
+        repository.saveWithItems(p2, Collections.singletonList(createPurchaseItem(1L, 5, 200.0)));
+
+        Purchase p3 = createPurchase(1L);
+        p3.setPurchaseDate("20/03/2026");
+        repository.saveWithItems(p3, Collections.singletonList(createPurchaseItem(1L, 5, 200.0)));
+
+        List<Purchase> history = repository.findHistory();
+
+        assertThat(history).hasSize(3);
+        // Newest first, independent of insertion order
+        assertThat(history.get(0).getPurchaseDate()).isEqualTo("20/03/2026");
+        assertThat(history.get(1).getPurchaseDate()).isEqualTo("15/01/2026");
+        assertThat(history.get(2).getPurchaseDate()).isEqualTo("02/12/2025");
+    }
+
+    @Test
+    void findItemsByProductIdsReturnsItemsForMultipleProducts() throws SQLException {
+        Purchase purchase = createPurchase(1L);
+        PurchaseItem item1 = createPurchaseItem(1L, 10, 100.0);
+        PurchaseItem item2 = createPurchaseItem(2L, 5, 200.0);
+        repository.saveWithItems(purchase, Arrays.asList(item1, item2));
+
+        List<PurchaseItem> items = repository.findItemsByProductIds(Arrays.asList(1L, 2L));
+
+        assertThat(items).hasSize(2);
+        assertThat(items).extracting(PurchaseItem::getProductId)
+                .containsExactlyInAnyOrder(1L, 2L);
+    }
+
+    @Test
+    void findItemsByProductIdsReturnsEmptyForEmptyList() throws SQLException {
+        assertThat(repository.findItemsByProductIds(Collections.emptyList())).isEmpty();
+    }
+
+    @Test
     void findItemsByPurchaseIdReturnsCorrectItems() throws SQLException {
         Purchase purchase = createPurchase(1L);
         PurchaseItem item = createPurchaseItem(1L, 24, 350.0);
