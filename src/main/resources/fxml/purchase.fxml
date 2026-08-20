@@ -93,7 +93,7 @@
         <Label text="Vencimiento:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
         <TextField fx:id="expiryField" GridPane.columnIndex="1" GridPane.rowIndex="2" prefWidth="120" promptText="DD/MM/AAAA"/>
 
-        <Button text="➕ Agregar" onAction="#onAddItem" styleClass="button" GridPane.columnIndex="3" GridPane.rowIndex="3"/>
+        <Button text="Agregar" onAction="#onAddItem" styleClass="button" GridPane.columnIndex="3" GridPane.rowIndex="3"/>
     </GridPane>
 
     <!-- Items Table -->
@@ -116,8 +116,8 @@
         <TextField fx:id="taxField" prefWidth="100" promptText="0" onAction="#onTaxChanged"/>
         <Label text="Total:" styleClass="section-title"/>
         <Label fx:id="totalLabel" text="0,00" styleClass="section-title"/>
-        <Button text="🗑️ Quitar Ítem" onAction="#onRemoveItem" styleClass="button-danger"/>
-        <Button text="💾 Guardar Compra" onAction="#onSavePurchase" styleClass="button"/>
+        <Button text="Quitar Ítem" onAction="#onRemoveItem" styleClass="button-danger"/>
+        <Button text="Guardar Compra" onAction="#onSavePurchase" styleClass="button"/>
     </HBox>
 
     <Separator/>

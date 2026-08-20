@@ -22,7 +22,7 @@
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="card">
         <Label text="Historial de Ventas" styleClass="title-label"/>
         <HBox HBox.hgrow="ALWAYS"/>
-        <Button text="⬅ Volver al POS" onAction="#onBackToPos" styleClass="button-secondary"/>
+        <Button text="← Volver al POS" onAction="#onBackToPos" styleClass="button-secondary"/>
     </HBox>
 
     <!-- Sales Table -->
@@ -43,6 +43,6 @@
 
     <!-- Actions -->
     <HBox spacing="10" alignment="CENTER_RIGHT" styleClass="card">
-        <Button fx:id="btnCancelSale" text="🗑️ Anular Venta Seleccionada" onAction="#onCancelSale" styleClass="button-danger"/>
+        <Button fx:id="btnCancelSale" text="Anular Venta Seleccionada" onAction="#onCancelSale" styleClass="button-danger"/>
     </HBox>
 </VBox>

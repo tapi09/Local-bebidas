@@ -27,8 +27,8 @@
         <HBox alignment="CENTER_LEFT" spacing="12">
             <Label text="Catálogo de Productos" styleClass="title-label" HBox.hgrow="ALWAYS"/>
             <TextField fx:id="searchField" promptText="Buscar por nombre o código..." prefWidth="240" onAction="#onSearch"/>
-            <Button text="🔍 Buscar" onAction="#onSearch" styleClass="button"/>
-            <Button text="🔄 Limpiar" onAction="#onClearSearch" styleClass="button-secondary"/>
+            <Button text="Buscar" onAction="#onSearch" styleClass="button"/>
+            <Button text="Limpiar" onAction="#onClearSearch" styleClass="button-secondary"/>
         </HBox>
         <HBox alignment="CENTER_LEFT" spacing="12">
             <Label text="Filtrar categoría:"/>
@@ -57,10 +57,10 @@
         </TableView>
 
         <HBox spacing="10" alignment="CENTER_RIGHT">
-            <Button text="➕ Nuevo Producto" fx:id="btnNew" onAction="#onNew" styleClass="button-success"/>
-            <Button text="✏️ Editar" fx:id="btnEdit" onAction="#onEdit" styleClass="button"/>
-            <Button text="📈 Precios" fx:id="btnBulkPrice" onAction="#onBulkPrice" styleClass="button"/>
-            <Button text="🗑️ Desactivar" fx:id="btnDeactivate" onAction="#onDeactivate" styleClass="button-danger"/>
+            <Button text="Nuevo Producto" fx:id="btnNew" onAction="#onNew" styleClass="button-success"/>
+            <Button text="Editar" fx:id="btnEdit" onAction="#onEdit" styleClass="button"/>
+            <Button text="Precios" fx:id="btnBulkPrice" onAction="#onBulkPrice" styleClass="button"/>
+            <Button text="Desactivar" fx:id="btnDeactivate" onAction="#onDeactivate" styleClass="button-danger"/>
         </HBox>
     </VBox>
 
@@ -108,13 +108,13 @@
         <VBox spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="5" GridPane.columnSpan="3">
             <ImageView fx:id="imagePreview" fitWidth="120" fitHeight="120" preserveRatio="true"
                        styleClass="image-border"/>
-            <Button text="📷 Seleccionar imagen" onAction="#onSelectImage" styleClass="button-secondary"/>
+            <Button text="Seleccionar imagen" onAction="#onSelectImage" styleClass="button-secondary"/>
             <Label fx:id="photoNameLabel" styleClass="caption-label"/>
         </VBox>
 
         <HBox spacing="10" GridPane.columnIndex="0" GridPane.rowIndex="6" GridPane.columnSpan="4" alignment="CENTER_RIGHT">
-            <Button text="💾 Guardar" fx:id="btnSave" onAction="#onSave" styleClass="button-success"/>
-            <Button text="❌ Cancelar" fx:id="btnCancel" onAction="#onCancel" styleClass="button-secondary"/>
+            <Button text="Guardar" fx:id="btnSave" onAction="#onSave" styleClass="button-success"/>
+            <Button text="Cancelar" fx:id="btnCancel" onAction="#onCancel" styleClass="button-secondary"/>
         </HBox>
     </GridPane>
 </VBox>

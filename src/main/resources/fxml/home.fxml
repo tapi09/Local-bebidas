@@ -30,31 +30,31 @@
     <GridPane hgap="14" vgap="14">
         <!-- Card 1: Productos Activos -->
         <VBox styleClass="dashboard-card" GridPane.columnIndex="0" GridPane.rowIndex="0" HBox.hgrow="ALWAYS">
-            <Label text="📦 Productos Activos" styleClass="dashboard-card-title"/>
+            <Label text="Productos Activos" styleClass="dashboard-card-title"/>
             <Label fx:id="activeProductsLabel" text="0" styleClass="dashboard-card-value"/>
         </VBox>
 
         <!-- Card 2: Stock Bajo -->
         <VBox styleClass="dashboard-card" GridPane.columnIndex="1" GridPane.rowIndex="0" HBox.hgrow="ALWAYS">
-            <Label text="⚠️ Stock Bajo" styleClass="dashboard-card-title"/>
+            <Label text="⚠ Stock Bajo" styleClass="dashboard-card-title"/>
             <Label fx:id="lowStockLabel" text="0" styleClass="dashboard-card-value-warning"/>
         </VBox>
 
         <!-- Card 3: Ventas Hoy -->
         <VBox styleClass="dashboard-card" GridPane.columnIndex="0" GridPane.rowIndex="1" HBox.hgrow="ALWAYS">
-            <Label text="💵 Ventas Hoy" styleClass="dashboard-card-title"/>
+            <Label text="Ventas Hoy" styleClass="dashboard-card-title"/>
             <Label fx:id="todaySalesLabel" text="0,00" styleClass="dashboard-card-value"/>
         </VBox>
 
         <!-- Card 4: Productos Agotados -->
         <VBox styleClass="dashboard-card" GridPane.columnIndex="1" GridPane.rowIndex="1" HBox.hgrow="ALWAYS">
-            <Label text="🚫 Productos Agotados" styleClass="dashboard-card-title"/>
+            <Label text="Productos Agotados" styleClass="dashboard-card-title"/>
             <Label fx:id="outOfStockLabel" text="0" styleClass="dashboard-card-value-danger"/>
         </VBox>
 
         <!-- Card 5: Alertas -->
         <VBox styleClass="dashboard-card" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2" HBox.hgrow="ALWAYS">
-            <Label text="🚨 Alertas Activas" styleClass="dashboard-card-title"/>
+            <Label text="Alertas Activas" styleClass="dashboard-card-title"/>
             <Label fx:id="alertsLabel" text="0" styleClass="dashboard-card-value-danger"/>
         </VBox>
     </GridPane>

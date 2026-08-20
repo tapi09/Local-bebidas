@@ -31,10 +31,10 @@
 
     <!-- Action Buttons -->
     <HBox spacing="10" alignment="CENTER_RIGHT">
-        <Button text="➕ Nuevo usuario" fx:id="btnNew" onAction="#onNew" styleClass="button"/>
-        <Button text="✏️ Editar" fx:id="btnEdit" onAction="#onEdit" styleClass="button"/>
-        <Button text="🔑 Cambiar contraseña" fx:id="btnChangePassword" onAction="#onChangePassword" styleClass="button"/>
-        <Button text="🔑 Clave de recuperación" fx:id="btnMasterKey" onAction="#onChangeMasterKey" styleClass="button"/>
-        <Button text="🗑️ Eliminar" fx:id="btnDelete" onAction="#onDelete" styleClass="button-danger"/>
+        <Button text="Nuevo usuario" fx:id="btnNew" onAction="#onNew" styleClass="button"/>
+        <Button text="Editar" fx:id="btnEdit" onAction="#onEdit" styleClass="button"/>
+        <Button text="Cambiar contraseña" fx:id="btnChangePassword" onAction="#onChangePassword" styleClass="button"/>
+        <Button text="Clave de recuperación" fx:id="btnMasterKey" onAction="#onChangeMasterKey" styleClass="button"/>
+        <Button text="Eliminar" fx:id="btnDelete" onAction="#onDelete" styleClass="button-danger"/>
     </HBox>
 </VBox>

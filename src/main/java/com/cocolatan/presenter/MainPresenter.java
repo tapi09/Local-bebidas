@@ -176,7 +176,7 @@ public class MainPresenter {
             String display = auth.getCurrentUser().getDisplayName();
             String roleLabel = auth.isAdmin() ? "Admin" : "Cajero";
             if (userInfoLabel != null) {
-                userInfoLabel.setText("👤 " + display + " (" + roleLabel + ")");
+                userInfoLabel.setText(display + " (" + roleLabel + ")");
             }
         }
 
@@ -580,12 +580,12 @@ public class MainPresenter {
                 scene.getStylesheets().add("/styles-dark.css");
             }
             if (btnDarkMode != null) {
-                btnDarkMode.setText("☀️  Modo Claro");
+                btnDarkMode.setText("Modo Claro");
             }
         } else {
             scene.getStylesheets().remove("/styles-dark.css");
             if (btnDarkMode != null) {
-                btnDarkMode.setText("🌙  Modo Oscuro");
+                btnDarkMode.setText("Modo Oscuro");
             }
         }
     }

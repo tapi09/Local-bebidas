@@ -35,12 +35,12 @@
     </TableView>
 
     <HBox spacing="10" alignment="CENTER_RIGHT">
-        <Button text="➕ Nueva" fx:id="btnNewCategory" onAction="#onNewCategory" styleClass="button"/>
-        <Button text="✏️ Editar" fx:id="btnEditCategory" onAction="#onEditCategory" styleClass="button"/>
-        <Button text="🗑️ Eliminar" fx:id="btnDeleteCategory" onAction="#onDeleteCategory" styleClass="button-danger"/>
-        <Button text="⬆️" fx:id="btnCategoryUp" onAction="#onCategoryUp" styleClass="button"/>
-        <Button text="⬇️" fx:id="btnCategoryDown" onAction="#onCategoryDown" styleClass="button"/>
-        <Button text="⚡ Activar/Desactivar" fx:id="btnToggleCategory" onAction="#onToggleCategoryActive" styleClass="button-secondary"/>
+        <Button text="Nueva" fx:id="btnNewCategory" onAction="#onNewCategory" styleClass="button"/>
+        <Button text="Editar" fx:id="btnEditCategory" onAction="#onEditCategory" styleClass="button"/>
+        <Button text="Eliminar" fx:id="btnDeleteCategory" onAction="#onDeleteCategory" styleClass="button-danger"/>
+        <Button text="↑" fx:id="btnCategoryUp" onAction="#onCategoryUp" styleClass="button"/>
+        <Button text="↓" fx:id="btnCategoryDown" onAction="#onCategoryDown" styleClass="button"/>
+        <Button text="Activar/Desactivar" fx:id="btnToggleCategory" onAction="#onToggleCategoryActive" styleClass="button-secondary"/>
     </HBox>
 
     <Separator/>
@@ -57,12 +57,12 @@
     </TableView>
 
     <HBox spacing="10" alignment="CENTER_RIGHT">
-        <Button text="➕ Nueva" fx:id="btnNewSubcategory" onAction="#onNewSubcategory" styleClass="button"/>
-        <Button text="✏️ Editar" fx:id="btnEditSubcategory" onAction="#onEditSubcategory" styleClass="button"/>
-        <Button text="🗑️ Eliminar" fx:id="btnDeleteSubcategory" onAction="#onDeleteSubcategory" styleClass="button-danger"/>
-        <Button text="⬆️" fx:id="btnSubcategoryUp" onAction="#onSubcategoryUp" styleClass="button"/>
-        <Button text="⬇️" fx:id="btnSubcategoryDown" onAction="#onSubcategoryDown" styleClass="button"/>
-        <Button text="⚡ Activar/Desactivar" fx:id="btnToggleSubcategory" onAction="#onToggleSubcategoryActive" styleClass="button-secondary"/>
+        <Button text="Nueva" fx:id="btnNewSubcategory" onAction="#onNewSubcategory" styleClass="button"/>
+        <Button text="Editar" fx:id="btnEditSubcategory" onAction="#onEditSubcategory" styleClass="button"/>
+        <Button text="Eliminar" fx:id="btnDeleteSubcategory" onAction="#onDeleteSubcategory" styleClass="button-danger"/>
+        <Button text="↑" fx:id="btnSubcategoryUp" onAction="#onSubcategoryUp" styleClass="button"/>
+        <Button text="↓" fx:id="btnSubcategoryDown" onAction="#onSubcategoryDown" styleClass="button"/>
+        <Button text="Activar/Desactivar" fx:id="btnToggleSubcategory" onAction="#onToggleSubcategoryActive" styleClass="button-secondary"/>
     </HBox>
 
     <Separator/>
@@ -83,8 +83,8 @@
         <CheckBox fx:id="activeCheck" GridPane.columnIndex="1" GridPane.rowIndex="2" selected="true"/>
 
         <HBox spacing="10" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2">
-            <Button text="💾 Guardar" fx:id="btnSave" onAction="#onSave" styleClass="button"/>
-            <Button text="❌ Cancelar" fx:id="btnCancel" onAction="#onCancel" styleClass="button-secondary"/>
+            <Button text="Guardar" fx:id="btnSave" onAction="#onSave" styleClass="button"/>
+            <Button text="Cancelar" fx:id="btnCancel" onAction="#onCancel" styleClass="button-secondary"/>
         </HBox>
     </GridPane>
 </VBox>

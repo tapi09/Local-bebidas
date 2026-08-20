@@ -37,9 +37,9 @@
 
     <!-- Action Buttons -->
     <HBox spacing="10" alignment="CENTER_RIGHT">
-        <Button text="➕ Nuevo" fx:id="btnNew" onAction="#onNew" styleClass="button"/>
-        <Button text="✏️ Editar" fx:id="btnEdit" onAction="#onEdit" styleClass="button"/>
-        <Button text="🗑️ Eliminar" fx:id="btnDelete" onAction="#onDelete" styleClass="button-danger"/>
+        <Button text="Nuevo" fx:id="btnNew" onAction="#onNew" styleClass="button"/>
+        <Button text="Editar" fx:id="btnEdit" onAction="#onEdit" styleClass="button"/>
+        <Button text="Eliminar" fx:id="btnDelete" onAction="#onDelete" styleClass="button-danger"/>
     </HBox>
 
     <Separator/>
@@ -66,8 +66,8 @@
         <TextField fx:id="addressField" GridPane.columnIndex="1" GridPane.rowIndex="4" prefWidth="300"/>
 
         <HBox spacing="10" GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2">
-            <Button text="💾 Guardar" fx:id="btnSave" onAction="#onSave" styleClass="button"/>
-            <Button text="❌ Cancelar" fx:id="btnCancel" onAction="#onCancel" styleClass="button-secondary"/>
+            <Button text="Guardar" fx:id="btnSave" onAction="#onSave" styleClass="button"/>
+            <Button text="Cancelar" fx:id="btnCancel" onAction="#onCancel" styleClass="button-secondary"/>
         </HBox>
     </GridPane>
 </VBox>

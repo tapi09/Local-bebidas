@@ -28,13 +28,13 @@
         <HBox alignment="CENTER_LEFT">
             <Label text="Punto de Venta (POS)" styleClass="title-label"/>
             <HBox HBox.hgrow="ALWAYS"/>
-            <Button text="📋 Historial de Ventas" onAction="#onSaleHistory" styleClass="button-secondary"/>
+            <Button text="Historial de Ventas" onAction="#onSaleHistory" styleClass="button-secondary"/>
         </HBox>
         <HBox spacing="10" alignment="CENTER_LEFT">
             <Label text="Buscar producto:" styleClass="section-title"/>
             <TextField fx:id="searchField" prefWidth="280" promptText="Nombre o código de barras..." onAction="#onSearch"/>
-            <Button text="🔍 Buscar" onAction="#onSearch" styleClass="button"/>
-            <Button text="📷 Escanear" onAction="#onBarcodeScan" styleClass="button-secondary"/>
+            <Button text="Buscar" onAction="#onSearch" styleClass="button"/>
+            <Button text="Escanear" onAction="#onBarcodeScan" styleClass="button-secondary"/>
         </HBox>
     </VBox>
 
@@ -50,7 +50,7 @@
             <Button text="−" onAction="#onQuantityDown" styleClass="qty-btn" prefWidth="30"/>
             <TextField fx:id="quantityField" prefWidth="60" prefHeight="36" text="1" alignment="CENTER"/>
             <Button text="+" onAction="#onQuantityUp" styleClass="qty-btn" prefWidth="30"/>
-            <Button text="🛒 Agregar al Carrito" onAction="#onAddToCart" styleClass="button-success" prefHeight="36"/>
+            <Button text="Agregar al Carrito" onAction="#onAddToCart" styleClass="button-success" prefHeight="36"/>
         </HBox>
         <TableView fx:id="productsTable" minHeight="100" prefHeight="120" VBox.vgrow="ALWAYS">
             <columns>
@@ -104,9 +104,9 @@
         <Label text="Total:" styleClass="title-label"/>
         <Label fx:id="totalLabel" text="0,00" styleClass="pos-total"/>
 
-        <Button text="🗑️ Quitar" onAction="#onRemoveFromCart" styleClass="button-danger"/>
-        <Button text="🧹 Limpiar" onAction="#onClearCart" styleClass="button-secondary"/>
-        <Button text="✅ Completar Venta" onAction="#onCompleteSale" styleClass="button-success"/>
+        <Button text="Quitar" onAction="#onRemoveFromCart" styleClass="button-danger"/>
+        <Button text="Limpiar" onAction="#onClearCart" styleClass="button-secondary"/>
+        <Button text="Completar Venta" onAction="#onCompleteSale" styleClass="button-success"/>
     </HBox>
 
     <!-- Receipt Display -->

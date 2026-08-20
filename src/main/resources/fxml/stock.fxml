@@ -35,8 +35,8 @@
         <HBox spacing="10" alignment="CENTER_LEFT">
             <Label text="Filtrar estado:" styleClass="subtitle-label"/>
             <ComboBox fx:id="statusFilter" prefWidth="140"/>
-            <Button text="🔍 Filtrar" onAction="#onFilter" styleClass="button"/>
-            <Button text="🔄 Mostrar Todos" onAction="#onShowAll" styleClass="button-secondary"/>
+            <Button text="Filtrar" onAction="#onFilter" styleClass="button"/>
+            <Button text="Mostrar Todos" onAction="#onShowAll" styleClass="button-secondary"/>
         </HBox>
     </VBox>
 
@@ -73,8 +73,8 @@
             <TextField fx:id="toDateField" GridPane.columnIndex="3" GridPane.rowIndex="1" prefWidth="110" promptText="dd/MM/yyyy"/>
 
             <HBox spacing="8" GridPane.columnIndex="4" GridPane.rowIndex="0" GridPane.rowSpan="2" alignment="CENTER_LEFT">
-                <Button text="🔍 Buscar" onAction="#onSearchMovements" styleClass="button"/>
-                <Button text="🔄 Limpiar" onAction="#onClearMovementFilters" styleClass="button-secondary"/>
+                <Button text="Buscar" onAction="#onSearchMovements" styleClass="button"/>
+                <Button text="Limpiar" onAction="#onClearMovementFilters" styleClass="button-secondary"/>
             </HBox>
         </GridPane>
 
@@ -112,7 +112,7 @@
             <TextArea fx:id="adjustReasonField" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="320" prefHeight="45" GridPane.columnSpan="3"/>
         </GridPane>
         <HBox alignment="CENTER_RIGHT">
-            <Button text="✅ Aplicar Ajuste" onAction="#onApplyAdjustment" styleClass="button-success"/>
+            <Button text="Aplicar Ajuste" onAction="#onApplyAdjustment" styleClass="button-success"/>
         </HBox>
     </VBox>
 </VBox>

@@ -340,7 +340,7 @@ public class StockController implements Refreshable {
                 return;
             }
             if (!AlertService.showConfirmDialog(
-                    "⚠️ OPERACIÓN DELICADA",
+                    "⚠ OPERACIÓN DELICADA",
                     "Este ajuste modificará el inventario directamente.\n\n" +
                     "Esta operación debe realizarse con cuidado ya que afecta el control de stock del negocio.\n\n" +
                     "¿Confirma que desea continuar?"

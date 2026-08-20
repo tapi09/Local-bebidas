@@ -43,7 +43,7 @@
         </columns>
     </TableView>
 
-    <Button text="✅ Marcar como Leída" onAction="#onDismissExpiry" styleClass="button-secondary"/>
+    <Button text="Marcar como Leída" onAction="#onDismissExpiry" styleClass="button-secondary"/>
 
     <Separator/>
 
@@ -58,12 +58,12 @@
         </columns>
     </TableView>
 
-    <Button text="✅ Marcar como Leída" onAction="#onDismissLowStock" styleClass="button-secondary"/>
+    <Button text="Marcar como Leída" onAction="#onDismissLowStock" styleClass="button-secondary"/>
 
     <Separator/>
 
     <!-- Refresh -->
     <HBox spacing="20" alignment="CENTER_RIGHT">
-        <Button text="🔄 Actualizar Alertas" onAction="#onRefresh" styleClass="button"/>
+        <Button text="Actualizar Alertas" onAction="#onRefresh" styleClass="button"/>
     </HBox>
 </VBox>

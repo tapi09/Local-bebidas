@@ -38,24 +38,24 @@
                     <padding>
                         <Insets top="4" right="2" bottom="4" left="2"/>
                     </padding>
-                    <Button text="🏠  Inicio" fx:id="btnInicio" onAction="#onInicio" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="📦  Productos" fx:id="btnProductos" onAction="#onProductos" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="📥  Compras" fx:id="btnCompras" onAction="#onCompras" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="🛒  Ventas" fx:id="btnVentas" onAction="#onVentas" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="📊  Stock" fx:id="btnStock" onAction="#onStock" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="🔔  Alertas" fx:id="btnAlertas" onAction="#onAlertas" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="🤝  Proveedores" fx:id="btnProveedores" onAction="#onProveedores" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="🗂️  Categorías" fx:id="btnCategorias" onAction="#onCategorias" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="📈  Reportes" fx:id="btnReportes" onAction="#onReportes" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="👥  Usuarios" fx:id="btnUsuarios" onAction="#onUsuarios" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
-                    <Button text="💾  Exportar Respaldo" onAction="#onExportBackup" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Inicio" fx:id="btnInicio" onAction="#onInicio" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Productos" fx:id="btnProductos" onAction="#onProductos" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Compras" fx:id="btnCompras" onAction="#onCompras" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Ventas" fx:id="btnVentas" onAction="#onVentas" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Stock" fx:id="btnStock" onAction="#onStock" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Alertas" fx:id="btnAlertas" onAction="#onAlertas" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Proveedores" fx:id="btnProveedores" onAction="#onProveedores" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Categorías" fx:id="btnCategorias" onAction="#onCategorias" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Reportes" fx:id="btnReportes" onAction="#onReportes" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Usuarios" fx:id="btnUsuarios" onAction="#onUsuarios" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Exportar Respaldo" onAction="#onExportBackup" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
                 </VBox>
             </ScrollPane>
 
             <Separator styleClass="sidebar-separator"/>
 
             <!-- Dark mode toggle -->
-            <Button fx:id="btnDarkMode" text="🌙  Modo Oscuro" onAction="#onToggleDarkMode" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+            <Button fx:id="btnDarkMode" text="Modo Oscuro" onAction="#onToggleDarkMode" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
 
             <Separator styleClass="sidebar-separator"/>
 
@@ -70,10 +70,10 @@
             <Separator styleClass="sidebar-separator"/>
 
             <!-- Logout Button -->
-            <Button text="🔒  Cerrar Sesión" onAction="#onLogout" styleClass="sidebar-button-exit" maxWidth="1.7976931348623157E308"/>
+            <Button text="Cerrar Sesión" onAction="#onLogout" styleClass="sidebar-button-exit" maxWidth="1.7976931348623157E308"/>
 
             <!-- Exit Button at bottom -->
-            <Button text="🚪  Salir" onAction="#onSalir" styleClass="sidebar-button-exit" maxWidth="1.7976931348623157E308"/>
+            <Button text="Salir" onAction="#onSalir" styleClass="sidebar-button-exit" maxWidth="1.7976931348623157E308"/>
         </VBox>
     </left>
 

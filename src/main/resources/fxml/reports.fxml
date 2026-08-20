@@ -28,8 +28,8 @@
     <HBox spacing="10" alignment="CENTER_LEFT">
         <Label text="Tipo de reporte:" />
         <ComboBox fx:id="reportTypeCombo" prefWidth="200"/>
-        <Button text="📊 Generar" onAction="#onGenerateReport" styleClass="button-success"/>
-        <Button fx:id="exportButton" text="📥 Exportar CSV" onAction="#onExportReport" styleClass="button-secondary"/>
+        <Button text="Generar" onAction="#onGenerateReport" styleClass="button-success"/>
+        <Button fx:id="exportButton" text="Exportar CSV" onAction="#onExportReport" styleClass="button-secondary"/>
     </HBox>
 
     <!-- Date Range (visible for period-based reports) -->
