@@ -72,4 +72,4 @@ MVP (Model-View-Presenter) + SQLite embebida. Ver `ARCHITECTURE.md` para detalle
 
 ## Licencia
 
-Uso interno.
+Software comercial. El codigo se publica solo para consulta y evaluacion: se puede descargar, compilar y ejecutar localmente para evaluarlo, pero no usarlo en un negocio ni redistribuirlo sin un acuerdo con el autor. Ver [LICENSE](LICENSE).
