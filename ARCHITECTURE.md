@@ -94,8 +94,6 @@ softwaredebebidas/
 ├── pom.xml                                      -- Dependencias y build
 ├── ARCHITECTURE.md                              -- Este documento
 ├── README.md                                    -- Documentacion principal
-├── COVERAGE-REPORT.md                           -- Reporte de cobertura
-├── JAVADOC-GUIDE.md                             -- Guia de Javadoc
 │
 ├── src/main/java/com/softwaredebebidas/
 │   ├── SoftwareDeBebidasApp.java                        -- Entry point JavaFX
