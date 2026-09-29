@@ -1,4 +1,4 @@
-# Cocolatan — Central de Bebidas
+# Ruta 40 bebidas
 
 Aplicacion de gestion para un negocio de bebidas en Mendoza, Argentina. Sistema POS (Point of Sale) de escritorio con control de stock, compras, ventas, alertas de vencimiento y reportes.
 
@@ -47,7 +47,7 @@ src/main/java/com/cocolatan/
 src/main/resources/
   fxml/                    - 13 vistas FXML
   styles.css / styles-dark.css - Estilos POS (claro/oscuro)
-src/test/java/             - 82 archivos de test
+src/test/java/             - 97 clases de test
 ```
 
 ## Arquitectura
@@ -55,7 +55,7 @@ src/test/java/             - 82 archivos de test
 MVP (Model-View-Presenter) + SQLite embebida. Ver `ARCHITECTURE.md` para detalle completo.
 
 - **Despliegue USB/pendrive**: single `.exe`, sin pre-instalacion, datos en `%APPDATA%\Cocolatan`
-- **Seguridad**: PreparedStatement (sin SQL injection), contrasenas con SHA-256, sin conexion de red
+- **Seguridad**: PreparedStatement (sin SQL injection), contrasenas con BCrypt (hashes SHA-256 legacy se migran en el login), sin conexion de red
 
 ## Modulos
 
