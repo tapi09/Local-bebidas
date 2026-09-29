@@ -120,12 +120,12 @@ class PurchaseServiceTest {
     @Test
     void loadPurchaseHistoryDelegatesToRepository() throws SQLException {
         List<Purchase> history = Arrays.asList(createPurchase());
-        when(purchaseRepository.findHistory()).thenReturn(history);
+        when(purchaseRepository.findHistory(0, 0)).thenReturn(history);
 
         List<Purchase> result = service.loadPurchaseHistory();
 
         assertThat(result).hasSize(1);
-        verify(purchaseRepository).findHistory();
+        verify(purchaseRepository).findHistory(0, 0);
     }
 
     @Test

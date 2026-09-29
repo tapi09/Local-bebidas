@@ -180,17 +180,84 @@ public class SaleRepository {
 
     /**
      * Returns active sales within a date range, sorted by id descending.
-     * Dates are in dd/MM/yyyy format — comparison is done via ISO conversion in SQL.
+     * Dates are in ISO-8601 format (YYYY-MM-DD) — direct comparison uses index.
+     *
+     * @param fromDate start date in YYYY-MM-DD format (inclusive)
+     * @param toDate   end date in YYYY-MM-DD format (inclusive)
+     * @param limit    maximum number of results (0 = no limit)
+     * @param offset   number of results to skip (for pagination)
      */
-    public List<Sale> findByDateRange(String fromDate, String toDate) throws SQLException {
-        String sql = "SELECT * FROM sales WHERE status = 'ACTIVE' "
-                + "AND (substr(sale_date,7,4) || '-' || substr(sale_date,4,2) || '-' || substr(sale_date,1,2)) "
-                + "BETWEEN ? AND ? ORDER BY id DESC";
+    public List<Sale> findByDateRange(String fromDate, String toDate, int limit, int offset) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT * FROM sales WHERE status = 'ACTIVE' ")
+                .append("AND sale_date BETWEEN ? AND ? ORDER BY id DESC");
+        if (limit > 0) {
+            sql.append(" LIMIT ?");
+        }
+        if (offset > 0) {
+            sql.append(" OFFSET ?");
+        }
         Connection conn = dbManager.getConnection();
         List<Sale> sales = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, fromDate.substring(6, 10) + "-" + fromDate.substring(3, 5) + "-" + fromDate.substring(0, 2));
-            ps.setString(2, toDate.substring(6, 10) + "-" + toDate.substring(3, 5) + "-" + toDate.substring(0, 2));
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setString(1, fromDate);
+            ps.setString(2, toDate);
+            int paramIndex = 3;
+            if (limit > 0) {
+                ps.setInt(paramIndex++, limit);
+            }
+            if (offset > 0) {
+                ps.setInt(paramIndex++, offset);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sales.add(mapSale(rs));
+                }
+            }
+        }
+        return sales;
+    }
+
+    /**
+     * Returns active sales within a date range, sorted by id descending.
+     * Dates are in ISO-8601 format (YYYY-MM-DD) — direct comparison uses index.
+     *
+     * @param fromDate start date in YYYY-MM-DD format (inclusive)
+     * @param toDate   end date in YYYY-MM-DD format (inclusive)
+     */
+    public List<Sale> findByDateRange(String fromDate, String toDate) throws SQLException {
+        return findByDateRange(fromDate, toDate, 0, 0);
+    }
+
+    /**
+     * Returns all sales (including cancelled) within a date range, sorted by id descending.
+     * Dates are in ISO-8601 format (YYYY-MM-DD) — direct comparison uses index.
+     *
+     * @param fromDate start date in YYYY-MM-DD format (inclusive)
+     * @param toDate   end date in YYYY-MM-DD format (inclusive)
+     * @param limit    maximum number of results (0 = no limit)
+     * @param offset   number of results to skip (for pagination)
+     */
+    public List<Sale> findAllByDateRange(String fromDate, String toDate, int limit, int offset) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT * FROM sales ")
+                .append("WHERE sale_date BETWEEN ? AND ? ORDER BY id DESC");
+        if (limit > 0) {
+            sql.append(" LIMIT ?");
+        }
+        if (offset > 0) {
+            sql.append(" OFFSET ?");
+        }
+        Connection conn = dbManager.getConnection();
+        List<Sale> sales = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setString(1, fromDate);
+            ps.setString(2, toDate);
+            int paramIndex = 3;
+            if (limit > 0) {
+                ps.setInt(paramIndex++, limit);
+            }
+            if (offset > 0) {
+                ps.setInt(paramIndex++, offset);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     sales.add(mapSale(rs));
@@ -202,29 +269,18 @@ public class SaleRepository {
 
     /**
      * Returns all sales (including cancelled) within a date range, sorted by id descending.
-     * Dates are in dd/MM/yyyy format — comparison is done via ISO conversion in SQL.
+     * Dates are in ISO-8601 format (YYYY-MM-DD) — direct comparison uses index.
+     *
+     * @param fromDate start date in YYYY-MM-DD format (inclusive)
+     * @param toDate   end date in YYYY-MM-DD format (inclusive)
      */
     public List<Sale> findAllByDateRange(String fromDate, String toDate) throws SQLException {
-        String sql = "SELECT * FROM sales "
-                + "WHERE (substr(sale_date,7,4) || '-' || substr(sale_date,4,2) || '-' || substr(sale_date,1,2)) "
-                + "BETWEEN ? AND ? ORDER BY id DESC";
-        Connection conn = dbManager.getConnection();
-        List<Sale> sales = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, fromDate.substring(6, 10) + "-" + fromDate.substring(3, 5) + "-" + fromDate.substring(0, 2));
-            ps.setString(2, toDate.substring(6, 10) + "-" + toDate.substring(3, 5) + "-" + toDate.substring(0, 2));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    sales.add(mapSale(rs));
-                }
-            }
-        }
-        return sales;
+        return findAllByDateRange(fromDate, toDate, 0, 0);
     }
 
     /**
      * Returns the sum of total_amount for active sales on the given date.
-     * Dates use the dd/MM/yyyy format stored in the sales table.
+     * Date uses ISO-8601 format (YYYY-MM-DD).
      */
     public double sumSalesForDate(String saleDate) throws SQLException {
         String sql = "SELECT COALESCE(SUM(total_amount), 0) FROM sales WHERE sale_date = ? AND status = 'ACTIVE'";
@@ -261,16 +317,73 @@ public class SaleRepository {
     }
 
     /**
+     * Returns only active (non-cancelled) sales sorted by id descending (chronological) with pagination.
+     *
+     * @param limit  maximum number of results (0 = no limit)
+     * @param offset number of results to skip (for pagination)
+     */
+    public List<Sale> findAllActive(int limit, int offset) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT * FROM sales WHERE status = 'ACTIVE' ORDER BY id DESC");
+        if (limit > 0) {
+            sql.append(" LIMIT ?");
+        }
+        if (offset > 0) {
+            sql.append(" OFFSET ?");
+        }
+        Connection conn = dbManager.getConnection();
+        List<Sale> sales = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            if (limit > 0) {
+                ps.setInt(paramIndex++, limit);
+            }
+            if (offset > 0) {
+                ps.setInt(paramIndex++, offset);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sales.add(mapSale(rs));
+                }
+            }
+        }
+        return sales;
+    }
+
+    /**
      * Returns only active (non-cancelled) sales sorted by id descending (chronological).
      */
     public List<Sale> findAllActive() throws SQLException {
-        String sql = "SELECT * FROM sales WHERE status = 'ACTIVE' ORDER BY id DESC";
+        return findAllActive(0, 0);
+    }
+
+    /**
+     * Returns sale history (all sales including cancelled) sorted by id descending with pagination.
+     *
+     * @param limit  maximum number of results (0 = no limit)
+     * @param offset number of results to skip (for pagination)
+     */
+    public List<Sale> findHistory(int limit, int offset) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT * FROM sales ORDER BY id DESC");
+        if (limit > 0) {
+            sql.append(" LIMIT ?");
+        }
+        if (offset > 0) {
+            sql.append(" OFFSET ?");
+        }
         Connection conn = dbManager.getConnection();
         List<Sale> sales = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                sales.add(mapSale(rs));
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            if (limit > 0) {
+                ps.setInt(paramIndex++, limit);
+            }
+            if (offset > 0) {
+                ps.setInt(paramIndex++, offset);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sales.add(mapSale(rs));
+                }
             }
         }
         return sales;

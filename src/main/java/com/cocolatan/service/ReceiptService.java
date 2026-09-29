@@ -4,6 +4,7 @@ import com.cocolatan.model.Product;
 import com.cocolatan.model.Sale;
 import com.cocolatan.model.SaleItem;
 import com.cocolatan.repository.ProductRepository;
+import com.cocolatan.util.DateUtils;
 
 import java.util.List;
 
@@ -34,7 +35,7 @@ public class ReceiptService {
         receipt.append(DIVIDER).append("\n");
         receipt.append("      ").append(STORE_NAME).append("\n");
         receipt.append(DIVIDER).append("\n");
-        receipt.append("Fecha: ").append(sale.getSaleDate()).append("\n");
+        receipt.append("Fecha: ").append(DateUtils.toDisplay(sale.getSaleDate())).append("\n");
         receipt.append("Canal: ").append(formatChannel(sale.getChannel())).append("\n");
         receipt.append("Pago: ").append(formatPaymentMethod(sale.getPaymentMethod())).append("\n");
         receipt.append("--------------------------------\n");

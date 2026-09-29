@@ -19,4 +19,21 @@ class HomeControllerTest {
         assertThat(HomeController.formatChannel("OTHER")).isEqualTo("PedidosYa");
         assertThat(HomeController.formatChannel(null)).isEqualTo("PedidosYa");
     }
+
+    // --- formatSaleDate ---
+
+    @Test
+    void formatSaleDateConvertsIsoToDisplay() {
+        assertThat(HomeController.formatSaleDate("2026-09-14")).isEqualTo("14/09/2026");
+    }
+
+    @Test
+    void formatSaleDateReturnsEmptyForNull() {
+        assertThat(HomeController.formatSaleDate(null)).isEmpty();
+    }
+
+    @Test
+    void formatSaleDateReturnsEmptyForBlank() {
+        assertThat(HomeController.formatSaleDate("  ")).isEmpty();
+    }
 }

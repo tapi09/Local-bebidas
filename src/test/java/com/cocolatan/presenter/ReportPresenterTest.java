@@ -108,12 +108,12 @@ class ReportPresenterTest {
     @Test
     void generateSalesByPeriodReportUsesDateRange() {
         presenter.setDateRange("01/07/2026", "31/07/2026");
-        when(reportService.getSalesByPeriodReport("01/07/2026", "31/07/2026"))
+        when(reportService.getSalesByPeriodReport("2026-07-01", "2026-07-31"))
                 .thenReturn(Collections.emptyList());
 
         presenter.generateSalesByPeriodReport();
 
-        verify(reportService).getSalesByPeriodReport("01/07/2026", "31/07/2026");
+        verify(reportService).getSalesByPeriodReport("2026-07-01", "2026-07-31");
     }
 
     @Test
@@ -121,7 +121,7 @@ class ReportPresenterTest {
         presenter.setDateRange("01/07/2026", "31/07/2026");
         ReportService.SalesPeriodReport item = new ReportService.SalesPeriodReport(
                 "01/07/2026", 10000.0, 3, 3333.33);
-        when(reportService.getSalesByPeriodReport("01/07/2026", "31/07/2026"))
+        when(reportService.getSalesByPeriodReport("2026-07-01", "2026-07-31"))
                 .thenReturn(Collections.singletonList(item));
 
         List<ReportService.SalesPeriodReport> result = presenter.generateSalesByPeriodReport();
@@ -135,19 +135,19 @@ class ReportPresenterTest {
     @Test
     void generateChannelComparisonReportUsesDateRange() {
         presenter.setDateRange("01/07/2026", "31/07/2026");
-        when(reportService.getChannelComparisonReport("01/07/2026", "31/07/2026"))
+        when(reportService.getChannelComparisonReport("2026-07-01", "2026-07-31"))
                 .thenReturn(Collections.emptyList());
 
         presenter.generateChannelComparisonReport();
 
-        verify(reportService).getChannelComparisonReport("01/07/2026", "31/07/2026");
+        verify(reportService).getChannelComparisonReport("2026-07-01", "2026-07-31");
     }
 
     @Test
     void generateChannelComparisonReportReturnsData() {
         presenter.setDateRange("01/07/2026", "31/07/2026");
         ReportService.ChannelReport item = new ReportService.ChannelReport("IN", 20000.0, 10, 66.67);
-        when(reportService.getChannelComparisonReport("01/07/2026", "31/07/2026"))
+        when(reportService.getChannelComparisonReport("2026-07-01", "2026-07-31"))
                 .thenReturn(Collections.singletonList(item));
 
         List<ReportService.ChannelReport> result = presenter.generateChannelComparisonReport();
@@ -161,12 +161,12 @@ class ReportPresenterTest {
     @Test
     void generateRotationReportUsesDateRange() {
         presenter.setDateRange("01/07/2026", "31/07/2026");
-        when(reportService.getRotationReport("01/07/2026", "31/07/2026"))
+        when(reportService.getRotationReport("2026-07-01", "2026-07-31"))
                 .thenReturn(Collections.emptyList());
 
         presenter.generateRotationReport();
 
-        verify(reportService).getRotationReport("01/07/2026", "31/07/2026");
+        verify(reportService).getRotationReport("2026-07-01", "2026-07-31");
     }
 
     @Test
@@ -174,7 +174,7 @@ class ReportPresenterTest {
         presenter.setDateRange("01/07/2026", "31/07/2026");
         ReportService.RotationReport item = new ReportService.RotationReport(
                 "Coca-Cola", "Gaseosas", 120, 30, 4.0);
-        when(reportService.getRotationReport("01/07/2026", "31/07/2026"))
+        when(reportService.getRotationReport("2026-07-01", "2026-07-31"))
                 .thenReturn(Collections.singletonList(item));
 
         List<ReportService.RotationReport> result = presenter.generateRotationReport();
@@ -242,39 +242,39 @@ class ReportPresenterTest {
     void generateReportDispatchesSalesPeriod() {
         presenter.setSelectedReportType("SALES_PERIOD");
         presenter.setDateRange("01/07/2026", "31/07/2026");
-        when(reportService.getSalesByPeriodReport("01/07/2026", "31/07/2026"))
+        when(reportService.getSalesByPeriodReport("2026-07-01", "2026-07-31"))
                 .thenReturn(Collections.emptyList());
 
         Object result = presenter.generateReport();
 
         assertThat(result).isInstanceOf(List.class);
-        verify(reportService).getSalesByPeriodReport("01/07/2026", "31/07/2026");
+        verify(reportService).getSalesByPeriodReport("2026-07-01", "2026-07-31");
     }
 
     @Test
     void generateReportDispatchesChannelComparison() {
         presenter.setSelectedReportType("CHANNEL");
         presenter.setDateRange("01/07/2026", "31/07/2026");
-        when(reportService.getChannelComparisonReport("01/07/2026", "31/07/2026"))
+        when(reportService.getChannelComparisonReport("2026-07-01", "2026-07-31"))
                 .thenReturn(Collections.emptyList());
 
         Object result = presenter.generateReport();
 
         assertThat(result).isInstanceOf(List.class);
-        verify(reportService).getChannelComparisonReport("01/07/2026", "31/07/2026");
+        verify(reportService).getChannelComparisonReport("2026-07-01", "2026-07-31");
     }
 
     @Test
     void generateReportDispatchesRotation() {
         presenter.setSelectedReportType("ROTATION");
         presenter.setDateRange("01/07/2026", "31/07/2026");
-        when(reportService.getRotationReport("01/07/2026", "31/07/2026"))
+        when(reportService.getRotationReport("2026-07-01", "2026-07-31"))
                 .thenReturn(Collections.emptyList());
 
         Object result = presenter.generateReport();
 
         assertThat(result).isInstanceOf(List.class);
-        verify(reportService).getRotationReport("01/07/2026", "31/07/2026");
+        verify(reportService).getRotationReport("2026-07-01", "2026-07-31");
     }
 
     @Test

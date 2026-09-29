@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -122,9 +123,9 @@ class SalePresenterTest {
 
         Product product = createProduct(1L, "Coca-Cola 500ml");
 
-        boolean result = presenter.addToCart(product, 5);
-
-        assertThat(result).isFalse();
+        assertThatThrownBy(() -> presenter.addToCart(product, 5))
+                .isInstanceOf(SalesService.ValidationException.class)
+                .hasMessageContaining("Stock insuficiente");
         assertThat(presenter.getCartItems()).isEmpty();
     }
 
@@ -155,9 +156,10 @@ class SalePresenterTest {
         product.setSalePrice(600.0);
 
         presenter.addToCart(product, 2);
-        boolean result = presenter.addToCart(product, 3);
 
-        assertThat(result).isFalse();
+        assertThatThrownBy(() -> presenter.addToCart(product, 3))
+                .isInstanceOf(SalesService.ValidationException.class)
+                .hasMessageContaining("Stock insuficiente");
         assertThat(presenter.getCartItems().get(0).getQuantity()).isEqualTo(2);
     }
 

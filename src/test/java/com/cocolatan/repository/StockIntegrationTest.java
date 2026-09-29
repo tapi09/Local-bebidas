@@ -267,6 +267,13 @@ class StockIntegrationTest {
         movement.setReferenceType("PURCHASE");
         movement.setReferenceId(1L);
         stockMovementRepository.insert(movement);
+
+        // Keep the denormalized products.current_stock in sync with stock_movements,
+        // mirroring what every real production path (purchase/sale/adjust) does —
+        // otherwise this fixture recreates the exact current_stock desync this
+        // suite exists to prevent.
+        int delta = "EXIT".equals(type) ? -quantity : quantity;
+        productRepository.updateStock(dbManager.getConnection(), productId, delta);
     }
 
     private Product createProduct(String name, String category, int minStock) {

@@ -24,6 +24,7 @@ public class Product {
     private String barcode;
     private String photoPath;
     private int minStock = 0;
+    private int currentStock = 0;
     private boolean active = true;
     private String createdAt;
     private String updatedAt;
@@ -165,6 +166,14 @@ public class Product {
 
     public void setMinStock(int minStock) {
         this.minStock = minStock;
+    }
+
+    public int getCurrentStock() {
+        return currentStock;
+    }
+
+    public void setCurrentStock(int currentStock) {
+        this.currentStock = currentStock;
     }
 
     public boolean isActive() {

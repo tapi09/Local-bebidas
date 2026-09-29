@@ -134,24 +134,24 @@ class PurchaseRepositoryTest {
     @Test
     void findHistorySortsByDateDescending() throws SQLException {
         Purchase p1 = createPurchase(1L);
-        p1.setPurchaseDate("15/01/2026");
+        p1.setPurchaseDate("2026-01-15");
         repository.saveWithItems(p1, Collections.singletonList(createPurchaseItem(1L, 10, 100.0)));
 
         Purchase p2 = createPurchase(1L);
-        p2.setPurchaseDate("02/12/2025");
+        p2.setPurchaseDate("2025-12-02");
         repository.saveWithItems(p2, Collections.singletonList(createPurchaseItem(1L, 5, 200.0)));
 
         Purchase p3 = createPurchase(1L);
-        p3.setPurchaseDate("20/03/2026");
+        p3.setPurchaseDate("2026-03-20");
         repository.saveWithItems(p3, Collections.singletonList(createPurchaseItem(1L, 5, 200.0)));
 
         List<Purchase> history = repository.findHistory();
 
         assertThat(history).hasSize(3);
-        // Newest first, independent of insertion order
-        assertThat(history.get(0).getPurchaseDate()).isEqualTo("20/03/2026");
-        assertThat(history.get(1).getPurchaseDate()).isEqualTo("15/01/2026");
-        assertThat(history.get(2).getPurchaseDate()).isEqualTo("02/12/2025");
+        // Newest first, independent of insertion order (ISO-8601 format)
+        assertThat(history.get(0).getPurchaseDate()).isEqualTo("2026-03-20");
+        assertThat(history.get(1).getPurchaseDate()).isEqualTo("2026-01-15");
+        assertThat(history.get(2).getPurchaseDate()).isEqualTo("2025-12-02");
     }
 
     @Test

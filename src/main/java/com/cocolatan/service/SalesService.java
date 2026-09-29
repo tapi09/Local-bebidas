@@ -25,7 +25,8 @@ public class SalesService {
 
     private static final Logger LOGGER = Logger.getLogger(SalesService.class.getName());
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter DATE_ONLY_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final DatabaseManager databaseManager;
     private final SaleRepository saleRepository;
@@ -51,7 +52,8 @@ public class SalesService {
     /**
      * Creates a sale with stock validation and expiry check.
      * Creates stock_movements EXIT for each item.
-     * The entire operation (sale + stock movements) is wrapped in a single
+     * Updates denormalized current_stock column in products table.
+     * The entire operation (sale + stock movements + stock cache) is wrapped in a single
      * SQL transaction for atomicity.
      *
      * @return true if sale was created successfully
@@ -79,14 +81,15 @@ public class SalesService {
                 }
             }
 
-            // Set sale date if not set
+            // Set sale date if not set (ISO-8601 format)
             if (sale.getSaleDate() == null || sale.getSaleDate().isEmpty()) {
-                sale.setSaleDate(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                sale.setSaleDate(LocalDateTime.now().format(DATE_ONLY_FORMATTER));
             }
 
             Long saleId = saleRepository.saveWithItems(conn, sale, items);
+            sale.setId(saleId);
 
-            // Create stock movements EXIT for each item
+            // Create stock movements EXIT for each item and update denormalized current_stock
             for (SaleItem item : items) {
                 StockMovement movement = new StockMovement();
                 movement.setProductId(item.getProductId());
@@ -96,6 +99,9 @@ public class SalesService {
                 movement.setReferenceId(saleId);
                 movement.setNotes("Venta #" + saleId);
                 stockMovementRepository.insert(conn, movement);
+
+                // Update denormalized current_stock cache (negative delta for sale)
+                productRepository.updateStock(conn, item.getProductId(), -item.getQuantity());
             }
 
             conn.commit();
@@ -120,6 +126,7 @@ public class SalesService {
     /**
      * Cancels a sale by reverting stock movements and marking the sale as CANCELLED.
      * Creates StockMovement(ENTRY) for each item sold and updates sale status.
+     * Updates denormalized current_stock column in products table.
      * The entire operation is wrapped in a single SQL transaction for atomicity.
      * The sale re-read and the CANCELLED status check happen INSIDE the transaction
      * using the transactional connection, so concurrent double-cancellation attempts
@@ -166,10 +173,13 @@ public class SalesService {
                 }
                 entry.setNotes(notes);
                 stockMovementRepository.insert(conn, entry);
+
+                // Update denormalized current_stock cache (positive delta for cancellation)
+                productRepository.updateStock(conn, item.getProductId(), item.getQuantity());
             }
 
             // Update sale status
-            String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+            String now = LocalDateTime.now().format(DATE_FORMATTER);
             saleRepository.updateStatus(conn, saleId, "CANCELLED", now, reason);
 
             conn.commit(); // Transaction END

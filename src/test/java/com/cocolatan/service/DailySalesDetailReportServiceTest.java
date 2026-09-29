@@ -47,20 +47,20 @@ class DailySalesDetailReportServiceTest {
 
     @Test
     void dailySalesDetailReturnsPerDayPerProductBreakdown() throws SQLException {
-        Sale sale1 = createSale("03/08/2026", "IN", 1L);
+        Sale sale1 = createSale("2026-08-03", "IN", 1L);
         SaleItem item1 = createSaleItem(1L, 1L, 1L, 2, 600.0);
 
-        Sale sale2 = createSale("03/08/2026", "IN", 2L);
+        Sale sale2 = createSale("2026-08-03", "IN", 2L);
         SaleItem item2 = createSaleItem(2L, 2L, 1L, 1, 600.0);
         SaleItem item3 = createSaleItem(3L, 2L, 2L, 3, 450.0);
 
-        when(saleRepository.findAllByDateRange("01/08/2026", "05/08/2026")).thenReturn(Arrays.asList(sale1, sale2));
+        when(saleRepository.findAllByDateRange("2026-08-01", "2026-08-05")).thenReturn(Arrays.asList(sale1, sale2));
         when(saleRepository.findItemsBySaleIds(Arrays.asList(1L, 2L)))
                 .thenReturn(Arrays.asList(item1, item2, item3));
         when(productRepository.findAllByIds(Arrays.asList(1L, 2L)))
                 .thenReturn(Arrays.asList(createProduct(1L, "Coca-Cola 500ml"), createProduct(2L, "Sprite 500ml")));
 
-        DailySalesDetailReport report = reportService.getDailySalesDetailReport("01/08/2026", "05/08/2026");
+        DailySalesDetailReport report = reportService.getDailySalesDetailReport("2026-08-01", "2026-08-05");
 
         assertThat(report.getRows()).hasSize(2);
         assertThat(report.getGrandTotal()).isEqualTo(3150.0);
@@ -68,9 +68,9 @@ class DailySalesDetailReportServiceTest {
 
     @Test
     void dailySalesDetailReturnsEmptyForNoSales() throws SQLException {
-        when(saleRepository.findAllByDateRange("01/08/2026", "05/08/2026")).thenReturn(Collections.emptyList());
+        when(saleRepository.findAllByDateRange("2026-08-01", "2026-08-05")).thenReturn(Collections.emptyList());
 
-        DailySalesDetailReport report = reportService.getDailySalesDetailReport("01/08/2026", "05/08/2026");
+        DailySalesDetailReport report = reportService.getDailySalesDetailReport("2026-08-01", "2026-08-05");
 
         assertThat(report.getRows()).isEmpty();
         assertThat(report.getGrandTotal()).isEqualTo(0.0);
@@ -78,16 +78,16 @@ class DailySalesDetailReportServiceTest {
 
     @Test
     void dailySalesDetailGroupsByDateAndProduct() throws SQLException {
-        Sale sale1 = createSale("03/08/2026", "IN", 1L);
+        Sale sale1 = createSale("2026-08-03", "IN", 1L);
         SaleItem item1 = createSaleItem(1L, 1L, 1L, 2, 600.0);
 
-        when(saleRepository.findAllByDateRange("01/08/2026", "05/08/2026")).thenReturn(Collections.singletonList(sale1));
+        when(saleRepository.findAllByDateRange("2026-08-01", "2026-08-05")).thenReturn(Collections.singletonList(sale1));
         when(saleRepository.findItemsBySaleIds(Collections.singletonList(1L)))
                 .thenReturn(Collections.singletonList(item1));
         when(productRepository.findAllByIds(Collections.singletonList(1L)))
                 .thenReturn(Collections.singletonList(createProduct(1L, "Coca-Cola 500ml")));
 
-        DailySalesDetailReport report = reportService.getDailySalesDetailReport("01/08/2026", "05/08/2026");
+        DailySalesDetailReport report = reportService.getDailySalesDetailReport("2026-08-01", "2026-08-05");
 
         assertThat(report.getRows()).hasSize(1);
         DailySalesDetailRow row = report.getRows().get(0);
@@ -100,21 +100,21 @@ class DailySalesDetailReportServiceTest {
 
     @Test
     void dailySalesDetailShowsCancelledSaleAsOriginalPlusCancellation() throws SQLException {
-        Sale active = createSale("03/08/2026", "IN", 1L);
+        Sale active = createSale("2026-08-03", "IN", 1L);
         active.setStatus("ACTIVE");
         SaleItem activeItem = createSaleItem(1L, 1L, 1L, 4, 1300.0);
 
-        Sale cancelled = createSale("03/08/2026", "IN", 2L);
+        Sale cancelled = createSale("2026-08-03", "IN", 2L);
         cancelled.setStatus("CANCELLED");
         SaleItem cancelledItem = createSaleItem(2L, 2L, 1L, 6, 1300.0);
 
-        when(saleRepository.findAllByDateRange("01/08/2026", "05/08/2026")).thenReturn(Arrays.asList(active, cancelled));
+        when(saleRepository.findAllByDateRange("2026-08-01", "2026-08-05")).thenReturn(Arrays.asList(active, cancelled));
         when(saleRepository.findItemsBySaleIds(Arrays.asList(1L, 2L)))
                 .thenReturn(Arrays.asList(activeItem, cancelledItem));
         when(productRepository.findAllByIds(Collections.singletonList(1L)))
                 .thenReturn(Collections.singletonList(createProduct(1L, "Gaseosa")));
 
-        DailySalesDetailReport report = reportService.getDailySalesDetailReport("01/08/2026", "05/08/2026");
+        DailySalesDetailReport report = reportService.getDailySalesDetailReport("2026-08-01", "2026-08-05");
 
         // Active sale is positive, cancelled sale splits into original + cancellation.
         assertThat(report.getRows()).hasSize(3);
@@ -139,20 +139,20 @@ class DailySalesDetailReportServiceTest {
 
     @Test
     void dailySalesDetailAccumulatesMixedPricesWithWeightedAverage() throws SQLException {
-        Sale sale1 = createSale("03/08/2026", "IN", 1L);
+        Sale sale1 = createSale("2026-08-03", "IN", 1L);
         SaleItem item1 = createSaleItem(1L, 1L, 1L, 1, 100.0);
 
-        Sale sale2 = createSale("03/08/2026", "IN", 2L);
+        Sale sale2 = createSale("2026-08-03", "IN", 2L);
         SaleItem item2 = createSaleItem(2L, 2L, 1L, 2, 80.0);
 
-        when(saleRepository.findAllByDateRange("01/08/2026", "05/08/2026"))
+        when(saleRepository.findAllByDateRange("2026-08-01", "2026-08-05"))
                 .thenReturn(Arrays.asList(sale1, sale2));
         when(saleRepository.findItemsBySaleIds(Arrays.asList(1L, 2L)))
                 .thenReturn(Arrays.asList(item1, item2));
         when(productRepository.findAllByIds(Collections.singletonList(1L)))
                 .thenReturn(Collections.singletonList(createProduct(1L, "Coca-Cola 500ml")));
 
-        DailySalesDetailReport report = reportService.getDailySalesDetailReport("01/08/2026", "05/08/2026");
+        DailySalesDetailReport report = reportService.getDailySalesDetailReport("2026-08-01", "2026-08-05");
 
         assertThat(report.getRows()).hasSize(1);
         DailySalesDetailRow row = report.getRows().get(0);

@@ -115,20 +115,37 @@ public class PurchaseRepository {
     }
 
     /**
-     * Returns purchase history sorted by date descending.
+     * Returns purchase history sorted by date descending with pagination.
+     *
+     * @param limit  maximum number of results (0 = no limit)
+     * @param offset number of results to skip (for pagination)
      */
-    public List<Purchase> findHistory() throws SQLException {
-        String sql = "SELECT * FROM purchases ORDER BY id DESC";
+    public List<Purchase> findHistory(int limit, int offset) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT * FROM purchases ORDER BY id DESC");
+        if (limit > 0) {
+            sql.append(" LIMIT ?");
+        }
+        if (offset > 0) {
+            sql.append(" OFFSET ?");
+        }
         Connection conn = dbManager.getConnection();
         List<Purchase> purchases = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                purchases.add(mapPurchase(rs));
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            if (limit > 0) {
+                ps.setInt(paramIndex++, limit);
+            }
+            if (offset > 0) {
+                ps.setInt(paramIndex++, offset);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    purchases.add(mapPurchase(rs));
+                }
             }
         }
-        // purchase_date is user-facing dd/MM/yyyy, so SQL substr ordering was fragile;
-        // sort in Java with defensive parsing instead.
+        // purchase_date is now ISO-8601 (YYYY-MM-DD), so SQL ORDER BY works correctly.
+        // The Java sort is kept as a safety net for any legacy data.
         purchases.sort((a, b) -> {
             int c = compareDatesDesc(a.getPurchaseDate(), b.getPurchaseDate());
             if (c != 0) {
@@ -139,11 +156,18 @@ public class PurchaseRepository {
         return purchases;
     }
 
+    /**
+     * Returns purchase history sorted by date descending.
+     */
+    public List<Purchase> findHistory() throws SQLException {
+        return findHistory(0, 0);
+    }
+
     private static final java.time.format.DateTimeFormatter DATE_FMT =
-            java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     /**
-     * Compares two dd/MM/yyyy date strings descending by date. Dates that cannot
+     * Compares two YYYY-MM-DD date strings descending by date. Dates that cannot
      * be parsed sort last (treated as the oldest). Falls back to id ordering.
      */
     private static int compareDatesDesc(String a, String b) {

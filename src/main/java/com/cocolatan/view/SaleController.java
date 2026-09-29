@@ -421,12 +421,16 @@ public class SaleController implements Refreshable {
 
         // Auto-add to cart with quantity 1
         String channel = isPedidosYa() ? "PEDIDOSYA" : "IN";
-        boolean added = presenter.addToCart(product, 1, channel);
-        if (added) {
-            updateCartDisplay();
-            AlertService.showInfoDialog("Producto Agregado", product.getName() + " agregado al carrito.");
-        } else {
-            AlertService.showErrorDialog("Error", "No se pudo agregar el producto. Stock insuficiente.");
+        try {
+            boolean added = presenter.addToCart(product, 1, channel);
+            if (added) {
+                updateCartDisplay();
+                AlertService.showInfoDialog("Producto Agregado", product.getName() + " agregado al carrito.");
+            } else {
+                AlertService.showErrorDialog("Error", "No se pudo agregar el producto. Stock insuficiente.");
+            }
+        } catch (SalesService.ValidationException e) {
+            AlertService.showErrorDialog("Stock Insuficiente", e.getMessage());
         }
     }
 
@@ -478,6 +482,8 @@ public class SaleController implements Refreshable {
             }
         } catch (NumberFormatException e) {
             AlertService.showErrorDialog("Error de Formato", "Ingrese una cantidad válida.");
+        } catch (SalesService.ValidationException e) {
+            AlertService.showErrorDialog("Stock Insuficiente", e.getMessage());
         }
     }
 

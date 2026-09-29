@@ -848,7 +848,7 @@ public class PurchaseController implements Refreshable {
         Purchase purchase = new Purchase();
         purchase.setSupplierId(supplierCombo.getValue().getId());
         purchase.setInvoiceRef(invoiceRefField.getText().trim());
-        purchase.setPurchaseDate(DateUtils.format(purchaseDatePicker.getValue()));
+        purchase.setPurchaseDate(DateUtils.toIso(purchaseDatePicker.getValue()));
         purchase.setNotes(notesField.getText().trim());
         purchase.setInvoicePhotoPath(invoicePhotoPath);
         purchase.setPaymentMethod(paymentMethodCombo.getValue());

@@ -109,6 +109,8 @@ class BackupSchedulerTest {
             entry.setQuantity(10);
             entry.setReferenceType("ADJUSTMENT");
             stockRepo.insert(entry);
+            // Update denormalized current_stock
+            productRepo.updateStock(dbManager.getConnection(), productId, 10);
 
             // Run a sale and let the backup scheduler tick concurrently.
             // The backup interval is 1 minute so the task won't fire during
@@ -116,7 +118,7 @@ class BackupSchedulerTest {
             // VACUUM INTO on a separate connection takes only a SHARED lock
             // (WAL mode), so it never blocks the UI writer connection.
             Sale sale = new Sale();
-            sale.setSaleDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            sale.setSaleDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             sale.setChannel("IN");
             sale.setPaymentMethod("CASH");
             SaleItem item = new SaleItem();

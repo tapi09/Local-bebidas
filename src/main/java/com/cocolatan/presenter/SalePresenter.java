@@ -77,6 +77,7 @@ public class SalePresenter {
      * Validates stock before adding.
      *
      * @return true if added successfully
+     * @throws SalesService.ValidationException if stock is insufficient
      */
     public boolean addToCart(Product product, int quantity) {
         return addToCart(product, quantity, currentChannel);
@@ -87,6 +88,7 @@ public class SalePresenter {
      * Validates stock before adding.
      *
      * @return true if added successfully
+     * @throws SalesService.ValidationException if stock is insufficient
      */
     public boolean addToCart(Product product, int quantity, String channel) {
         if (product == null || quantity <= 0) {
@@ -94,7 +96,9 @@ public class SalePresenter {
         }
 
         if (!inventoryService.validateStock(product.getId(), quantity)) {
-            return false;
+            int available = inventoryService.getAvailableStock(product.getId());
+            throw new SalesService.ValidationException(
+                    "Stock insuficiente para " + product.getName() + ". Disponible: " + available + ", solicitado: " + quantity);
         }
 
         // Determine price based on channel
@@ -107,7 +111,9 @@ public class SalePresenter {
             if (item.getProductId().equals(product.getId())) {
                 int newQty = item.getQuantity() + quantity;
                 if (!inventoryService.validateStock(product.getId(), newQty)) {
-                    return false;
+                    int available = inventoryService.getAvailableStock(product.getId());
+                    throw new SalesService.ValidationException(
+                            "Stock insuficiente para " + product.getName() + ". Disponible: " + available + ", solicitado: " + newQty);
                 }
                 item.setQuantity(newQty);
                 item.setSubtotal(newQty * item.getUnitPrice());
@@ -169,6 +175,8 @@ public class SalePresenter {
 
     /**
      * Updates quantity of a cart item.
+     *
+     * @throws SalesService.ValidationException if stock is insufficient for the requested quantity
      */
     public boolean updateCartQuantity(Long productId, int newQuantity) {
         if (newQuantity <= 0) {
@@ -179,7 +187,10 @@ public class SalePresenter {
         for (SaleItem item : cartItems) {
             if (item.getProductId().equals(productId)) {
                 if (!inventoryService.validateStock(productId, newQuantity)) {
-                    return false;
+                    int available = inventoryService.getAvailableStock(productId);
+                    String productName = getProductName(productId);
+                    throw new SalesService.ValidationException(
+                            "Stock insuficiente para " + productName + ". Disponible: " + available + ", solicitado: " + newQuantity);
                 }
                 item.setQuantity(newQuantity);
                 item.setSubtotal(newQuantity * item.getUnitPrice());

@@ -13,6 +13,8 @@ import com.cocolatan.repository.SupplierRepository;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -22,6 +24,8 @@ import java.util.List;
  * Orchestrates the full purchase flow inside a single SQL transaction.
  */
 public class PurchaseService {
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final DatabaseManager databaseManager;
     private final PurchaseRepository purchaseRepository;
@@ -42,8 +46,9 @@ public class PurchaseService {
     }
 
     /**
-     * Saves a purchase with its items. Creates stock movements and updates cost prices.
-     * The entire operation (purchase + stock movements + cost price update) is wrapped
+     * Saves a purchase with its items. Creates stock movements and updates cost prices (LIFO).
+     * Updates denormalized current_stock column in products table.
+     * The entire operation (purchase + stock movements + cost price update + stock cache) is wrapped
      * in a single SQL transaction for atomicity.
      *
      * @return true if saved successfully, false if validation failed
@@ -59,6 +64,11 @@ public class PurchaseService {
             originalAutoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
 
+            // Set purchase date if not set (ISO-8601 format)
+            if (purchase.getPurchaseDate() == null || purchase.getPurchaseDate().isEmpty()) {
+                purchase.setPurchaseDate(LocalDate.now().format(DATE_FORMATTER));
+            }
+
             Long purchaseId = purchaseRepository.saveWithItems(conn, purchase, items);
 
             // Create stock movements for each item
@@ -72,7 +82,10 @@ public class PurchaseService {
                 movement.setNotes("Compra #" + purchaseId);
                 stockMovementRepository.insert(conn, movement);
 
-                // Update product cost price
+                // Update denormalized current_stock cache (positive delta for purchase)
+                productRepository.updateStock(conn, item.getProductId(), item.getQuantity());
+
+                // Update product cost price (LIFO: last purchase cost becomes current cost)
                 productRepository.updateCostPrice(conn, item.getProductId(), item.getUnitCost());
             }
 
@@ -87,14 +100,21 @@ public class PurchaseService {
     }
 
     /**
-     * Loads purchase history sorted by date descending.
+     * Loads purchase history sorted by date descending with pagination.
      */
-    public List<Purchase> loadPurchaseHistory() {
+    public List<Purchase> loadPurchaseHistory(int limit, int offset) {
         try {
-            return purchaseRepository.findHistory();
+            return purchaseRepository.findHistory(limit, offset);
         } catch (SQLException e) {
             throw new RuntimeException("Error al cargar historial de compras", e);
         }
+    }
+
+    /**
+     * Loads purchase history sorted by date descending (all results).
+     */
+    public List<Purchase> loadPurchaseHistory() {
+        return loadPurchaseHistory(0, 0);
     }
 
     /**

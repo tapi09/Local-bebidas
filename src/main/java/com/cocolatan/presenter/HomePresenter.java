@@ -3,10 +3,9 @@ package com.cocolatan.presenter;
 import com.cocolatan.model.Sale;
 import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.SaleRepository;
+import com.cocolatan.util.DateUtils;
 
 import java.sql.SQLException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -16,7 +15,6 @@ import java.util.List;
  */
 public class HomePresenter {
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int RECENT_SALES_LIMIT = 5;
 
     private final SaleRepository saleRepository;
@@ -29,7 +27,7 @@ public class HomePresenter {
 
     public double getTodaySales() {
         try {
-            return saleRepository.sumSalesForDate(LocalDate.now().format(DATE_FORMATTER));
+            return saleRepository.sumSalesForDate(DateUtils.todayIso());
         } catch (SQLException e) {
             throw new RuntimeException("Error al obtener ventas del día", e);
         }

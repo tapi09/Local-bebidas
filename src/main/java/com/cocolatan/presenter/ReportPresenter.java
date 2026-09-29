@@ -4,6 +4,7 @@ import com.cocolatan.model.DailySalesDetailReport;
 import com.cocolatan.model.DailySalesDetailRow;
 import com.cocolatan.service.CsvService;
 import com.cocolatan.service.ReportService;
+import com.cocolatan.util.DateUtils;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -95,17 +96,17 @@ public class ReportPresenter {
 
     public List<ReportService.SalesPeriodReport> generateSalesByPeriodReport() {
         validateDateRange();
-        return reportService.getSalesByPeriodReport(fromDate, toDate);
+        return reportService.getSalesByPeriodReport(fromDateIso(), toDateIso());
     }
 
     public List<ReportService.ChannelReport> generateChannelComparisonReport() {
         validateDateRange();
-        return reportService.getChannelComparisonReport(fromDate, toDate);
+        return reportService.getChannelComparisonReport(fromDateIso(), toDateIso());
     }
 
     public List<ReportService.RotationReport> generateRotationReport() {
         validateDateRange();
-        return reportService.getRotationReport(fromDate, toDate);
+        return reportService.getRotationReport(fromDateIso(), toDateIso());
     }
 
     public List<ReportService.StockValueReport> generateStockValueReport() {
@@ -128,7 +129,7 @@ public class ReportPresenter {
 
     public DailySalesDetailReport generateDailySalesDetailReport() {
         validateDateRange();
-        return reportService.getDailySalesDetailReport(fromDate, toDate);
+        return reportService.getDailySalesDetailReport(fromDateIso(), toDateIso());
     }
 
     /**
@@ -168,6 +169,22 @@ public class ReportPresenter {
         if (fromDate == null || toDate == null || fromDate.isBlank() || toDate.isBlank()) {
             throw new IllegalArgumentException("Seleccione un rango de fechas válido.");
         }
+        if (DateUtils.parse(fromDate).isAfter(DateUtils.parse(toDate))) {
+            throw new IllegalArgumentException("La fecha desde no puede ser posterior a la fecha hasta.");
+        }
+    }
+
+    /**
+     * fromDate/toDate are kept in DD/MM/YYYY (the display format the DatePickers
+     * use) — converted to ISO-8601 only at the boundary where they're passed to
+     * ReportService/repositories, which query sale_date/purchase_date (ISO).
+     */
+    private String fromDateIso() {
+        return DateUtils.toIso(DateUtils.parse(fromDate));
+    }
+
+    private String toDateIso() {
+        return DateUtils.toIso(DateUtils.parse(toDate));
     }
 
     // ========================================

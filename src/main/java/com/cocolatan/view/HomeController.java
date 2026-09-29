@@ -98,7 +98,8 @@ public class HomeController implements Refreshable {
     }
 
     private void setupTable() {
-        colDate.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getSaleDate()));
+        colDate.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                formatSaleDate(data.getValue().getSaleDate())));
         colTotal.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalAmount"));
         colTotal.setCellFactory(tc -> new TableCell<>() {
             @Override
@@ -115,6 +116,10 @@ public class HomeController implements Refreshable {
 
     static String formatChannel(String channel) {
         return "IN".equals(channel) ? "Local" : "PedidosYa";
+    }
+
+    static String formatSaleDate(String isoDate) {
+        return com.cocolatan.util.DateUtils.toDisplay(isoDate);
     }
 
     private void loadDashboardData() {

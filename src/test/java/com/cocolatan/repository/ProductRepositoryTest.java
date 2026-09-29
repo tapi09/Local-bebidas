@@ -572,6 +572,14 @@ class ProductRepositoryTest {
             ps.setInt(3, quantity);
             ps.executeUpdate();
         }
+        // Update denormalized current_stock to match new schema behavior
+        int delta = "EXIT".equals(type) ? -quantity : quantity;
+        try (PreparedStatement ps = dbManager.getConnection().prepareStatement(
+                "UPDATE products SET current_stock = current_stock + ? WHERE id = ?")) {
+            ps.setInt(1, delta);
+            ps.setLong(2, productId);
+            ps.executeUpdate();
+        }
     }
 
     @Test

@@ -155,18 +155,22 @@ public class InventoryService {
         movement.setReferenceType("ADJUSTMENT");
         movement.setNotes(reason);
 
+        int removeQty = 0;
         if (quantityDifference >= 0) {
             movement.setMovementType("ADJUSTMENT");
             movement.setQuantity(quantityDifference);
         } else {
-            int removeQty = Math.abs(quantityDifference);
+            removeQty = Math.abs(quantityDifference);
             movement.setMovementType("EXIT");
             movement.setQuantity(removeQty);
-            Connection conn = stockMovementRepository.getConnection();
-            boolean originalAutoCommit = true;
-            try {
-                originalAutoCommit = conn.getAutoCommit();
-                conn.setAutoCommit(false);
+        }
+
+        Connection conn = stockMovementRepository.getConnection();
+        boolean originalAutoCommit = true;
+        try {
+            originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            if (quantityDifference < 0) {
                 int currentStock = stockMovementRepository.computeCurrentStock(conn, productId);
                 if (removeQty > currentStock) {
                     throw new IllegalArgumentException(
@@ -174,31 +178,25 @@ public class InventoryService {
                             ", intentó quitar: " + removeQty
                     );
                 }
-                stockMovementRepository.insert(conn, movement);
-                conn.commit();
-            } catch (SQLException e) {
-                try {
-                    conn.rollback();
-                } catch (SQLException rollbackEx) {
-                    // Best-effort rollback; the original failure is the one surfaced.
-                    LOGGER.log(Level.FINE, "Rollback falló al ajustar stock", rollbackEx);
-                }
-                throw new RuntimeException("Error al registrar ajuste de stock", e);
-            } finally {
-                try {
-                    conn.setAutoCommit(originalAutoCommit);
-                } catch (SQLException e) {
-                    // Best-effort restore; the connection is owned by the caller.
-                    LOGGER.log(Level.FINE, "No se pudo restaurar autoCommit al ajustar stock", e);
-                }
             }
-            return;
-        }
-
-        try {
-            stockMovementRepository.insert(movement);
+            stockMovementRepository.insert(conn, movement);
+            productRepository.updateStock(conn, productId, quantityDifference);
+            conn.commit();
         } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException rollbackEx) {
+                // Best-effort rollback; the original failure is the one surfaced.
+                LOGGER.log(Level.FINE, "Rollback falló al ajustar stock", rollbackEx);
+            }
             throw new RuntimeException("Error al registrar ajuste de stock", e);
+        } finally {
+            try {
+                conn.setAutoCommit(originalAutoCommit);
+            } catch (SQLException e) {
+                // Best-effort restore; the connection is owned by the caller.
+                LOGGER.log(Level.FINE, "No se pudo restaurar autoCommit al ajustar stock", e);
+            }
         }
     }
 

@@ -44,7 +44,7 @@ class HomePresenterTest {
         double result = presenter.getTodaySales();
 
         assertThat(result).isEqualTo(12500.0);
-        verify(saleRepository).sumSalesForDate(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        verify(saleRepository).sumSalesForDate(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
     }
 
     @Test

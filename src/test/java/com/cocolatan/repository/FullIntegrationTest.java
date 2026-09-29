@@ -114,6 +114,8 @@ class FullIntegrationTest {
         entry1.setReferenceId(purchaseId);
         entry1.setNotes("Compra #1");
         stockMovementRepository.insert(entry1);
+        // Update denormalized current_stock
+        productRepository.updateStock(dbManager.getConnection(), cocaId, 100);
 
         StockMovement entry2 = new StockMovement();
         entry2.setProductId(pepsiId);
@@ -123,6 +125,8 @@ class FullIntegrationTest {
         entry2.setReferenceId(purchaseId);
         entry2.setNotes("Compra #1");
         stockMovementRepository.insert(entry2);
+        // Update denormalized current_stock
+        productRepository.updateStock(dbManager.getConnection(), pepsiId, 50);
 
         // 4. Verify stock after purchase
         int cocaStock = inventoryService.getCurrentStock(cocaId);
@@ -132,7 +136,7 @@ class FullIntegrationTest {
 
         // 5. Create sale (stock EXIT)
         Sale sale = new Sale();
-        sale.setSaleDate("15/07/2026");
+        sale.setSaleDate("2026-07-15");
         sale.setChannel("IN");
         sale.setPaymentMethod("CASH");
 
@@ -165,13 +169,13 @@ class FullIntegrationTest {
         assertThat(cocaMargin.getMarginPercent()).isCloseTo(100.0, org.assertj.core.data.Offset.offset(0.01));
 
         // Sales by period report
-        List<ReportService.SalesPeriodReport> salesReport = reportService.getSalesByPeriodReport("01/07/2026", "31/07/2026");
+        List<ReportService.SalesPeriodReport> salesReport = reportService.getSalesByPeriodReport("2026-07-01", "2026-07-31");
         assertThat(salesReport).hasSize(1);
         assertThat(salesReport.get(0).getTotalRevenue()).isCloseTo(29000.0, org.assertj.core.data.Offset.offset(0.01));
         // 30*600 + 20*550 = 18000 + 11000 = 29000
 
         // Channel comparison report
-        List<ReportService.ChannelReport> channels = reportService.getChannelComparisonReport("01/07/2026", "31/07/2026");
+        List<ReportService.ChannelReport> channels = reportService.getChannelComparisonReport("2026-07-01", "2026-07-31");
         assertThat(channels).hasSize(1);
         assertThat(channels.get(0).getChannel()).isEqualTo("IN");
         assertThat(channels.get(0).getPercentage()).isCloseTo(100.0, org.assertj.core.data.Offset.offset(0.01));
@@ -205,10 +209,12 @@ class FullIntegrationTest {
         entry.setReferenceType("PURCHASE");
         entry.setNotes("Stock inicial");
         stockMovementRepository.insert(entry);
+        // Update denormalized current_stock
+        productRepository.updateStock(dbManager.getConnection(), productId, 200);
 
         // Sale LOCAL
         Sale localSale = new Sale();
-        localSale.setSaleDate("01/07/2026");
+        localSale.setSaleDate("2026-07-01");
         localSale.setChannel("IN");
         localSale.setPaymentMethod("CASH");
         SaleItem localItem = new SaleItem();
@@ -219,7 +225,7 @@ class FullIntegrationTest {
 
         // Sale PEDIDOSYA
         Sale pySale = new Sale();
-        pySale.setSaleDate("01/07/2026");
+        pySale.setSaleDate("2026-07-01");
         pySale.setChannel("PEDIDOSYA");
         pySale.setPaymentMethod("CASH");
         SaleItem pyItem = new SaleItem();
@@ -229,7 +235,7 @@ class FullIntegrationTest {
         salesService.createSale(pySale, Collections.singletonList(pyItem));
 
         // Channel comparison
-        List<ReportService.ChannelReport> channels = reportService.getChannelComparisonReport("01/07/2026", "31/07/2026");
+        List<ReportService.ChannelReport> channels = reportService.getChannelComparisonReport("2026-07-01", "2026-07-31");
         assertThat(channels).hasSize(2);
 
         ReportService.ChannelReport local = channels.stream()
@@ -266,10 +272,12 @@ class FullIntegrationTest {
         entry.setReferenceType("PURCHASE");
         entry.setNotes("Stock");
         stockMovementRepository.insert(entry);
+        // Update denormalized current_stock
+        productRepository.updateStock(dbManager.getConnection(), productId, 15);
 
         // Sell 8 → remaining 7 < minStock 10
         Sale sale = new Sale();
-        sale.setSaleDate("01/07/2026");
+        sale.setSaleDate("2026-07-01");
         sale.setChannel("IN");
         sale.setPaymentMethod("CASH");
         SaleItem item = new SaleItem();

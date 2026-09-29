@@ -366,16 +366,20 @@ class InventoryServiceTest {
 
     @Test
     void adjustStockPositiveCreatesAdjustmentMovement() throws SQLException {
-        when(stockMovementRepository.insert(any(StockMovement.class))).thenReturn(1L);
+        Connection conn = mock(Connection.class);
+        when(stockMovementRepository.getConnection()).thenReturn(conn);
+        when(conn.getAutoCommit()).thenReturn(true);
+        when(stockMovementRepository.insert(eq(conn), any(StockMovement.class))).thenReturn(1L);
 
         inventoryService.adjustStock(1L, 10, "Reposición de inventario");
 
-        verify(stockMovementRepository).insert(argThat(m ->
+        verify(stockMovementRepository).insert(eq(conn), argThat(m ->
                 "ADJUSTMENT".equals(m.getMovementType()) &&
                 m.getQuantity() == 10 &&
                 "ADJUSTMENT".equals(m.getReferenceType()) &&
                 "Reposición de inventario".equals(m.getNotes())
         ));
+        verify(conn).commit();
     }
 
     @Test
@@ -434,14 +438,45 @@ class InventoryServiceTest {
 
     @Test
     void adjustStockZeroCreatesAdjustmentWithZeroQuantity() throws SQLException {
-        when(stockMovementRepository.insert(any(StockMovement.class))).thenReturn(1L);
+        Connection conn = mock(Connection.class);
+        when(stockMovementRepository.getConnection()).thenReturn(conn);
+        when(conn.getAutoCommit()).thenReturn(true);
+        when(stockMovementRepository.insert(eq(conn), any(StockMovement.class))).thenReturn(1L);
 
         inventoryService.adjustStock(1L, 0, "Sin cambios");
 
-        verify(stockMovementRepository).insert(argThat(m ->
+        verify(stockMovementRepository).insert(eq(conn), argThat(m ->
                 "ADJUSTMENT".equals(m.getMovementType()) &&
                 m.getQuantity() == 0
         ));
+    }
+
+    // --- Regression tests: current_stock denormalized column must stay in sync (audit v3, B2) ---
+
+    @Test
+    @DisplayName("REGRESION B2: ajuste positivo debe actualizar current_stock (falla hoy: adjustStock nunca llama updateStock)")
+    void adjustStockPositive_shouldUpdateCurrentStock() throws SQLException {
+        Connection conn = mock(Connection.class);
+        when(stockMovementRepository.getConnection()).thenReturn(conn);
+        when(conn.getAutoCommit()).thenReturn(true);
+        when(stockMovementRepository.insert(eq(conn), any(StockMovement.class))).thenReturn(1L);
+
+        inventoryService.adjustStock(1L, 10, "Reposición de inventario");
+
+        verify(productRepository).updateStock(eq(conn), eq(1L), eq(10));
+    }
+
+    @Test
+    @DisplayName("REGRESION B2: ajuste negativo debe actualizar current_stock (falla hoy: adjustStock nunca llama updateStock)")
+    void adjustStockNegative_shouldUpdateCurrentStock() throws SQLException {
+        Connection conn = mock(Connection.class);
+        when(stockMovementRepository.getConnection()).thenReturn(conn);
+        when(conn.getAutoCommit()).thenReturn(true);
+        when(stockMovementRepository.computeCurrentStock(conn, 1L)).thenReturn(10);
+
+        inventoryService.adjustStock(1L, -5, "Producto dañado");
+
+        verify(productRepository).updateStock(eq(conn), eq(1L), eq(-5));
     }
 
     // --- getMovementHistory (with filters) tests ---
@@ -494,11 +529,16 @@ class InventoryServiceTest {
     @Test
     @DisplayName("adjustStock lanza RuntimeException cuando SQLException en repositorio")
     void adjustStock_whenSqlException_throwsRuntimeException() throws SQLException {
-        when(stockMovementRepository.insert(any(StockMovement.class))).thenThrow(new SQLException("DB error"));
+        Connection conn = mock(Connection.class);
+        when(stockMovementRepository.getConnection()).thenReturn(conn);
+        when(conn.getAutoCommit()).thenReturn(true);
+        when(stockMovementRepository.insert(eq(conn), any(StockMovement.class))).thenThrow(new SQLException("DB error"));
 
         assertThatThrownBy(() -> inventoryService.adjustStock(1L, 5, "Test"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Error al registrar ajuste");
+
+        verify(conn).rollback();
     }
 
     // ========================================

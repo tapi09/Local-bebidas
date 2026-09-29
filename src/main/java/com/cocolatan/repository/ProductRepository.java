@@ -412,14 +412,11 @@ public class ProductRepository {
     }
 
     /**
-     * Returns the number of active products whose computed stock is below their
-     * min_stock threshold. Products with no stock movements count as 0 stock.
+     * Returns the number of active products whose current stock is below their
+     * min_stock threshold. Uses denormalized current_stock column for O(1) performance.
      */
     public int countLowStock() throws SQLException {
-        String sql = "SELECT COUNT(*) FROM products p WHERE p.active = 1 "
-                + "AND (SELECT COALESCE(SUM(CASE WHEN m.movement_type IN ('ENTRY','ADJUSTMENT') THEN m.quantity ELSE 0 END), 0) "
-                + "- COALESCE(SUM(CASE WHEN m.movement_type = 'EXIT' THEN m.quantity ELSE 0 END), 0) "
-                + "FROM stock_movements m WHERE m.product_id = p.id) < p.min_stock";
+        String sql = "SELECT COUNT(*) FROM products WHERE active = 1 AND current_stock < min_stock";
         Connection conn = dbManager.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -429,13 +426,10 @@ public class ProductRepository {
 
     /**
      * Returns the number of active products currently shown as out of stock
-     * (computed stock equal to zero). Used by the dashboard home view.
+     * (current_stock equal to zero). Uses denormalized current_stock column for O(1) performance.
      */
     public int countOutOfStock() throws SQLException {
-        String sql = "SELECT COUNT(*) FROM products p WHERE p.active = 1 "
-                + "AND (SELECT COALESCE(SUM(CASE WHEN m.movement_type IN ('ENTRY','ADJUSTMENT') THEN m.quantity ELSE 0 END), 0) "
-                + "- COALESCE(SUM(CASE WHEN m.movement_type = 'EXIT' THEN m.quantity ELSE 0 END), 0) "
-                + "FROM stock_movements m WHERE m.product_id = p.id) = 0";
+        String sql = "SELECT COUNT(*) FROM products WHERE active = 1 AND current_stock = 0";
         Connection conn = dbManager.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -457,17 +451,34 @@ public class ProductRepository {
 
     /**
      * Returns the number of active products with low stock or out of stock
-     * (computed stock strictly below the min_stock threshold). Used by the dashboard.
+     * (current_stock strictly below the min_stock threshold). Uses denormalized
+     * current_stock column for O(1) performance.
      */
     public int countLowOrOutOfStock() throws SQLException {
-        String sql = "SELECT COUNT(*) FROM products p WHERE p.active = 1 "
-                + "AND (SELECT COALESCE(SUM(CASE WHEN m.movement_type IN ('ENTRY','ADJUSTMENT') THEN m.quantity ELSE 0 END), 0) "
-                + "- COALESCE(SUM(CASE WHEN m.movement_type = 'EXIT' THEN m.quantity ELSE 0 END), 0) "
-                + "FROM stock_movements m WHERE m.product_id = p.id) < p.min_stock";
+        String sql = "SELECT COUNT(*) FROM products WHERE active = 1 AND current_stock < min_stock";
         Connection conn = dbManager.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             return rs.next() ? rs.getInt(1) : 0;
+        }
+    }
+
+    /**
+     * Updates the current_stock of a product by a delta (positive or negative).
+     * Used to maintain the denormalized stock cache in O(1) within a transaction.
+     * Does NOT manage transactions — the caller controls commit/rollback.
+     *
+     * @param conn      existing database connection (transactional)
+     * @param productId the product to update
+     * @param delta     the change in stock (negative for sales, positive for purchases/adjustments)
+     * @return number of rows updated (0 or 1)
+     */
+    public int updateStock(Connection conn, Long productId, int delta) throws SQLException {
+        String sql = "UPDATE products SET current_stock = current_stock + ?, updated_at = datetime('now','localtime') WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, delta);
+            ps.setLong(2, productId);
+            return ps.executeUpdate();
         }
     }
 
@@ -527,6 +538,7 @@ public class ProductRepository {
         product.setBarcode(rs.getString("barcode"));
         product.setPhotoPath(rs.getString("photo_path"));
         product.setMinStock(rs.getInt("min_stock"));
+        product.setCurrentStock(rs.getInt("current_stock"));
         product.setActive(rs.getBoolean("active"));
         product.setCreatedAt(rs.getString("created_at"));
         product.setUpdatedAt(rs.getString("updated_at"));

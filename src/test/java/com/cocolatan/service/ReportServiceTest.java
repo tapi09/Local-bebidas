@@ -119,9 +119,9 @@ class ReportServiceTest {
 
     @Test
     void salesByPeriodCalculatesRevenueAndCount() throws SQLException {
-        Sale sale1 = createSale("01/07/2026", "IN", 5000.0);
-        Sale sale2 = createSale("01/07/2026", "IN", 3200.0);
-        Sale sale3 = createSale("01/07/2026", "PEDIDOSYA", 1800.0);
+        Sale sale1 = createSale("2026-07-01", "IN", 5000.0);
+        Sale sale2 = createSale("2026-07-01", "IN", 3200.0);
+        Sale sale3 = createSale("2026-07-01", "PEDIDOSYA", 1800.0);
         when(saleRepository.findByDateRange("01/07/2026", "01/07/2026")).thenReturn(Arrays.asList(sale1, sale2, sale3));
 
         List<ReportService.SalesPeriodReport> result = reportService.getSalesByPeriodReport("01/07/2026", "01/07/2026");
@@ -134,8 +134,8 @@ class ReportServiceTest {
 
     @Test
     void salesByPeriodGroupsByDay() throws SQLException {
-        Sale day1 = createSale("01/07/2026", "IN", 5000.0);
-        Sale day2 = createSale("02/07/2026", "IN", 7000.0);
+        Sale day1 = createSale("2026-07-01", "IN", 5000.0);
+        Sale day2 = createSale("2026-07-02", "IN", 7000.0);
         when(saleRepository.findByDateRange("01/07/2026", "02/07/2026")).thenReturn(Arrays.asList(day1, day2));
 
         List<ReportService.SalesPeriodReport> result = reportService.getSalesByPeriodReport("01/07/2026", "02/07/2026");
@@ -158,7 +158,7 @@ class ReportServiceTest {
 
     @Test
     void salesByPeriodFiltersOutOfRangeSales() throws SQLException {
-        Sale inRange = createSale("01/07/2026", "IN", 5000.0);
+        Sale inRange = createSale("2026-07-01", "IN", 5000.0);
         when(saleRepository.findByDateRange("01/07/2026", "01/07/2026")).thenReturn(Collections.singletonList(inRange));
 
         List<ReportService.SalesPeriodReport> result = reportService.getSalesByPeriodReport("01/07/2026", "01/07/2026");
@@ -173,9 +173,9 @@ class ReportServiceTest {
 
     @Test
     void channelComparisonShowsRevenuePerChannel() throws SQLException {
-        Sale local1 = createSale("01/07/2026", "IN", 15000.0);
-        Sale local2 = createSale("01/07/2026", "IN", 15000.0);
-        Sale pedidosya = createSale("01/07/2026", "PEDIDOSYA", 10000.0);
+        Sale local1 = createSale("2026-07-01", "IN", 15000.0);
+        Sale local2 = createSale("2026-07-01", "IN", 15000.0);
+        Sale pedidosya = createSale("2026-07-01", "PEDIDOSYA", 10000.0);
         when(saleRepository.findByDateRange("01/07/2026", "01/07/2026")).thenReturn(Arrays.asList(local1, local2, pedidosya));
 
         List<ReportService.ChannelReport> result = reportService.getChannelComparisonReport("01/07/2026", "01/07/2026");
@@ -199,7 +199,7 @@ class ReportServiceTest {
 
     @Test
     void channelComparisonSingleChannelShows100Percent() throws SQLException {
-        Sale local = createSale("01/07/2026", "IN", 20000.0);
+        Sale local = createSale("2026-07-01", "IN", 20000.0);
         when(saleRepository.findByDateRange("01/07/2026", "01/07/2026")).thenReturn(Collections.singletonList(local));
 
         List<ReportService.ChannelReport> result = reportService.getChannelComparisonReport("01/07/2026", "01/07/2026");
@@ -237,7 +237,7 @@ class ReportServiceTest {
         when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L)))
                 .thenReturn(Collections.singletonMap(1L, 30)); // 150 - 120
 
-        List<ReportService.RotationReport> result = reportService.getRotationReport("01/07/2026", "31/07/2026");
+        List<ReportService.RotationReport> result = reportService.getRotationReport("2026-07-01", "2026-07-31");
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getUnitsSold()).isEqualTo(120);
@@ -252,7 +252,7 @@ class ReportServiceTest {
         when(stockMovementRepository.findByProductIds(Collections.singletonList(1L))).thenReturn(Collections.emptyList());
         when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L))).thenReturn(Collections.emptyMap());
 
-        List<ReportService.RotationReport> result = reportService.getRotationReport("01/07/2026", "31/07/2026");
+        List<ReportService.RotationReport> result = reportService.getRotationReport("2026-07-01", "2026-07-31");
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getUnitsSold()).isEqualTo(0);
@@ -266,7 +266,7 @@ class ReportServiceTest {
         when(stockMovementRepository.findByProductIds(Collections.singletonList(1L))).thenReturn(Collections.emptyList());
         when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L))).thenReturn(Collections.emptyMap());
 
-        List<ReportService.RotationReport> result = reportService.getRotationReport("01/07/2026", "31/07/2026");
+        List<ReportService.RotationReport> result = reportService.getRotationReport("2026-07-01", "2026-07-31");
 
         assertThat(result.get(0).getProductName()).isEqualTo("Fernet");
         assertThat(result.get(0).getCategory()).isEqualTo("Birras");
@@ -333,7 +333,7 @@ class ReportServiceTest {
     @Test
     @DisplayName("getRotationReport lanza excepción con fecha inválida")
     void getRotationReport_withInvalidDate_throwsException() throws SQLException {
-        assertThatThrownBy(() -> reportService.getRotationReport("invalid", "01/08/2026"))
+        assertThatThrownBy(() -> reportService.getRotationReport("invalid", "2026-08-01"))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -390,7 +390,7 @@ class ReportServiceTest {
         when(stockMovementRepository.findByProductIds(Collections.singletonList(1L))).thenReturn(Collections.emptyList());
         when(stockMovementRepository.computeCurrentStocks(Collections.singletonList(1L))).thenReturn(Collections.emptyMap());
 
-        List<ReportService.RotationReport> result = reportService.getRotationReport("01/07/2026", "31/07/2026");
+        List<ReportService.RotationReport> result = reportService.getRotationReport("2026-07-01", "2026-07-31");
 
         assertThat(result.get(0).getCategory()).isEqualTo("Gaseosas — Botella");
     }

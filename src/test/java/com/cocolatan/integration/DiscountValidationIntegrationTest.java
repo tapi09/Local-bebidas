@@ -113,6 +113,8 @@ class DiscountValidationIntegrationTest {
         entry.setReferenceType("PURCHASE");
         entry.setReferenceId(1L);
         stockMovementRepository.insert(entry);
+        // Update denormalized current_stock
+        productRepository.updateStock(dbManager.getConnection(), 1L, 24);
 
         presenter.addToCart(coke, 2); // subtotal 1200
     }

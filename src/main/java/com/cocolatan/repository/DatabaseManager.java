@@ -3,14 +3,21 @@ package com.cocolatan.repository;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Singleton manager for SQLite database connection lifecycle.
  * Handles schema initialization, WAL mode, and foreign keys.
  */
 public class DatabaseManager {
+
+    private static final Logger LOGGER = Logger.getLogger(DatabaseManager.class.getName());
 
     private static DatabaseManager instance;
     private final Connection connection;
@@ -302,9 +309,21 @@ public class DatabaseManager {
              // anyone reset a user's password from the login screen. The provider
              // must configure it once through the Users screen (first-time setup
              // accepts an empty current key); recovery only works after that.
-             // Migration v13: persist dismissed alerts across restarts
-             runMigration(stmt, "CREATE TABLE IF NOT EXISTS alert_dismissals (id INTEGER PRIMARY KEY AUTOINCREMENT, alert_type TEXT NOT NULL, product_id INTEGER NOT NULL, lot_number TEXT, dismissed_at TEXT NOT NULL DEFAULT (datetime('now','localtime')), UNIQUE (alert_type, product_id, lot_number))");
-             runMigration(stmt, "CREATE INDEX IF NOT EXISTS idx_alert_dismissals_lookup ON alert_dismissals(alert_type, product_id)");
+// Migration v13: persist dismissed alerts across restarts
+              runMigration(stmt, "CREATE TABLE IF NOT EXISTS alert_dismissals (id INTEGER PRIMARY KEY AUTOINCREMENT, alert_type TEXT NOT NULL, product_id INTEGER NOT NULL, lot_number TEXT, dismissed_at TEXT NOT NULL DEFAULT (datetime('now','localtime')), UNIQUE (alert_type, product_id, lot_number))");
+              runMigration(stmt, "CREATE INDEX IF NOT EXISTS idx_alert_dismissals_lookup ON alert_dismissals(alert_type, product_id)");
+              // Migration v14: denormalized current_stock column for O(1) dashboard queries
+              runMigration(stmt, "ALTER TABLE products ADD COLUMN current_stock INTEGER NOT NULL DEFAULT 0 CHECK (current_stock >= 0)");
+              runMigration(stmt, "CREATE INDEX IF NOT EXISTS idx_products_current_stock ON products(current_stock)");
+              // Backfill current_stock from stock_movements history — done row-by-row
+              // (not a single aggregate UPDATE) because SQLite aborts the ENTIRE statement
+              // if any one row violates the CHECK (current_stock >= 0) constraint (confirmed
+              // empirically, audit v3 B5): a single product with a negative net movement
+              // history would otherwise silently leave ALL products at the DEFAULT 0.
+              backfillCurrentStock(stmt);
+              // Migration v15: convert sale_date and purchase_date from dd/MM/yyyy to YYYY-MM-DD (ISO-8601)
+              runMigration(stmt, "UPDATE sales SET sale_date = substr(sale_date,7,4) || '-' || substr(sale_date,4,2) || '-' || substr(sale_date,1,2) WHERE sale_date LIKE '__/__/____'");
+              runMigration(stmt, "UPDATE purchases SET purchase_date = substr(purchase_date,7,4) || '-' || substr(purchase_date,4,2) || '-' || substr(purchase_date,1,2) WHERE purchase_date LIKE '__/__/____'");
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize schema", e);
         }
@@ -314,7 +333,57 @@ public class DatabaseManager {
         try {
             stmt.execute(sql);
         } catch (SQLException e) {
-            // Column already exists or other harmless error — ignore migration
+            // Expected on re-run for additive migrations ("column already exists" etc).
+            // Logged (not swallowed silently) so a genuinely unexpected failure is still
+            // observable — audit v3 A4: silently ignoring ALL SQLExceptions here is what
+            // let the v14 backfill's CHECK-constraint abort (B5) go completely unnoticed.
+            LOGGER.log(Level.WARNING, "Migration statement failed (harmless if already applied): " + sql, e);
+        }
+    }
+
+    /**
+     * Backfills products.current_stock (migration v14) one product at a time. A single
+     * aggregate UPDATE was tried originally, but SQLite aborts the whole statement if any
+     * one row would violate CHECK (current_stock >= 0) — confirmed empirically (audit v3,
+     * B5) to leave every product at the DEFAULT 0 when just one had a negative net stock
+     * history. Negative nets are clamped to 0 and logged for manual review instead of
+     * blocking the backfill for every other product.
+     */
+    private void backfillCurrentStock(Statement stmt) {
+        Map<Long, Integer> nets = new LinkedHashMap<>();
+        try (ResultSet rs = stmt.executeQuery(
+                "SELECT p.id AS id, "
+                + "COALESCE(SUM(CASE WHEN m.movement_type IN ('ENTRY','ADJUSTMENT') THEN m.quantity ELSE 0 END), 0) "
+                + "- COALESCE(SUM(CASE WHEN m.movement_type = 'EXIT' THEN m.quantity ELSE 0 END), 0) AS net "
+                + "FROM products p LEFT JOIN stock_movements m ON m.product_id = p.id GROUP BY p.id")) {
+            while (rs.next()) {
+                nets.put(rs.getLong("id"), rs.getInt("net"));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "current_stock backfill: failed to compute net stock per product", e);
+            return;
+        }
+
+        try (PreparedStatement ps = stmt.getConnection().prepareStatement(
+                "UPDATE products SET current_stock = ? WHERE id = ?")) {
+            for (Map.Entry<Long, Integer> entry : nets.entrySet()) {
+                int net = entry.getValue();
+                if (net < 0) {
+                    LOGGER.log(Level.WARNING, "current_stock backfill: product id=" + entry.getKey()
+                            + " has a negative net stock history (" + net + "); clamping to 0. "
+                            + "This indicates pre-existing inconsistent stock data that needs manual review.");
+                    net = 0;
+                }
+                ps.setInt(1, net);
+                ps.setLong(2, entry.getKey());
+                try {
+                    ps.executeUpdate();
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "current_stock backfill: failed for product id=" + entry.getKey(), e);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "current_stock backfill: failed to prepare update statement", e);
         }
     }
 

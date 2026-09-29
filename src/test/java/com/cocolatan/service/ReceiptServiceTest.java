@@ -51,7 +51,7 @@ class ReceiptServiceTest {
         when(productRepository.findById(1L)).thenReturn(Optional.of(createProduct("Pepsi 500ml")));
 
         Sale sale = createSale("PEDIDOSYA", "DEBIT_CARD");
-        sale.setSaleDate("22/07/2026");
+        sale.setSaleDate("2026-07-22");
         SaleItem item = createSaleItem(1L, 1, 550.0, 550.0);
 
         String receipt = receiptService.generateReceipt(sale, Collections.singletonList(item));
@@ -59,6 +59,25 @@ class ReceiptServiceTest {
         assertThat(receipt).contains("22/07/2026");
         assertThat(receipt).contains("PedidosYa");
         assertThat(receipt).contains("Tarjeta de Débito");
+    }
+
+    @Test
+    @DisplayName("generateReceipt debe mostrar la fecha en dd/MM/yyyy aunque sale_date esté persistida en ISO")
+    void generateReceiptFormatsIsoDateForDisplay() throws SQLException {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(createProduct("Coca-Cola 500ml")));
+
+        Sale sale = createSale("IN", "CASH");
+        // Real production value: SalesService stamps sale_date as ISO ("yyyy-MM-dd"), not
+        // dd/MM/yyyy. The receipt must still show it in the user-facing format.
+        sale.setSaleDate("2026-09-13");
+        SaleItem item = createSaleItem(1L, 1, 600.0, 600.0);
+
+        String receipt = receiptService.generateReceipt(sale, Collections.singletonList(item));
+
+        assertThat(receipt)
+                .as("El comprobante no debería mostrar la fecha ISO cruda al cliente")
+                .contains("13/09/2026")
+                .doesNotContain("2026-09-13");
     }
 
     @Test
@@ -234,7 +253,7 @@ class ReceiptServiceTest {
 
     private Sale createSale(String channel, String paymentMethod) {
         Sale sale = new Sale();
-        sale.setSaleDate("22/07/2026");
+        sale.setSaleDate("2026-07-22");
         sale.setChannel(channel);
         sale.setPaymentMethod(paymentMethod);
         sale.setTotalAmount(0);

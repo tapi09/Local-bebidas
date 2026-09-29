@@ -10,6 +10,7 @@ import com.cocolatan.repository.DatabaseManager;
 import com.cocolatan.repository.ProductRepository;
 import com.cocolatan.repository.SaleRepository;
 import com.cocolatan.repository.StockMovementRepository;
+import com.cocolatan.util.DateUtils;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,7 +30,6 @@ import java.util.stream.Collectors;
  */
 public class ReportService {
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     // stock_movements.created_at is stored as ISO "yyyy-MM-dd HH:mm:ss" (SQLite
     // datetime('now','localtime')), NOT the dd/MM/yyyy user-facing format.
     private static final DateTimeFormatter ISO_DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -113,7 +113,7 @@ public class ReportService {
                 double averageTicket = (transactionCount > 0) ? totalRevenue / transactionCount : 0.0;
 
                 reports.add(new SalesPeriodReport(
-                        entry.getKey(),
+                        DateUtils.toDisplay(entry.getKey()),
                         totalRevenue,
                         transactionCount,
                         averageTicket
@@ -220,8 +220,8 @@ public class ReportService {
             DailySalesDetailReport report = new DailySalesDetailReport();
             report.setRows(rows);
             report.setGrandTotal(grandTotal);
-            report.setFromDate(fromDate);
-            report.setToDate(toDate);
+            report.setFromDate(DateUtils.toDisplay(fromDate));
+            report.setToDate(DateUtils.toDisplay(toDate));
             return report;
         } catch (SQLException e) {
             throw new RuntimeException("Error al generar reporte de ventas detalladas", e);
@@ -237,7 +237,7 @@ public class ReportService {
         String key = sale.getSaleDate() + "|" + productName;
         DailySalesDetailRow row = grouped.computeIfAbsent(key, k -> {
             DailySalesDetailRow r = new DailySalesDetailRow();
-            r.setDate(sale.getSaleDate());
+            r.setDate(DateUtils.toDisplay(sale.getSaleDate()));
             r.setProductName(productName);
             return r;
         });
@@ -278,8 +278,8 @@ public class ReportService {
     public List<RotationReport> getRotationReport(String fromDate, String toDate) {
         try {
             List<Product> products = productRepository.findAllActive();
-            LocalDate start = LocalDate.parse(fromDate, DATE_FORMATTER);
-            LocalDate end = LocalDate.parse(toDate, DATE_FORMATTER);
+            LocalDate start = LocalDate.parse(fromDate, DateTimeFormatter.ISO_LOCAL_DATE);
+            LocalDate end = LocalDate.parse(toDate, DateTimeFormatter.ISO_LOCAL_DATE);
 
             List<Long> productIds = products.stream().map(Product::getId).toList();
             Map<Long, Integer> currentStocks = productIds.isEmpty()

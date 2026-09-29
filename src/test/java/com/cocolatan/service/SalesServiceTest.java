@@ -410,7 +410,7 @@ class SalesServiceTest {
 
     private Sale createSale(String channel, String paymentMethod) {
         Sale sale = new Sale();
-        sale.setSaleDate("22/07/2026");
+        sale.setSaleDate("2026-07-22");
         sale.setChannel(channel);
         sale.setPaymentMethod(paymentMethod);
         return sale;

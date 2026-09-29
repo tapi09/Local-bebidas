@@ -57,6 +57,22 @@ public class IntegrityChecker {
                 }
             }
 
+            // Denormalized current_stock (migration v14) must always match the real
+            // net of stock_movements — this is the check that would have caught the
+            // InventoryService.adjustStock() desync bug (audit v3, B2) in production.
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT p.id, p.name, p.current_stock AS stored, "
+                    + "COALESCE(SUM(CASE WHEN m.movement_type IN ('ENTRY','ADJUSTMENT') THEN m.quantity ELSE 0 END), 0) "
+                    + "- COALESCE(SUM(CASE WHEN m.movement_type = 'EXIT' THEN m.quantity ELSE 0 END), 0) AS computed "
+                    + "FROM products p LEFT JOIN stock_movements m ON m.product_id = p.id "
+                    + "GROUP BY p.id, p.name, p.current_stock "
+                    + "HAVING stored != computed")) {
+                while (rs.next()) {
+                    issues.add("Stock cache desync: producto '" + rs.getString("name") + "' (id=" + rs.getLong("id")
+                            + ") current_stock=" + rs.getInt("stored") + " pero calculado=" + rs.getInt("computed"));
+                }
+            }
+
             if (issues.isEmpty()) {
                 issues.add("No issues found — database integrity OK");
             }

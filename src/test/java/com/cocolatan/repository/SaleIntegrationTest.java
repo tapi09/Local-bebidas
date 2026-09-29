@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration test for the full POS flow:
@@ -76,6 +77,8 @@ class SaleIntegrationTest {
         cokeEntry.setReferenceType("PURCHASE");
         cokeEntry.setReferenceId(1L);
         stockMovementRepository.insert(cokeEntry);
+        // Update denormalized current_stock
+        productRepository.updateStock(dbManager.getConnection(), 1L, 24);
 
         StockMovement pepsiEntry = new StockMovement();
         pepsiEntry.setProductId(2L);
@@ -84,6 +87,8 @@ class SaleIntegrationTest {
         pepsiEntry.setReferenceType("PURCHASE");
         pepsiEntry.setReferenceId(1L);
         stockMovementRepository.insert(pepsiEntry);
+        // Update denormalized current_stock
+        productRepository.updateStock(dbManager.getConnection(), 2L, 12);
     }
 
     @AfterEach
@@ -209,9 +214,10 @@ class SaleIntegrationTest {
     void insufficientStockBlocksSale() throws SQLException {
         // 1. Try to sell more than available
         Product coke = productRepository.findById(1L).orElseThrow();
-        boolean added = presenter.addToCart(coke, 30);  // Only 24 in stock
 
-        assertThat(added).isFalse();
+        assertThatThrownBy(() -> presenter.addToCart(coke, 30))  // Only 24 in stock
+                .isInstanceOf(SalesService.ValidationException.class)
+                .hasMessageContaining("Stock insuficiente");
         assertThat(presenter.getCartItems()).isEmpty();
     }
 

@@ -1,14 +1,108 @@
 package com.cocolatan.view;
 
 import com.cocolatan.model.Product;
+import com.cocolatan.model.Purchase;
+import com.cocolatan.model.PurchaseItem;
 import com.cocolatan.model.Supplier;
+import com.cocolatan.presenter.PurchasePresenter;
+import com.cocolatan.util.AlertService;
+import javafx.application.Platform;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 class PurchaseControllerTest {
+
+    @BeforeAll
+    static void initJavaFxToolkit() {
+        try {
+            Platform.startup(() -> { });
+        } catch (IllegalStateException alreadyStarted) {
+            // Toolkit already running from a previous test class in the same JVM — fine.
+        }
+    }
+
+    private void setField(Object target, String name, Object value) throws Exception {
+        Field f = target.getClass().getDeclaredField(name);
+        f.setAccessible(true);
+        f.set(target, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T getField(Object target, String name) throws Exception {
+        Field f = target.getClass().getDeclaredField(name);
+        f.setAccessible(true);
+        return (T) f.get(target);
+    }
+
+    /**
+     * REGRESSION for bug B4 (auditoria/informe_auditoria_v3_fase1.md): onSavePurchase() always
+     * builds purchase_date via DateUtils.format(...) (dd/MM/yyyy) before delegating to the
+     * Presenter, so PurchaseService's ISO fallback never runs. Every purchase saved through the
+     * real screen persists a non-ISO date, re-corrupting the column migration v15 just fixed.
+     * Expected/correct behavior: the Purchase handed to the Presenter carries an ISO
+     * (yyyy-MM-dd) date. Today this test fails because it's dd/MM/yyyy.
+     */
+    @Test
+    void onSavePurchaseBuildsIsoDateNotLegacySlashFormat() throws Exception {
+        Supplier supplier = supplier("Distribuidora Norte", "Juan", "1155551234", "ventas@dnorte.com");
+        supplier.setId(1L);
+
+        PurchaseController controller = new PurchaseController();
+        PurchasePresenter presenter = mock(PurchasePresenter.class);
+        when(presenter.calculateSubtotal(anyList())).thenReturn(100.0);
+        ArgumentCaptor<Purchase> purchaseCaptor = ArgumentCaptor.forClass(Purchase.class);
+        when(presenter.savePurchase(purchaseCaptor.capture(), anyList())).thenReturn(true);
+        setField(controller, "presenter", presenter);
+
+        ComboBox<Supplier> supplierCombo = new ComboBox<>();
+        supplierCombo.getItems().add(supplier);
+        supplierCombo.getSelectionModel().select(supplier);
+        setField(controller, "supplierCombo", supplierCombo);
+
+        DatePicker purchaseDatePicker = new DatePicker(LocalDate.of(2026, 9, 13));
+        setField(controller, "purchaseDatePicker", purchaseDatePicker);
+
+        setField(controller, "invoiceRefField", new TextField("F-001"));
+        setField(controller, "notesField", new TextArea(""));
+        setField(controller, "paymentMethodCombo", new ComboBox<String>());
+        setField(controller, "taxField", new TextField(""));
+
+        List<PurchaseItem> pendingItems = getField(controller, "pendingItems");
+        PurchaseItem item = new PurchaseItem();
+        item.setProductId(1L);
+        item.setQuantity(2);
+        item.setUnitCost(10.0);
+        pendingItems.add(item);
+
+        Method onSavePurchase = PurchaseController.class.getDeclaredMethod("onSavePurchase");
+        onSavePurchase.setAccessible(true);
+        try (MockedStatic<AlertService> ignored = mockStatic(AlertService.class)) {
+            onSavePurchase.invoke(controller);
+        }
+
+        Purchase captured = purchaseCaptor.getValue();
+        assertThat(captured.getPurchaseDate())
+                .as("purchase_date debe quedar en ISO (yyyy-MM-dd), igual que el resto de la tabla post-migración v15")
+                .matches("^\\d{4}-\\d{2}-\\d{2}$");
+    }
 
     private Product product(String name, String presentation, String barcode, String category) {
         Product p = new Product();
