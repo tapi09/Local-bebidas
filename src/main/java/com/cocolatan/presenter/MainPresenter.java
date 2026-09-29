@@ -110,7 +110,7 @@ public class MainPresenter {
 
     private boolean isDarkMode = false;
 
-    private String businessName = "Cocolatán";
+    private String businessName = "Ruta 40 bebidas";
 
     private final Map<String, ViewEntry> viewCache = new HashMap<>();
     private String activeButtonId;
@@ -500,7 +500,7 @@ public class MainPresenter {
             sidebarLogoLabel.setText(businessName);
         }
         if (topBarTitleLabel != null) {
-            topBarTitleLabel.setText(businessName + " — Central de Bebidas");
+            topBarTitleLabel.setText(businessName);
         }
     }
 

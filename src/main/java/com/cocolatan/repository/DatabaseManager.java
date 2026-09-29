@@ -301,7 +301,7 @@ public class DatabaseManager {
              // Migration v9: purchase payment method
              runMigration(stmt, "ALTER TABLE purchases ADD COLUMN payment_method TEXT");
              // Migration v10: configurable business name
-             runMigration(stmt, "INSERT OR IGNORE INTO app_config (key, value) VALUES ('business_name', 'Cocolatán')");
+             runMigration(stmt, "INSERT OR IGNORE INTO app_config (key, value) VALUES ('business_name', 'Ruta 40 bebidas')");
              // Migration v11: force password change on first login
              runMigration(stmt, "ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0");
              // Migration v12 note: password recovery master key is intentionally

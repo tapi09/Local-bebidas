@@ -59,7 +59,7 @@ public class CocolatanApp extends Application {
     private static BackupService backupService;
     private static Path exportDir;
     private static Stage primaryStage;
-    private static String businessName = "Cocolatán";
+    private static String businessName = "Ruta 40 bebidas";
     private BackupScheduler backupScheduler;
 
     /**

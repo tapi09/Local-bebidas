@@ -28,7 +28,7 @@ LETTER = "C"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "..", ".."))
-LOGO_PATH = os.path.join(REPO_ROOT, "data", "logo", "logo.png")
+LOGO_PATH = os.path.join(REPO_ROOT, "src", "main", "resources", "icons", "logo_secundario_gpt.png")
 ICO_PATH = os.path.join(SCRIPT_DIR, "cocolatan.ico")
 PNG_PATH = os.path.normpath(
     os.path.join(SCRIPT_DIR, "..", "resources", "icons", "cocolatan.png")

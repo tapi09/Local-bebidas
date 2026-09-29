@@ -74,7 +74,7 @@ public class LoginController {
         try {
             ConfigRepository configRepo = new ConfigRepository(
                     com.cocolatan.CocolatanApp.getDatabaseManager());
-            String businessName = configRepo.get("business_name").orElse("Cocolatán");
+            String businessName = configRepo.get("business_name").orElse("Ruta 40 bebidas");
             loginLogoLabel.setText(businessName);
         } catch (Exception e) {
             LOGGER.log(Level.FINE, "Could not load business name", e);

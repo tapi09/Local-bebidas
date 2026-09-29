@@ -27,8 +27,8 @@
                     <Insets left="8" bottom="8"/>
                 </padding>
                 <ImageView fx:id="sidebarLogoImage" styleClass="sidebar-logo-image" fitHeight="52" preserveRatio="true" visible="false"/>
-                <Label fx:id="sidebarLogoLabel" text="Cocolatán" styleClass="sidebar-logo"/>
-                <Label text="Central de Bebidas" styleClass="sidebar-subtitle"/>
+                <Label fx:id="sidebarLogoLabel" text="Ruta 40 bebidas" styleClass="sidebar-logo"/>
+                
             </VBox>
             <Separator styleClass="sidebar-separator"/>
 
@@ -85,7 +85,7 @@
                 <padding>
                     <Insets top="8" right="20" bottom="8" left="20"/>
                 </padding>
-                <Label fx:id="topBarTitleLabel" text="Cocolatán — Central de Bebidas" styleClass="top-bar-title" HBox.hgrow="ALWAYS" onMouseClicked="#onEditBusinessName" style="-fx-cursor: hand;"/>
+                <Label fx:id="topBarTitleLabel" text="Ruta 40 bebidas" styleClass="top-bar-title" HBox.hgrow="ALWAYS" onMouseClicked="#onEditBusinessName" style="-fx-cursor: hand;"/>
                 <HBox HBox.hgrow="ALWAYS"/>
                 <Label fx:id="dateTimeLabel" styleClass="top-bar-datetime"/>
             </HBox>

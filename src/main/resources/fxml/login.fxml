@@ -19,8 +19,8 @@
         </padding>
 
         <ImageView fx:id="loginLogoImage" styleClass="login-logo-image" fitHeight="88" preserveRatio="true" visible="false"/>
-        <Label fx:id="loginLogoLabel" text="Cocolatán" styleClass="login-logo"/>
-        <Label text="Central de Bebidas" styleClass="login-subtitle"/>
+        <Label fx:id="loginLogoLabel" text="Ruta 40 bebidas" styleClass="login-logo"/>
+        
         <Label text="Iniciar Sesión" styleClass="login-title"/>
 
         <TextField fx:id="usernameField" promptText="Usuario" styleClass="login-field" maxWidth="1.7976931348623157E308"/>

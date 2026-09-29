@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class ReceiptService {
 
-    private static final String STORE_NAME = "Cocolatán - Central de Bebidas";
+    private static final String STORE_NAME = "Ruta 40 bebidas";
     private static final String DIVIDER = "================================";
 
     private final ProductRepository productRepository;
