@@ -1,4 +1,4 @@
-# Arquitectura de Cocolatán — Central de Bebidas
+# Arquitectura de Software de bebidas — Central de Bebidas
 
 ## Stack Tecnologico
 
@@ -39,7 +39,7 @@ El proyecto utiliza **Model-View-Presenter** como patron arquitectonico, una var
                                                                                         v
                                                                                +------------------+
                                                                                |   SQLite DB      |
-                                                                               |   (cocolatan.db)  |
+                                                                               |   (softwaredebebidas.db)  |
                                                                                +------------------+
 ```
 
@@ -90,15 +90,15 @@ El proyecto utiliza **Model-View-Presenter** como patron arquitectonico, una var
 ## Estructura del Proyecto
 
 ```
-cocolatan/
+softwaredebebidas/
 ├── pom.xml                                      -- Dependencias y build
 ├── ARCHITECTURE.md                              -- Este documento
 ├── README.md                                    -- Documentacion principal
 ├── COVERAGE-REPORT.md                           -- Reporte de cobertura
 ├── JAVADOC-GUIDE.md                             -- Guia de Javadoc
 │
-├── src/main/java/com/cocolatan/
-│   ├── CocolatanApp.java                        -- Entry point JavaFX
+├── src/main/java/com/softwaredebebidas/
+│   ├── SoftwareDeBebidasApp.java                        -- Entry point JavaFX
 │   │
 │   ├── model/                                   -- 13 POJOs (datos puros)
 │   │   ├── Category.java                        -- id, name, sortOrder, active
@@ -200,7 +200,7 @@ cocolatan/
 │   │
 │   └── styles.css                               -- Sistema de diseno POS profesional
 │
-└── src/test/java/com/cocolatan/                 -- 82 archivos de test
+└── src/test/java/com/softwaredebebidas/                 -- 82 archivos de test
     ├── model/                                   -- Tests de POJOs
     ├── repository/                              -- Tests de repositorios (incluyendo integracion)
     ├── service/                                 -- Tests de servicios
@@ -213,7 +213,7 @@ cocolatan/
 
 ### Ubicacion de la Base de Datos
 
-La base de datos SQLite se almacena en `%APPDATA%\Cocolatan\cocolatan.db`.
+La base de datos SQLite se almacena en `%APPDATA%\Cocolatan\softwaredebebidas.db`.
 Al ejecutar el `.exe` empaquetado con jpackage, la aplicacion escribe en esa ruta sin necesidad de pre-instalacion.
 
 ### Diagrama Entidad-Relacion
@@ -387,7 +387,7 @@ PurchaseController.deleteInvoicePhoto()
 
 ```layout
 +--------------------------------------------------------------+
-| Cocolatan - Central de Bebidas          DD/MM/YYYY HH:MM     |
+| Software de bebidas - Central de Bebidas          DD/MM/YYYY HH:MM     |
 +----------+---------------------------------------------------+
 | Productos |                                                   |
 | Compras   |            Content Area (StackPane)               |

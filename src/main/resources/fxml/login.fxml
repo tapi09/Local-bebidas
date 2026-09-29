@@ -10,7 +10,7 @@
 <?import javafx.geometry.Insets?>
 
 <StackPane xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="com.cocolatan.view.LoginController"
+           fx:controller="com.softwaredebebidas.view.LoginController"
            styleClass="login-root">
 
     <VBox spacing="12" maxWidth="320" alignment="CENTER">

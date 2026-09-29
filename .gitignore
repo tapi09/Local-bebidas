@@ -3,6 +3,7 @@ target/
 dependency-reduced-pom.xml
 
 # Local SQLite database (development data, not schema)
+softwaredebebidas.db
 cocolatan.db
 
 # User data (runtime photos/uploads)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the Cocolatan app icon from the real brand logo.
+"""Generate the Software de bebidas app icon from the real brand logo.
 
 When the real logo (data/logo/logo.png) exists it is letterboxed inside a
 square RGBA canvas with ~6% padding, preserving the aspect ratio (LANCZOS,
@@ -11,8 +11,8 @@ Requires Pillow. Run from anywhere:
     python src/main/installer/generate_icon.py
 
 Outputs:
-    src/main/installer/cocolatan.ico   (sizes 16-256, used by jpackage --icon)
-    src/main/resources/icons/cocolatan.png (256px, classpath window icon)
+    src/main/installer/softwaredebebidas.ico   (sizes 16-256, used by jpackage --icon)
+    src/main/resources/icons/softwaredebebidas.png (256px, classpath window icon)
 """
 
 import os
@@ -29,9 +29,9 @@ LETTER = "C"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "..", ".."))
 LOGO_PATH = os.path.join(REPO_ROOT, "src", "main", "resources", "icons", "logo_secundario_gpt.png")
-ICO_PATH = os.path.join(SCRIPT_DIR, "cocolatan.ico")
+ICO_PATH = os.path.join(SCRIPT_DIR, "softwaredebebidas.ico")
 PNG_PATH = os.path.normpath(
-    os.path.join(SCRIPT_DIR, "..", "resources", "icons", "cocolatan.png")
+    os.path.join(SCRIPT_DIR, "..", "resources", "icons", "softwaredebebidas.png")
 )
 
 

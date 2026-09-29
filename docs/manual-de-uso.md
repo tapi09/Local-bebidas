@@ -1,4 +1,4 @@
-# Manual de Uso — Cocolatán (Central de Bebidas)
+# Manual de Uso — Software de bebidas (Central de Bebidas)
 
 ## Requisitos del Sistema
 
@@ -9,9 +9,9 @@
 
 ## Instalación
 
-1. Ejecutar el instalador `Cocolatan-X.X.X.exe`
+1. Ejecutar el instalador `Software de bebidas-X.X.X.exe`
 2. Seguir los pasos del asistente
-3. Elegir directorio de instalación (recomendado: `C:\Program Files\Cocolatan`)
+3. Elegir directorio de instalación (recomendado: `C:\Program Files\Software de bebidas`)
 4. Marcar "Crear acceso directo en el escritorio"
 5. Finalizar la instalación
 
@@ -19,7 +19,7 @@ La base de datos se crea automáticamente en el directorio de la aplicación al 
 
 ## Primer Inicio
 
-Al abrir Cocolatán por primera vez:
+Al abrir Software de bebidas por primera vez:
 
 1. La aplicación crea la base de datos vacía automáticamente
 2. Se muestra la pantalla de inicio con el panel principal
@@ -184,7 +184,7 @@ Los archivos CSV se guardan en el directorio `exports/` junto a la aplicación.
 
 - La aplicación realiza backups automáticos de la base de datos
 - **Frecuencia**: Cada 30 minutos
-- **Formato**: ZIP con timestamp (`cocolatan_backup_YYYYMMDD_HHmmss.zip`)
+- **Formato**: ZIP con timestamp (`softwaredebebidas_backup_YYYYMMDD_HHmmss.zip`)
 - **Retención**: Se mantienen los últimos 10 backups
 - **Ubicación**: Directorio `backups/` junto a la aplicación
 - Los backups se pueden copiar manualmente como respaldo adicional
@@ -193,7 +193,7 @@ Los archivos CSV se guardan en el directorio `exports/` junto a la aplicación.
 
 - La aplicación registra eventos en archivos de log
 - **Ubicación**: Directorio `logs/` junto a la aplicación
-- **Formato**: `cocolatan-N.log` (N = número de rotación)
+- **Formato**: `softwaredebebidas-N.log` (N = número de rotación)
 - **Rotación**: Cada archivo hasta 10MB, máximo 5 archivos
 - **Nivel**: Captura desde INFO hasta SEVERE
 
@@ -204,13 +204,13 @@ Los archivos CSV se guardan en el directorio `exports/` junto a la aplicación.
 ### La aplicación no inicia
 
 1. Verificar que Java 17+ esté instalado
-2. Revisar los logs en `logs/cocolatan-0.log`
-3. Borrar el archivo `cocolatan.db` para reiniciar la base de datos (se pierden datos)
+2. Revisar los logs en `logs/softwaredebebidas-0.log`
+3. Borrar el archivo `softwaredebebidas.db` para reiniciar la base de datos (se pierden datos)
 4. Reinstalar la aplicación
 
 ### Error "Base de datos bloqueada"
 
-- Cerrar todas las instancias de Cocolatán
+- Cerrar todas las instancias de Software de bebidas
 - Verificar que no haya procesos bloqueando el archivo .db
 - Reintentar
 
@@ -227,13 +227,13 @@ Los archivos CSV se guardan en el directorio `exports/` junto a la aplicación.
 
 Para hacer un backup manual:
 1. Cerrar la aplicación
-2. Copiar el archivo `cocolatan.db` a una ubicación segura
+2. Copiar el archivo `softwaredebebidas.db` a una ubicación segura
 3. Incluir también el directorio `backups/` si se desea conservar el historial
 
 ### Restauración de Backup
 
 1. Cerrar la aplicación
-2. Reemplazar `cocolatan.db` con el backup deseado
+2. Reemplazar `softwaredebebidas.db` con el backup deseado
 3. Iniciar la aplicación
 
 ### Limpieza de Logs

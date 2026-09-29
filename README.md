@@ -23,7 +23,7 @@ mvn clean javafx:run
 mvn clean package -Pjpackage
 ```
 
-Genera un instalador `.exe` en `dist/installer/`. No requiere pre-instalacion de Java ni dependencias — es un ejecutable standalone que se puede copiar a un pendrive USB y ejecutar directamente en cualquier PC con Windows 10/11. Los datos se almacenan en `%APPDATA%\Cocolatan\cocolatan.db`.
+Genera un instalador `.exe` en `dist/installer/`. No requiere pre-instalacion de Java ni dependencias — es un ejecutable standalone que se puede copiar a un pendrive USB y ejecutar directamente en cualquier PC con Windows 10/11. Los datos se almacenan en `%APPDATA%\Cocolatan\softwaredebebidas.db`.
 
 ## Como Testear
 
@@ -35,8 +35,8 @@ mvn test jacoco:report            # Tests + reporte de cobertura
 ## Estructura Rapida
 
 ```
-src/main/java/com/cocolatan/
-  CocolatanApp.java       - Entry point JavaFX
+src/main/java/com/softwaredebebidas/
+  SoftwareDeBebidasApp.java       - Entry point JavaFX
   Launcher.java           - Entry point de empaquetado (jpackage)
   model/                   - 13 POJOs (Product, Supplier, Purchase, Sale, User, etc.)
   repository/              - DatabaseManager + 10 repositorios JDBC

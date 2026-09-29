@@ -13,7 +13,7 @@
 <?import javafx.scene.control.cell.PropertyValueFactory?>
 
 <VBox xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.cocolatan.view.SupplierController"
+      fx:controller="com.softwaredebebidas.view.SupplierController"
       spacing="15">
 
     <padding>

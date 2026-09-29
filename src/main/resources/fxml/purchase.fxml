@@ -19,7 +19,7 @@
 <?import javafx.scene.control.cell.PropertyValueFactory?>
 
 <ScrollPane xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.cocolatan.view.PurchaseController"
+            fx:controller="com.softwaredebebidas.view.PurchaseController"
             fitToWidth="true">
 
 <content>

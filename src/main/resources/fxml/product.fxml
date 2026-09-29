@@ -14,7 +14,7 @@
 <?import javafx.geometry.Insets?>
 
 <VBox xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.cocolatan.view.ProductController"
+      fx:controller="com.softwaredebebidas.view.ProductController"
       spacing="12"
       styleClass="kiosk-container">
 
