@@ -34,3 +34,7 @@ logs/
 # Agent/IDE tooling (local to each developer)
 .openclaw/
 .atl/
+
+# Local code-intelligence index and agent runtime locks
+.codegraph/
+.claude/*.lock
