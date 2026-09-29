@@ -379,10 +379,11 @@
     -fx-background-color: #2563eb;
     -fx-text-fill: #ffffff;
     -fx-font-size: 13px;
-    -fx-font-weight: 600;
-    -fx-padding: 8 18;
+    -fx-font-weight: bold;
+    -fx-padding: 11 20;
     -fx-background-radius: 8;
     -fx-cursor: hand;
+    -fx-min-height: 38;
 }
 
 .button:hover {
@@ -394,13 +395,13 @@
 }
 
 .button-secondary {
-    -fx-background-color: #f3f4f6;
-    -fx-text-fill: #374151;
-    -fx-border-color: #d1d5db;
-    -fx-border-radius: 8;
+    -fx-background-color: #94a3b8;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-padding: 11 20;
     -fx-background-radius: 8;
-    -fx-font-weight: 500;
-    -fx-padding: 8 18;
+    -fx-cursor: hand;
+    -fx-min-height: 38;
 }
 
 .button-secondary:hover {
@@ -412,7 +413,9 @@
     -fx-text-fill: #ffffff;
     -fx-font-weight: bold;
     -fx-background-radius: 8;
-    -fx-padding: 8 18;
+    -fx-padding: 11 20;
+    -fx-cursor: hand;
+    -fx-min-height: 38;
 }
 
 .button-success:hover {
@@ -424,7 +427,9 @@
     -fx-text-fill: #ffffff;
     -fx-font-weight: bold;
     -fx-background-radius: 8;
-    -fx-padding: 8 18;
+    -fx-padding: 11 20;
+    -fx-cursor: hand;
+    -fx-min-height: 38;
 }
 
 .button-danger:hover {
@@ -436,6 +441,7 @@
     -fx-padding: 11 20;
     -fx-background-radius: 8;
     -fx-min-width: 140;
+    -fx-min-height: 38;
 }
 
 /* ---- Custom Scrollbars ---- */
