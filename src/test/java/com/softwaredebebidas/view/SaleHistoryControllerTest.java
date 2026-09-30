@@ -1,5 +1,6 @@
 package com.softwaredebebidas.view;
 
+import com.softwaredebebidas.model.Sale;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -78,5 +79,23 @@ class SaleHistoryControllerTest {
     void formatReceiptKeepsShortTextUntruncated() {
         String shortText = "Comprobante #42";
         assertThat(SaleHistoryController.formatReceipt(shortText)).isEqualTo(shortText);
+    }
+
+    @Test
+    void detailDialogTitleShowsSaleNumber() {
+        Sale sale = new Sale();
+        sale.setId(5L);
+        sale.setStatus("ACTIVE");
+
+        assertThat(SaleHistoryController.detailDialogTitle(sale)).isEqualTo("Detalle de Venta #5");
+    }
+
+    @Test
+    void detailDialogTitleFlagsCancelledSale() {
+        Sale sale = new Sale();
+        sale.setId(5L);
+        sale.setStatus("CANCELLED");
+
+        assertThat(SaleHistoryController.detailDialogTitle(sale)).isEqualTo("Detalle de Venta #5 — ANULADA");
     }
 }

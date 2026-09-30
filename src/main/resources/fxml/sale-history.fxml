@@ -43,6 +43,7 @@
 
     <!-- Actions -->
     <HBox spacing="10" alignment="CENTER_RIGHT" styleClass="card">
+        <Button text="Ver Detalle" onAction="#onViewDetail" styleClass="button-secondary"/>
         <Button fx:id="btnCancelSale" text="Anular Venta Seleccionada" onAction="#onCancelSale" styleClass="button-danger"/>
     </HBox>
 </VBox>

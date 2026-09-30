@@ -94,6 +94,17 @@ public class SaleHistoryController implements Refreshable {
         colReceipt.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatReceipt(cellData.getValue().getReceiptText())));
 
+        // Double-clicking a sale opens the same detail view as the "Ver Detalle" button.
+        salesTable.setRowFactory(table -> {
+            TableRow<Sale> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    showSaleDetail(row.getItem());
+                }
+            });
+            return row;
+        });
+
         // Hide cancel button for non-admin users
         if (AuthService.getInstance().isCajero() && btnCancelSale != null) {
             btnCancelSale.setVisible(false);
@@ -145,6 +156,52 @@ public class SaleHistoryController implements Refreshable {
         } catch (RuntimeException e) {
             AlertService.showErrorDialog("Error", e.getMessage());
         }
+    }
+
+    @FXML
+    private void onViewDetail() {
+        Sale selected = salesTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            AlertService.showWarningDialog("Seleccionar Venta", "Seleccione una venta para ver el detalle.");
+            return;
+        }
+        showSaleDetail(selected);
+    }
+
+    /**
+     * Shows the full receipt stored when the sale was made (products, quantities,
+     * unit prices, discount, payment methods and total). Read-only: it only displays
+     * sales.receipt_text, which reports never read.
+     */
+    private void showSaleDetail(Sale sale) {
+        String receiptText = sale.getReceiptText();
+        if (receiptText == null || receiptText.isBlank()) {
+            AlertService.showInfoDialog(detailDialogTitle(sale), "Esta venta no tiene comprobante guardado.");
+            return;
+        }
+        TextArea receiptArea = new TextArea(receiptText);
+        receiptArea.setEditable(false);
+        receiptArea.setWrapText(false);
+        // Monospace keeps the receipt columns aligned as they were generated.
+        receiptArea.setStyle("-fx-font-family: 'Consolas', 'Courier New', monospace;");
+        receiptArea.setPrefColumnCount(48);
+        receiptArea.setPrefRowCount(18);
+
+        Alert dialog = new Alert(Alert.AlertType.INFORMATION);
+        dialog.setTitle(detailDialogTitle(sale));
+        dialog.setHeaderText(detailDialogTitle(sale));
+        dialog.getDialogPane().setContent(receiptArea);
+        dialog.setResizable(true);
+        dialog.showAndWait();
+    }
+
+    /**
+     * Title of the sale detail window; flags cancelled sales so an old receipt
+     * is never mistaken for a valid one.
+     */
+    static String detailDialogTitle(Sale sale) {
+        String title = "Detalle de Venta #" + sale.getId();
+        return "CANCELLED".equals(sale.getStatus()) ? title + " — ANULADA" : title;
     }
 
     @FXML
