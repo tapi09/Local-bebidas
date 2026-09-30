@@ -12,8 +12,6 @@ import com.softwaredebebidas.repository.SaleRepository;
 import com.softwaredebebidas.repository.StockMovementRepository;
 import com.softwaredebebidas.util.DateUtils;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -22,6 +20,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -195,19 +194,23 @@ public class ReportService {
             for (Sale sale : sales) {
                 List<SaleItem> items = itemsBySaleId.getOrDefault(sale.getId(), List.of());
                 boolean isCancelled = "CANCELLED".equals(sale.getStatus());
+                // NET line amounts: the sale-level discount is allocated proportionally.
+                List<Double> netAmounts = SaleDiscountAllocator.allocateNet(items, sale.getTotalAmount());
 
-                for (SaleItem item : items) {
+                for (int i = 0; i < items.size(); i++) {
+                    SaleItem item = items.get(i);
+                    double netAmount = netAmounts.get(i);
                     String baseName = productNames.getOrDefault(item.getProductId(), "Producto #" + item.getProductId());
 
                     if (isCancelled) {
                         // The original sale stays visible as a positive line and the
                         // cancellation as a separate negative line; they net to zero.
                         accumulateRow(grouped, sale, baseName + " (Venta anulada)",
-                                item.getQuantity(), item.getUnitPrice());
+                                item.getQuantity(), netAmount);
                         accumulateRow(grouped, sale, baseName + " (Anulación)",
-                                -item.getQuantity(), item.getUnitPrice());
+                                -item.getQuantity(), -netAmount);
                     } else {
-                        accumulateRow(grouped, sale, baseName, item.getQuantity(), item.getUnitPrice());
+                        accumulateRow(grouped, sale, baseName, item.getQuantity(), netAmount);
                     }
                 }
             }
@@ -229,11 +232,12 @@ public class ReportService {
     }
 
     /**
-     * Aggregates a quantity into the per-day, per-product row. Rows with the same
-     * date and product name share one accumulated row (quantity may be negative).
+     * Aggregates a quantity and its NET amount into the per-day, per-product row.
+     * Rows with the same date and product name share one accumulated row (quantity
+     * and amount may be negative). The unit price is the resulting amount / quantity.
      */
     private void accumulateRow(Map<String, DailySalesDetailRow> grouped, Sale sale,
-                               String productName, int quantity, double unitPrice) {
+                               String productName, int quantity, double netAmount) {
         String key = sale.getSaleDate() + "|" + productName;
         DailySalesDetailRow row = grouped.computeIfAbsent(key, k -> {
             DailySalesDetailRow r = new DailySalesDetailRow();
@@ -242,8 +246,10 @@ public class ReportService {
             return r;
         });
         row.setQuantity(row.getQuantity() + quantity);
-        row.setLineTotal(row.getLineTotal() + quantity * unitPrice);
-        row.setUnitPrice(row.getQuantity() != 0 ? row.getLineTotal() / row.getQuantity() : unitPrice);
+        row.setLineTotal(row.getLineTotal() + netAmount);
+        row.setUnitPrice(row.getQuantity() != 0
+                ? row.getLineTotal() / row.getQuantity()
+                : (quantity != 0 ? netAmount / quantity : 0.0));
     }
 
     /**
@@ -252,8 +258,11 @@ public class ReportService {
      * products fall back to the "Producto #id" label.
      */
     private Map<Long, String> resolveProductNames(List<SaleItem> items) {
+        return resolveProductNamesByIds(items.stream().map(SaleItem::getProductId).distinct().toList());
+    }
+
+    private Map<Long, String> resolveProductNamesByIds(List<Long> productIds) {
         Map<Long, String> names = new HashMap<>();
-        List<Long> productIds = items.stream().map(SaleItem::getProductId).distinct().toList();
         if (productIds.isEmpty()) {
             return names;
         }
@@ -512,28 +521,51 @@ public class ReportService {
     /**
      * Returns top-selling products by quantity sold, for a given limit.
      * Each row: productName, totalQuantity, totalSales.
+     * Only ACTIVE sales count. totalSales is the NET amount: each sale's discount is
+     * allocated proportionally across its lines (see {@link SaleDiscountAllocator}),
+     * so it agrees with the sales-by-period report. Ties on quantity are ordered by
+     * product id.
      */
     public List<TopSellerReport> getTopSellersReport(int limit) {
-        String sql = "SELECT p.name, SUM(si.quantity) as total_qty, SUM(si.quantity * si.unit_price) as total_sales "
-                + "FROM sale_items si "
-                + "JOIN products p ON si.product_id = p.id "
-                + "JOIN sales s ON si.sale_id = s.id "
-                + "WHERE s.status = 'ACTIVE' "
-                + "GROUP BY si.product_id "
-                + "ORDER BY total_qty DESC LIMIT ?";
-        try (PreparedStatement ps = dbManager.getConnection().prepareStatement(sql)) {
-            ps.setInt(1, limit);
-            try (ResultSet rs = ps.executeQuery()) {
-                List<TopSellerReport> reports = new ArrayList<>();
-                while (rs.next()) {
-                    reports.add(new TopSellerReport(
-                            rs.getString("name"),
-                            rs.getInt("total_qty"),
-                            rs.getDouble("total_sales")
-                    ));
-                }
-                return reports;
+        try {
+            List<Sale> sales = saleRepository.findAllActive();
+            if (sales.isEmpty()) {
+                return new ArrayList<>();
             }
+
+            List<Long> saleIds = sales.stream().map(Sale::getId).toList();
+            Map<Long, List<SaleItem>> itemsBySaleId = saleRepository.findItemsBySaleIds(saleIds).stream()
+                    .collect(Collectors.groupingBy(SaleItem::getSaleId));
+
+            // Sorted by product id so equal quantities keep a deterministic order.
+            Map<Long, Integer> quantityByProduct = new TreeMap<>();
+            Map<Long, Double> salesByProduct = new HashMap<>();
+            for (Sale sale : sales) {
+                List<SaleItem> items = itemsBySaleId.getOrDefault(sale.getId(), List.of());
+                List<Double> netAmounts = SaleDiscountAllocator.allocateNet(items, sale.getTotalAmount());
+                for (int i = 0; i < items.size(); i++) {
+                    SaleItem item = items.get(i);
+                    quantityByProduct.merge(item.getProductId(), item.getQuantity(), Integer::sum);
+                    salesByProduct.merge(item.getProductId(), netAmounts.get(i), Double::sum);
+                }
+            }
+
+            Map<Long, String> productNames = resolveProductNamesByIds(new ArrayList<>(quantityByProduct.keySet()));
+
+            List<Long> rankedIds = new ArrayList<>(quantityByProduct.keySet());
+            rankedIds.sort((a, b) -> Integer.compare(quantityByProduct.get(b), quantityByProduct.get(a)));
+
+            List<TopSellerReport> reports = new ArrayList<>();
+            for (Long productId : rankedIds) {
+                if (reports.size() >= limit) {
+                    break;
+                }
+                reports.add(new TopSellerReport(
+                        productNames.getOrDefault(productId, "Producto #" + productId),
+                        quantityByProduct.get(productId),
+                        Math.round(salesByProduct.get(productId) * 100.0) / 100.0));
+            }
+            return reports;
         } catch (SQLException e) {
             throw new RuntimeException("Error al generar reporte de productos más vendidos", e);
         }

@@ -347,9 +347,7 @@ class ReportServiceTest {
 
     @Test
     void topSellersReportReturnsLimitedResults() throws SQLException {
-        when(dbManager.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
-        when(preparedStatement.executeQuery()).thenThrow(new SQLException("Query failed"));
+        when(saleRepository.findAllActive()).thenThrow(new SQLException("Query failed"));
 
         assertThatThrownBy(() -> reportService.getTopSellersReport(5))
                 .isInstanceOf(RuntimeException.class);

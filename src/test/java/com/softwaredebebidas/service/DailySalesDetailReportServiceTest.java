@@ -47,10 +47,10 @@ class DailySalesDetailReportServiceTest {
 
     @Test
     void dailySalesDetailReturnsPerDayPerProductBreakdown() throws SQLException {
-        Sale sale1 = createSale("2026-08-03", "IN", 1L);
+        Sale sale1 = createSale("2026-08-03", "IN", 1L, 1200.0);
         SaleItem item1 = createSaleItem(1L, 1L, 1L, 2, 600.0);
 
-        Sale sale2 = createSale("2026-08-03", "IN", 2L);
+        Sale sale2 = createSale("2026-08-03", "IN", 2L, 1950.0);
         SaleItem item2 = createSaleItem(2L, 2L, 1L, 1, 600.0);
         SaleItem item3 = createSaleItem(3L, 2L, 2L, 3, 450.0);
 
@@ -78,7 +78,7 @@ class DailySalesDetailReportServiceTest {
 
     @Test
     void dailySalesDetailGroupsByDateAndProduct() throws SQLException {
-        Sale sale1 = createSale("2026-08-03", "IN", 1L);
+        Sale sale1 = createSale("2026-08-03", "IN", 1L, 1200.0);
         SaleItem item1 = createSaleItem(1L, 1L, 1L, 2, 600.0);
 
         when(saleRepository.findAllByDateRange("2026-08-01", "2026-08-05")).thenReturn(Collections.singletonList(sale1));
@@ -100,11 +100,11 @@ class DailySalesDetailReportServiceTest {
 
     @Test
     void dailySalesDetailShowsCancelledSaleAsOriginalPlusCancellation() throws SQLException {
-        Sale active = createSale("2026-08-03", "IN", 1L);
+        Sale active = createSale("2026-08-03", "IN", 1L, 5200.0);
         active.setStatus("ACTIVE");
         SaleItem activeItem = createSaleItem(1L, 1L, 1L, 4, 1300.0);
 
-        Sale cancelled = createSale("2026-08-03", "IN", 2L);
+        Sale cancelled = createSale("2026-08-03", "IN", 2L, 7800.0);
         cancelled.setStatus("CANCELLED");
         SaleItem cancelledItem = createSaleItem(2L, 2L, 1L, 6, 1300.0);
 
@@ -139,10 +139,10 @@ class DailySalesDetailReportServiceTest {
 
     @Test
     void dailySalesDetailAccumulatesMixedPricesWithWeightedAverage() throws SQLException {
-        Sale sale1 = createSale("2026-08-03", "IN", 1L);
+        Sale sale1 = createSale("2026-08-03", "IN", 1L, 100.0);
         SaleItem item1 = createSaleItem(1L, 1L, 1L, 1, 100.0);
 
-        Sale sale2 = createSale("2026-08-03", "IN", 2L);
+        Sale sale2 = createSale("2026-08-03", "IN", 2L, 160.0);
         SaleItem item2 = createSaleItem(2L, 2L, 1L, 2, 80.0);
 
         when(saleRepository.findAllByDateRange("2026-08-01", "2026-08-05"))
@@ -164,12 +164,12 @@ class DailySalesDetailReportServiceTest {
                 org.assertj.core.data.Offset.offset(0.01));
     }
 
-    private Sale createSale(String date, String channel, Long id) {
+    private Sale createSale(String date, String channel, Long id, double netTotal) {
         Sale sale = new Sale();
         sale.setId(id);
         sale.setSaleDate(date);
         sale.setChannel(channel);
-        sale.setTotalAmount(0.0);
+        sale.setTotalAmount(netTotal);
         sale.setStatus("ACTIVE");
         return sale;
     }
