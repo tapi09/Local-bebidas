@@ -10,6 +10,8 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.geometry.Insets?>
@@ -55,6 +57,7 @@
         <TableView fx:id="productsTable" minHeight="100" prefHeight="120" VBox.vgrow="ALWAYS">
             <columns>
                 <TableColumn fx:id="colProdName" text="Producto" prefWidth="220"/>
+                <TableColumn fx:id="colProdPresentation" text="Presentación" prefWidth="120"/>
                 <TableColumn fx:id="colProdCategory" text="Categoría" prefWidth="130"/>
                 <TableColumn fx:id="colProdPrice" text="Precio Venta" prefWidth="110"/>
                 <TableColumn fx:id="colProdStock" text="Stock" prefWidth="90"/>
@@ -91,23 +94,42 @@
         </TableView>
     </VBox>
 
-    <!-- Checkout Bar: Channel, Payment & Total -->
-    <HBox spacing="15" alignment="CENTER_LEFT" styleClass="card">
-        <Label text="Canal:" />
-        <ComboBox fx:id="channelCombo" prefWidth="130"/>
+    <!-- Checkout Bar: Channel & Payment (row 1), Total & Actions (row 2).
+         minWidth="-Infinity" (USE_PREF_SIZE) keeps labels and buttons from being
+         truncated with an ellipsis when the window is narrow. -->
+    <VBox spacing="10" styleClass="card">
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <Label text="Canal:" minWidth="-Infinity"/>
+            <ComboBox fx:id="channelCombo" prefWidth="130" minWidth="-Infinity"/>
 
-        <Label text="Pago:" />
-        <ComboBox fx:id="paymentCombo" prefWidth="160"/>
+            <Label text="Pago:" minWidth="-Infinity"/>
+            <ComboBox fx:id="paymentCombo" prefWidth="160" minWidth="-Infinity"/>
 
-        <HBox HBox.hgrow="ALWAYS"/>
+            <CheckBox fx:id="splitPaymentCheck" text="Dividir pago" minWidth="-Infinity">
+                <tooltip><Tooltip text="Cobrar una parte con este medio y el resto con otro"/></tooltip>
+            </CheckBox>
+            <TextField fx:id="splitFirstAmountField" promptText="Monto 1er pago" prefWidth="120" minWidth="-Infinity" visible="false" managed="false"/>
+            <ComboBox fx:id="splitSecondPaymentCombo" prefWidth="160" minWidth="-Infinity" visible="false" managed="false"/>
+            <Label fx:id="splitRemainderLabel" minWidth="-Infinity" visible="false" managed="false"/>
+        </HBox>
 
-        <Label text="Total:" styleClass="title-label"/>
-        <Label fx:id="totalLabel" text="0,00" styleClass="pos-total"/>
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <Label text="Total:" styleClass="title-label" minWidth="-Infinity"/>
+            <Label fx:id="totalLabel" text="0,00" styleClass="pos-total" minWidth="-Infinity"/>
 
-        <Button text="Quitar" onAction="#onRemoveFromCart" styleClass="button-danger"/>
-        <Button text="Limpiar" onAction="#onClearCart" styleClass="button-secondary"/>
-        <Button text="Completar Venta" onAction="#onCompleteSale" styleClass="button-success"/>
-    </HBox>
+            <HBox HBox.hgrow="ALWAYS"/>
+
+            <Button text="Quitar" onAction="#onRemoveFromCart" styleClass="button-danger" minWidth="-Infinity">
+                <tooltip><Tooltip text="Quitar el producto seleccionado del carrito"/></tooltip>
+            </Button>
+            <Button text="Limpiar" onAction="#onClearCart" styleClass="button-secondary" minWidth="-Infinity">
+                <tooltip><Tooltip text="Vaciar el carrito"/></tooltip>
+            </Button>
+            <Button text="Completar Venta" onAction="#onCompleteSale" styleClass="button-success" minWidth="-Infinity">
+                <tooltip><Tooltip text="Registrar la venta y generar el comprobante"/></tooltip>
+            </Button>
+        </HBox>
+    </VBox>
 
     <!-- Receipt Display -->
     <VBox spacing="4">

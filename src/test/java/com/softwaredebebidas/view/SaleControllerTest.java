@@ -178,4 +178,25 @@ class SaleControllerTest {
         assertThat(SaleController.matchesQuery("latas", p)).isFalse();
         assertThat(SaleController.matchesQuery("quilmes", p)).isTrue();
     }
+
+    @Test
+    void cartProductLabelAppendsPresentation() {
+        Product p = new Product();
+        p.setName("quilmes");
+        p.setPresentation("473");
+
+        assertThat(SaleController.cartProductLabel(p)).isEqualTo("quilmes (473)");
+    }
+
+    @Test
+    void cartProductLabelIsJustTheNameWhenPresentationIsBlank() {
+        Product blank = new Product();
+        blank.setName("quilmes");
+        blank.setPresentation("  ");
+        Product missing = new Product();
+        missing.setName("quilmes");
+
+        assertThat(SaleController.cartProductLabel(blank)).isEqualTo("quilmes");
+        assertThat(SaleController.cartProductLabel(missing)).isEqualTo("quilmes");
+    }
 }
