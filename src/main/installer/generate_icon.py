@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the Software de bebidas app icon from the real brand logo.
 
-When the real logo (data/logo/logo.png) exists it is letterboxed inside a
+When the real logo (src/main/resources/icons/logo_secundario_gpt.png) exists it is letterboxed inside a
 square RGBA canvas with ~6% padding, preserving the aspect ratio (LANCZOS,
 no cropping). When the logo is missing, a blue rounded-square tile with a
 white letter "C" is rendered as fallback. Outputs a multi-resolution
