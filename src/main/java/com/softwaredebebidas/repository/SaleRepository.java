@@ -444,24 +444,35 @@ public class SaleRepository {
     }
 
     /**
-     * Returns all items for multiple sales in a single query.
+     * Maximum ids bound per IN (...) query. sqlite-jdbc caps bind parameters per
+     * statement (250000 in the bundled build), and all-time reports can pass every
+     * sale id, so ids are queried in chunks well below that cap.
+     */
+    static final int ITEMS_BY_SALE_IDS_CHUNK_SIZE = 500;
+
+    /**
+     * Returns all items for multiple sales, querying the ids in chunks of
+     * {@link #ITEMS_BY_SALE_IDS_CHUNK_SIZE}.
      * Used to avoid a per-sale round trip when building reports.
      */
     public List<SaleItem> findItemsBySaleIds(List<Long> saleIds) throws SQLException {
         if (saleIds == null || saleIds.isEmpty()) {
             return new ArrayList<>();
         }
-        String placeholders = saleIds.stream().map(id -> "?").collect(java.util.stream.Collectors.joining(","));
-        String sql = "SELECT * FROM sale_items WHERE sale_id IN (" + placeholders + ")";
         Connection conn = dbManager.getConnection();
         List<SaleItem> items = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            for (int i = 0; i < saleIds.size(); i++) {
-                ps.setLong(i + 1, saleIds.get(i));
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    items.add(mapItem(rs));
+        for (int from = 0; from < saleIds.size(); from += ITEMS_BY_SALE_IDS_CHUNK_SIZE) {
+            List<Long> chunk = saleIds.subList(from, Math.min(from + ITEMS_BY_SALE_IDS_CHUNK_SIZE, saleIds.size()));
+            String placeholders = chunk.stream().map(id -> "?").collect(java.util.stream.Collectors.joining(","));
+            String sql = "SELECT * FROM sale_items WHERE sale_id IN (" + placeholders + ")";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                for (int i = 0; i < chunk.size(); i++) {
+                    ps.setLong(i + 1, chunk.get(i));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        items.add(mapItem(rs));
+                    }
                 }
             }
         }

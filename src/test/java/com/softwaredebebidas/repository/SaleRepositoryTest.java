@@ -70,6 +70,27 @@ class SaleRepositoryTest {
     }
 
     @Test
+    @DisplayName("findItemsBySaleIds handles more ids than the sqlite-jdbc bind-parameter limit (250000)")
+    void findItemsBySaleIdsHandlesMoreIdsThanSqliteParameterLimit() throws SQLException {
+        int saleCount = 260_000;
+        try (java.sql.Statement stmt = dbManager.getConnection().createStatement()) {
+            stmt.execute("WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < " + saleCount + ") "
+                    + "INSERT INTO sales (id, sale_date, channel, payment_method, total_amount) "
+                    + "SELECT i, '2026-01-01', 'IN', 'CASH', 600 FROM n");
+            stmt.execute("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, subtotal) "
+                    + "SELECT id, 1, 1, 600, 600 FROM sales");
+        }
+        List<Long> saleIds = new java.util.ArrayList<>();
+        for (long id = 1; id <= saleCount; id++) {
+            saleIds.add(id);
+        }
+
+        List<SaleItem> items = repository.findItemsBySaleIds(saleIds);
+
+        assertThat(items).hasSize(saleCount);
+    }
+
+    @Test
     void saveWithItemsReturnsSaleId() throws SQLException {
         Sale sale = createSale("IN", "CASH");
         SaleItem item = createSaleItem(1L, 2, 600.0);
