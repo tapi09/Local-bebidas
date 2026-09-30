@@ -1,8 +1,8 @@
-# Arquitectura de Software de bebidas — Central de Bebidas
+# Arquitectura de Software de Bebidas
 
-## Stack Tecnologico
+## Stack Tecnológico
 
-| Tecnologia | Version | Proposito |
+| Tecnología | Versión | Propósito |
 |------------|---------|-----------|
 | Java | 17 (LTS) | Lenguaje base, tipo seguro, records, patrones switch |
 | JavaFX | 21 | UI desktop moderna con CSS, FXML declarativo y Scene Builder |
@@ -11,21 +11,21 @@
 | JUnit 5 | 5.10.2 | Testing unitario |
 | Mockito | 5.11.0 | Mocks para testing |
 | AssertJ | 3.24.2 | Assertions fluidas |
-| JaCoCo | 0.8.12 | Cobertura de codigo |
+| JaCoCo | 0.8.12 | Cobertura de código |
 
-## Patron MVP (Model-View-Presenter)
+## Patrón MVP (Model-View-Presenter)
 
-El proyecto utiliza **Model-View-Presenter** como patron arquitectonico, una variante de MVC optimizada para testabilidad.
+El proyecto utiliza **Model-View-Presenter** como patrón arquitectónico, una variante de MVC optimizada para testabilidad.
 
-### Diagrama de Comunicacion
+### Diagrama de Comunicación
 
 ```
 +-----------------+    eventos FXML     +------------------+     llama      +------------------+
 |                 | onAction, key events |                  |--------------->|                  |
 |   VIEW          |--------------------->|   PRESENTER      |               |   SERVICE        |
-| (Controller     |                      | (logica de UI,   |<---------------| (logica de       |
+| (Controller     |                      | (lógica de UI,   |<---------------| (lógica de       |
 |  FXML)          |<---------------------|  estado,         |  data/result   |  negocio)        |
-|                 |  actualiza UI beans  |  delegacion)     |               |                  |
+|                 |  actualiza UI beans  |  delegación)     |               |                  |
 +-----------------+                      +------------------+               +--------+---------+
                                                                                       |
                                                                                llama   |
@@ -39,17 +39,17 @@ El proyecto utiliza **Model-View-Presenter** como patron arquitectonico, una var
                                                                                         v
                                                                                +------------------+
                                                                                |   SQLite DB      |
-                                                                               |   (softwaredebebidas.db)  |
+                                                                               |   (software-bebidas.db)  |
                                                                                +------------------+
 ```
 
 ### Flujo de Datos
 
-1. **View** captura eventos del usuario (click en boton, escritura en campo, seleccion de tabla)
-2. **View** delega al **Presenter** llamando un metodo publico
-3. **Presenter** ejecuta logica de negocio: valida datos, decide que accion tomar
+1. **View** captura eventos del usuario (click en botón, escritura en campo, selección de tabla)
+2. **View** delega al **Presenter** llamando un método público
+3. **Presenter** ejecuta lógica de negocio: valida datos, decide que acción tomar
 4. **Presenter** llama al **Service** correspondiente para operaciones de dominio
-5. **Service** invoca metodos del **Repository** para persistencia
+5. **Service** invoca métodos del **Repository** para persistencia
 6. **Repository** ejecuta SQL via JDBC con PreparedStatement
 7. Los resultados fluyen de vuelta: Repository -> Service -> Presenter -> View (actualizando la UI)
 
@@ -57,48 +57,48 @@ El proyecto utiliza **Model-View-Presenter** como patron arquitectonico, una var
 
 | Capa | Responsabilidad | NO Responsabilidad |
 |------|-----------------|--------------------|
-| **View** (FXML Controller) | Injection de componentes FXML, configuracion de tablas/columnas, binding de datos | Logica de negocio, acceso a datos, navegacion |
-| **Presenter** | Estado de la UI, validacion de entrada, delegacion a servicios, manejo de errores de UI | Acceso directo a BD, logica de negocio compleja |
-| **Service** | Logica de dominio, reglas de negocio, orquestacion | Estado de UI, acceso directo a BD |
-| **Repository** | CRUD SQL, transacciones, mapeo ResultSet a POJO | Logica de negocio |
-| **Model** (POJO) | Datos puros, getters/setters | Ninguna logica |
+| **View** (FXML Controller) | Injection de componentes FXML, configuración de tablas/columnas, binding de datos | Lógica de negocio, acceso a datos, navegación |
+| **Presenter** | Estado de la UI, validación de entrada, delegación a servicios, manejo de errores de UI | Acceso directo a BD, lógica de negocio compleja |
+| **Service** | Lógica de dominio, reglas de negocio, orquestación | Estado de UI, acceso directo a BD |
+| **Repository** | CRUD SQL, transacciones, mapeo ResultSet a POJO | Lógica de negocio |
+| **Model** (POJO) | Datos puros, getters/setters | Ninguna lógica |
 
-## Justificacion de Tecnologias
+## Justificación de Tecnologías
 
 ### JavaFX sobre Swing
 - CSS moderno permite UI profesional tipo POS (kiosk)
-- FXML + Scene Builder separan diseno de logica
+- FXML + Scene Builder separan diseño de lógica
 - Propiedades observables facilitan binding
-- Mejor soporte para pantalla tactil
+- Mejor soporte para pantalla táctil
 
 ### SQLite sobre H2 / Derby
-- Zero configuracion: un solo archivo `.db`
+- Zero configuración: un solo archivo `.db`
 - Backup simple: copiar archivo
 - Battle-tested para desktop single-user
 - WAL mode para concurrencia lectura/escritura
 
-### MVP sobre MVC clasico
+### MVP sobre MVC clásico
 - Presenter es testeable sin UI (Mockito para mocks de vista)
 - FXML Controller queda extremadamente delgado
 - Estado de UI encapsulado en el Presenter
 
 ### Stock Calculado sobre Columna Almacenada
-- Fuente unica de verdad: `stock_movements`
-- Auditoria completa: cada movimiento tiene tipo, referencia, fecha
-- Sin bugs de sincronizacion entre columna y movimientos
+- Fuente única de verdad: `stock_movements`
+- Auditoría completa: cada movimiento tiene tipo, referencia, fecha
+- Sin bugs de sincronización entre columna y movimientos
 
 ## Estructura del Proyecto
 
 ```
-softwaredebebidas/
+software-bebidas/
 ├── pom.xml                                      -- Dependencias y build
 ├── ARCHITECTURE.md                              -- Este documento
-├── README.md                                    -- Documentacion principal
+├── README.md                                    -- Documentación principal
 │
 ├── src/main/java/com/softwaredebebidas/
 │   ├── SoftwareDeBebidasApp.java                        -- Entry point JavaFX
 │   │
-│   ├── model/                                   -- 13 POJOs (datos puros)
+│   ├── model/                                   -- 15 POJOs (datos puros)
 │   │   ├── Category.java                        -- id, name, sortOrder, active
 │   │   ├── Subcategory.java                     -- id, categoryId, name, sortOrder, active
 │   │   ├── Product.java                         -- id, name, category, presentation, costPrice, salePrice, supplierId, barcode, minStock, active, sku, photoPath, categoryId, subcategoryId, pedidosyaPrice
@@ -113,94 +113,98 @@ softwaredebebidas/
 │   │   ├── DailySalesDetailRow.java             -- date, productName, quantity, unitPrice, lineTotal (DTO para reporte)
 │   │   └── DailySalesDetailReport.java          -- rows, grandTotal, fromDate, toDate (DTO para reporte)
 │   │
-│   ├── repository/                              -- 10 repositorios + DatabaseManager
-│   │   ├── DatabaseManager.java                 -- Singleton: conexion, schema, WAL, foreign keys, 8 migraciones
-│   │   ├── ProductRepository.java               -- CRUD + busqueda por nombre/barcode/categoria
+│   ├── repository/                              -- 11 repositorios + DatabaseManager
+│   │   ├── DatabaseManager.java                 -- Singleton: conexión, schema, WAL, foreign keys, 8 migraciones
+│   │   ├── ProductRepository.java               -- CRUD + búsqueda por nombre/barcode/categoría
 │   │   ├── SupplierRepository.java              -- CRUD + dropdown
-│   │   ├── PurchaseRepository.java              -- Save con items (transaccion), historial, invoice_photo_path
-│   │   ├── SaleRepository.java                  -- Save con items (transaccion), historial
+│   │   ├── PurchaseRepository.java              -- Save con items (transacción), historial, invoice_photo_path
+│   │   ├── SaleRepository.java                  -- Save con items (transacción), historial
 │   │   ├── StockMovementRepository.java         -- Insert, query, computeCurrentStock
-│   │   ├── CustomerRepository.java              -- CRUD + busqueda por nombre
-│   │   ├── CategoryRepository.java              -- CRUD categorias
-│   │   ├── SubcategoryRepository.java           -- CRUD subcategorias
-│   │   ├── ConfigRepository.java                -- Key-value app_config
-│   │   └── UserRepository.java                  -- CRUD usuarios + autenticacion
+│   │   ├── CustomerRepository.java              -- CRUD + búsqueda por nombre
+│   │   ├── CategoryRepository.java              -- CRUD categorías
+│   │   ├── SubcategoryRepository.java           -- CRUD subcategorías
+│   │   ├── ConfigRepository.java                -- Key-value app_config (modo oscuro, nombre del negocio, etc.)
+│   │   └── UserRepository.java                  -- CRUD usuarios + autenticación
 │   │
-│   ├── service/                                 -- 10 servicios de negocio
+│   ├── service/                                 -- 11 servicios de negocio
 │   │   ├── InventoryService.java                -- Stock, status, low-stock, expiry, adjustments
-│   │   ├── SalesService.java                    -- Creacion de venta, validacion stock/vencimiento
-│   │   ├── PurchaseService.java                 -- Orquestacion de compras (transaccion: compra + items + stock + costo)
-│   │   ├── ReportService.java                   -- Margenes, ventas por periodo, canales, rotacion, valor stock, ventas detalladas por dia
+│   │   ├── SalesService.java                    -- Creación de venta, validación stock/vencimiento
+│   │   ├── PurchaseService.java                 -- Orquestación de compras (transacción: compra + items + stock + costo)
+│   │   ├── ReportService.java                   -- Márgenes, ventas por período, canales, rotación, valor stock, ventas detalladas por día
 │   │   ├── AlertService.java                    -- Alertas de vencimiento y stock bajo
-│   │   ├── ReceiptService.java                  -- Generacion de texto para ticket
-│   │   ├── AuthService.java                     -- Autenticacion de usuarios
-│   │   ├── BackupScheduler.java                 -- Backup automatico programado
-│   │   ├── BackupService.java                   -- Logica de backup/restore
-│   │   └── CsvService.java                      -- Exportacion de reportes a CSV
+│   │   ├── ReceiptService.java                  -- Generación de texto para ticket
+│   │   ├── AuthService.java                     -- Autenticación de usuarios
+│   │   ├── BackupScheduler.java                 -- Backup automático programado
+│   │   ├── BackupService.java                   -- Lógica de backup/restore
+│   │   └── CsvService.java                      -- Exportación de reportes a CSV
 │   │
-│   ├── presenter/                               -- 13 presenters
-│   │   ├── MainPresenter.java                   -- Navegacion, badge de alertas, reloj
-│   │   ├── ProductPresenter.java                -- CRUD productos, busqueda, validacion
+│   ├── presenter/                               -- 14 presenters
+│   │   ├── MainPresenter.java                   -- Navegación, badge de alertas, reloj
+│   │   ├── ProductPresenter.java                -- CRUD productos, búsqueda, validación
 │   │   ├── SupplierPresenter.java               -- CRUD proveedores
 │   │   ├── PurchasePresenter.java               -- Compra con items, stock auto-increment
-│   │   ├── SalePresenter.java                   -- POS, carrito, busqueda rapida, checkout
+│   │   ├── SalePresenter.java                   -- POS, carrito, búsqueda rápida, checkout
 │   │   ├── StockPresenter.java                  -- Dashboard stock, movimientos, ajustes
 │   │   ├── AlertPresenter.java                  -- Alertas, badge count, dismissal
-│   │   ├── ReportPresenter.java                 -- Reportes, seleccion de tipo, rango fechas, CSV
+│   │   ├── ReportPresenter.java                 -- Reportes, selección de tipo, rango fechas, CSV
 │   │   ├── HomePresenter.java                   -- Dashboard de inicio
-│   │   ├── CategoryPresenter.java               -- CRUD categorias/subcategorias
+│   │   ├── CategoryPresenter.java               -- CRUD categorías/subcategorías
 │   │   ├── LoginPresenter.java                  -- Login de usuarios
-│   │   ├── SaleHistoryPresenter.java            -- Historial de ventas, anulacion
-│   │   └── UserPresenter.java                   -- CRUD usuarios, roles, proteccion del ultimo admin
+│   │   ├── BusinessSettingsPresenter.java       -- Datos del negocio: nombre y logo (solo admin)
+│   │   ├── SaleHistoryPresenter.java            -- Historial de ventas, anulación
+│   │   └── UserPresenter.java                   -- CRUD usuarios, roles, protección del último admin
 │   │
-│   ├── view/                                    -- 12 controllers FXML
+│   ├── view/                                    -- 13 controllers FXML
 │   │   ├── HomeController.java                  -- Dashboard principal
-│   │   ├── ProductController.java               -- Catalogo CRUD
-│   │   ├── SupplierController.java              -- Gestion de proveedores
+│   │   ├── ProductController.java               -- Catálogo CRUD
+│   │   ├── SupplierController.java              -- Gestión de proveedores
 │   │   ├── PurchaseController.java              -- Entrada de compras + adjunto de factura
 │   │   ├── SaleController.java                  -- POS
 │   │   ├── StockController.java                 -- Dashboard stock
 │   │   ├── AlertController.java                 -- Panel de alertas
 │   │   ├── ReportController.java                -- Reportes (7 tipos incluyendo ventas detalladas)
-│   │   ├── CategoriesController.java            -- Gestion de categorias
+│   │   ├── CategoriesController.java            -- Gestión de categorías
 │   │   ├── LoginController.java                 -- Pantalla de login
-│   │   ├── SaleHistoryController.java           -- Historial y anulacion de ventas
-│   │   └── UserController.java                  -- Gestion de usuarios
+│   │   ├── BusinessSettingsController.java      -- Datos del negocio: nombre, logo, vista previa
+│   │   ├── SaleHistoryController.java           -- Historial y anulación de ventas
+│   │   └── UserController.java                  -- Gestión de usuarios
 │   │
-│   └── util/                                    -- 11 utilidades
+│   └── util/                                    -- 12 utilidades
 │       ├── CurrencyFormatter.java               -- Formato ARS $XX.XXX,XX
 │       ├── DateUtils.java                       -- Parse/format DD/MM/YYYY
-│       ├── AlertService.java                    -- Dialogos JavaFX (error, warning, info, confirmacion)
-│       ├── PhotoUtils.java                      -- Gestion de fotos (productos + facturas)
-│       ├── HierarchyLabel.java                  -- Formato de etiqueta jerarquia (Categoria - Subcategoria)
-│       ├── IntegrityChecker.java                -- Verificacion de integridad de datos
-│       ├── LoggingConfig.java                   -- Configuracion de logs y rotacion
+│       ├── AlertService.java                    -- Diálogos JavaFX (error, warning, info, confirmación)
+│       ├── PhotoUtils.java                      -- Gestión de fotos (productos + facturas)
+│       ├── HierarchyLabel.java                  -- Formato de etiqueta jerarquía (Categoría - Subcategoría)
+│       ├── IntegrityChecker.java                -- Verificación de integridad de datos
+│       ├── LoggingConfig.java                   -- Configuración de logs y rotación
 │       ├── Refreshable.java                     -- Interfaz para vistas que soportan refresh
 │       ├── StockRisk.java                       -- Reglas de stock bajo/vencimiento compartidas
-│       ├── LogoUtils.java                       -- Ubicacion y seed del logo de marca (%APPDATA%/Cocolatan/logo)
+│       ├── AppDataDir.java                      -- Directorio de datos (%APPDATA%/software-bebidas) y nombres de archivos
+│       ├── LogoUtils.java                       -- Guarda, quita y carga el logo del negocio (<datos>/logo/logo.png)
 │       └── VersionInfo.java                     -- Version/build desde version.properties
 │
 ├── src/main/resources/
-│   ├── fxml/                                    -- 13 vistas FXML
+│   ├── fxml/                                    -- 14 vistas FXML
 │   │   ├── main.fxml                            -- Layout principal (sidebar + content)
 │   │   ├── home.fxml                            -- Dashboard inicio
-│   │   ├── product.fxml                         -- Catalogo
+│   │   ├── product.fxml                         -- Catálogo
 │   │   ├── supplier.fxml                        -- Proveedores
 │   │   ├── purchase.fxml                        -- Compras + adjunto de factura
 │   │   ├── sale.fxml                            -- POS
 │   │   ├── stock.fxml                           -- Stock
 │   │   ├── alert.fxml                           -- Alertas
 │   │   ├── reports.fxml                         -- Reportes (7 tipos)
-│   │   ├── categories.fxml                      -- Gestion de categorias
+│   │   ├── categories.fxml                      -- Gestión de categorías
 │   │   ├── login.fxml                           -- Login
+│   │   ├── business.fxml                        -- Datos del negocio
 │   │   ├── sale-history.fxml                    -- Historial de ventas
-│   │   └── user.fxml                            -- Gestion de usuarios
+│   │   └── user.fxml                            -- Gestión de usuarios
 │   │
-│   └── styles.css                               -- Sistema de diseno POS profesional
+│   └── styles.css                               -- Sistema de diseño POS profesional
 │
-└── src/test/java/com/softwaredebebidas/                 -- 82 archivos de test
+└── src/test/java/com/softwaredebebidas/                 -- 103 archivos de test
     ├── model/                                   -- Tests de POJOs
-    ├── repository/                              -- Tests de repositorios (incluyendo integracion)
+    ├── repository/                              -- Tests de repositorios (incluyendo integración)
     ├── service/                                 -- Tests de servicios
     ├── presenter/                               -- Tests de presenters
     ├── util/                                    -- Tests de utilidades
@@ -209,12 +213,14 @@ softwaredebebidas/
 
 ## Modelo de Datos
 
-### Ubicacion de la Base de Datos
+### Ubicación de la Base de Datos
 
-La base de datos SQLite se almacena en `%APPDATA%\Cocolatan\softwaredebebidas.db`.
-Al ejecutar el `.exe` empaquetado con jpackage, la aplicacion escribe en esa ruta sin necesidad de pre-instalacion.
+La base de datos SQLite se almacena en `%APPDATA%\software-bebidas\software-bebidas.db`.
+Al ejecutar el `.exe` empaquetado con jpackage, la aplicación escribe en esa ruta sin necesidad de pre-instalación.
 
-### Diagrama Entidad-Relacion
+`AppDataDir` es la única fuente de verdad de este directorio: la base de datos, el archivo de bloqueo de instancia única (`software-bebidas.lock`), los respaldos, las exportaciones, los logs, las fotos y el logo se resuelven a partir de `AppDataDir.getBaseDir()`. Si `APPDATA` no esta definida se usa una carpeta local `data`.
+
+### Diagrama Entidad-Relación
 
 ```
 suppliers 1---* products
@@ -227,7 +233,7 @@ products  1---* sale_items
 sales     1---* sale_items
 products  1---* stock_movements
 customers 1---* sales (opcional)
-users     ---   (autenticacion)
+users     ---   (autenticación)
 ```
 
 ### Tablas SQLite (14 principales)
@@ -246,7 +252,7 @@ users     ---   (autenticacion)
 | **customers** | id, name, phone, email, address | -- |
 | **users** | id, username, password_hash, role (ADMIN/CAJERO), display_name | -- |
 | **app_config** | key (PK), value | -- |
-| **schema_version** | version (PK), applied_at | -- |
+| **schema_version** | versión (PK), applied_at | -- |
 | **register_sessions** | id, register_name, open_date, close_date, status (OPEN/CLOSED), initial_cash, expected_cash, actual_cash, created_at, closed_at | -- |
 
 ### Regla de Stock
@@ -258,21 +264,21 @@ current_stock = SUM(CASE WHEN movement_type IN ('ENTRY','ADJUSTMENT') THEN quant
               - SUM(CASE WHEN movement_type = 'EXIT' THEN quantity ELSE 0 END)
 ```
 
-### Indices
+### Índices
 
-17 indices en total para optimizar consultas frecuentes: categoria, barcode, barcode NOCASE, activo, fechas, tipo movimiento, canal de venta, sale_items sale_id, purchase_items purchase_id, register_sessions status y fecha.
+17 índices en total para optimizar consultas frecuentes: categoría, barcode, barcode NOCASE, activo, fechas, tipo movimiento, canal de venta, sale_items sale_id, purchase_items purchase_id, register_sessions status y fecha.
 
 ### Migraciones (v1 a v8)
 
-| Version | Cambios |
+| Versión | Cambios |
 |---------|---------|
 | v1 | Schema inicial: suppliers, products, purchases, purchase_items, sales, sale_items, stock_movements, customers, app_config, schema_version |
 | v2 | SKU y precio PedidosYa en products |
 | v3 | Foto de producto (photo_path en products) |
-| v4 | Anulacion de ventas (status, cancelled_at, cancellation_reason) |
+| v4 | Anulación de ventas (status, cancelled_at, cancellation_reason) |
 | v5 | Texto de comprobante (receipt_text en sales) |
-| v6 | Jerarquia categorias/subcategorias (category_id, subcategory_id en products; categories, subcategories) |
-| v7 | Indices: barcode NOCASE, sale_items sale_id, purchase_items purchase_id |
+| v6 | Jerarquía categorías/subcategorías (category_id, subcategory_id en products; categories, subcategories) |
+| v7 | Índices: barcode NOCASE, sale_items sale_id, purchase_items purchase_id |
 | v8 | Foto de factura (invoice_photo_path en purchases), tabla register_sessions |
 
 ## Flujos Principales
@@ -287,7 +293,7 @@ Usuario -> PurchaseController.onAttachInvoice()
 
 Usuario -> PurchaseController.onSavePurchase()
     -> PurchasePresenter.savePurchase(purchase, items)
-    -> PurchaseRepository.saveWithItems() (transaccion: purchase + items)
+    -> PurchaseRepository.saveWithItems() (transacción: purchase + items)
     -> StockMovementRepository.insert() (ENTRY por cada item)
     -> ProductRepository.updateCostPrice() (actualiza precio de costo)
     -> La foto se guarda como invoice_photo_path en la tabla purchases
@@ -299,7 +305,7 @@ Usuario -> PurchaseController.onSavePurchase()
 Usuario -> SaleController -> SalePresenter.addToCart() (valida stock)
     -> SalePresenter.completeSale()
     -> SalesService.createSale() (valida stock y vencimiento)
-    -> SaleRepository.saveWithItems() (transaccion: sale + items)
+    -> SaleRepository.saveWithItems() (transacción: sale + items)
     -> StockMovementRepository.insert() (EXIT por cada item)
     -> ReceiptService.generateReceipt() (texto del ticket)
 ```
@@ -340,7 +346,7 @@ ReportController -> ReportPresenter.generateReport()
     | getChannelComparisonReport() | getRotationReport() | getStockValueReport()
     | getTopSellersReport() | getDailySalesDetailReport()
     -> ProductRepository | SaleRepository | StockMovementRepository
-    -> Calculos: margen %, revenue, tickets, rotacion, valor inventario, detalle por producto
+    -> Cálculos: margen %, revenue, tickets, rotación, valor inventario, detalle por producto
 ```
 
 ### Flujo de Reporte Ventas Detalladas por Dia
@@ -348,10 +354,10 @@ ReportController -> ReportPresenter.generateReport()
 ```
 ReportController -> ReportPresenter.generateDailySalesDetail()
     -> ReportService.getDailySalesDetailReport(fromDate, toDate)
-    -> SaleRepository.findByDateRange() (obtiene ventas del periodo)
+    -> SaleRepository.findByDateRange() (obtiene ventas del período)
     -> SaleRepository.findItemsBySaleId() (obtiene items de cada venta)
-    -> Agrupacion por dia + producto: cantidad, precio unitario, total linea
-    -> Exportacion CSV via ReportPresenter.exportDailySalesDetailCSV()
+    -> Agrupación por día + producto: cantidad, precio unitario, total línea
+    -> Exportación CSV via ReportPresenter.exportDailySalesDetailCSV()
 ```
 
 ### Flujo de Fotos de Factura
@@ -359,7 +365,7 @@ ReportController -> ReportPresenter.generateDailySalesDetail()
 ```
 PurchaseController.onAttachInvoice()
     -> FileChooser (filtro: JPG, JPEG, PNG)
-    -> Validacion: maximo 10 MB
+    -> Validación: máximo 10 MB
     -> PhotoUtils.copyInvoiceImage(sourceFile)
         -> PhotoUtils.ensureInvoiceDir() (crea purchase-invoices/ si no existe)
         -> Copia archivo con nombre UUID al directorio purchase-invoices/
@@ -371,7 +377,7 @@ PurchaseController.onSavePurchase()
     -> PurchaseRepository.saveWithItems() (incluye invoice_photo_path en INSERT)
 
 PurchaseController.onPurchaseLoaded(purchase)
-    -> Si invoicePhotoPath no es null/vacio:
+    -> Si invoicePhotoPath no es null/vacío:
         -> PhotoUtils.resolvePath() convierte ruta relativa a absoluta
         -> Muestra preview de imagen en imgInvoicePreview
         -> Muestra nombre del archivo en lblPhotoName
@@ -381,11 +387,11 @@ PurchaseController.deleteInvoicePhoto()
     -> Limpia lblPhotoName
 ```
 
-## Navegacion (StackPane)
+## Navegación (StackPane)
 
 ```layout
 +--------------------------------------------------------------+
-| Software de bebidas - Central de Bebidas          DD/MM/YYYY HH:MM     |
+| Mi negocio (nombre configurable)                  DD/MM/YYYY HH:MM     |
 +----------+---------------------------------------------------+
 | Productos |                                                   |
 | Compras   |            Content Area (StackPane)               |
@@ -394,8 +400,10 @@ PurchaseController.deleteInvoicePhoto()
 | Alertas   |                                                   |
 | Reportes  |                                                   |
 | Proveed.  |                                                   |
-| Categorias|                                                   |
+| Categorías|                                                   |
 | Usuarios  |                                                   |
+| Datos del |                                                   |
+|  negocio  |                                                   |
 | [Salir]   |                                                   |
 +----------+---------------------------------------------------+
 ```
@@ -403,7 +411,7 @@ PurchaseController.deleteInvoicePhoto()
 - Sidebar izquierdo: 210px, botones con iconos
 - Content area: StackPane, swap de FXML via MainPresenter.loadView()
 - Cache de vistas: HashMap<fxmlPath, Node> evita recargas
-- Keyboard shortcuts: F2-F8 para modulos, Ctrl+1-7, ESC para salir
+- Keyboard shortcuts: F2-F8 para módulos, Ctrl+1-7, ESC para salir
 
 ## Estrategia de Testing
 
@@ -412,8 +420,8 @@ PurchaseController.deleteInvoicePhoto()
 | **Unit - Model** | Constructores, getters/setters, toString | JUnit 5 |
 | **Unit - Repository** | CRUD con SQLite in-memory (`jdbc:sqlite::memory:`) | JUnit 5 |
 | **Unit - Service** | Business rules con mocks de repositorios | Mockito, AssertJ |
-| **Unit - Presenter** | Estado UI, delegacion con mocks de servicios/views | Mockito, AssertJ |
-| **Unit - Util** | Formateo, parsing, dialogos | JUnit 5 |
+| **Unit - Presenter** | Estado UI, delegación con mocks de servicios/views | Mockito, AssertJ |
+| **Unit - Util** | Formateo, parsing, diálogos | JUnit 5 |
 | **Integration** | Flujos completos (purchase -> stock -> sale -> report) con SQLite in-memory | JUnit 5 |
 
 **Nota**: Los controladores FXML (view) y util.AlertService no son testeables sin TestFX (JavaFX toolkit).
@@ -423,7 +431,7 @@ PurchaseController.deleteInvoicePhoto()
 | Capa | Estrategia |
 |------|-----------|
 | **Repository** | SQLException propagada al Service |
-| **Service** | RuntimeException con mensaje en espanol |
+| **Service** | RuntimeException con mensaje en español |
 | **Presenter** | Catch + AlertService.showErrorDialog() + log WARNING |
 | **App global** | Thread.setDefaultUncaughtExceptionHandler -> log SEVERE + dialog |
 
@@ -431,70 +439,70 @@ PurchaseController.deleteInvoicePhoto()
 
 - **Moneda**: ARS $XX.XXX,XX (punto como separador de miles, coma decimal)
 - **Fechas**: DD/MM/YYYY (formato argentino)
-- **UI**: Labels en espanol
-- **Codigo**: Comentarios y codigo en ingles
+- **UI**: Labels en español
+- **Código**: Comentarios y código en inglés
 
-## ADRs (Architecture Decision Records)
+## ADRs (Architecture Decisión Records)
 
 ### ADR-001: MVP sobre MVC
 - **Estado**: Aceptado
-- **Contexto**: Necesitamos testear logica de negocio sin levantar JavaFX
-- **Decision**: MVP con Presenters testeables via Mockito
-- **Consecuencia**: FXML controllers quedan con < 50 lineas de logica
+- **Contexto**: Necesitamos testear lógica de negocio sin levantar JavaFX
+- **Decisión**: MVP con Presenters testeables via Mockito
+- **Consecuencia**: FXML controllers quedan con < 50 líneas de lógica
 
 ### ADR-002: SQLite sobre H2
 - **Estado**: Aceptado
-- **Contexto**: App desktop single-user en Mendoza, backup manual
-- **Decision**: SQLite con WAL mode y foreign keys
-- **Consecuencia**: Sin servidor, sin configuracion, backup = copiar archivo
+- **Contexto**: App desktop single-user para un negocio de bebidas, backup manual
+- **Decisión**: SQLite con WAL mode y foreign keys
+- **Consecuencia**: Sin servidor, sin configuración, backup = copiar archivo
 
 ### ADR-003: Stock Calculado sobre Columna
 - **Estado**: Aceptado
-- **Contexto**: Necesitamos auditoria completa de movimientos
-- **Decision**: stock_movements como unica fuente de verdad
+- **Contexto**: Necesitamos auditoría completa de movimientos
+- **Decisión**: stock_movements como única fuente de verdad
 - **Consecuencia**: Consulta SUM ligera, sin sync bugs
 
 ### ADR-004: StackPane sobre TabPane
 - **Estado**: Aceptado
-- **Contexto**: Modulos independientes sin estado compartido
-- **Decision**: StackPane con swap de FXML via MainPresenter
+- **Contexto**: Módulos independientes sin estado compartido
+- **Decisión**: StackPane con swap de FXML via MainPresenter
 - **Consecuencia**: Cache de vistas, clean module isolation
 
 ### ADR-005: Error Handling por Capas
 - **Estado**: Aceptado
-- **Contexto**: Usuario final no tecnico necesita mensajes claros
-- **Decision**: Presenter captura y muestra dialogo en espanol; capas inferiores lanzan excepciones
-- **Consecuencia**: Logs detallados para developer, dialogo amigable para usuario
+- **Contexto**: Usuario final no técnico necesita mensajes claros
+- **Decisión**: Presenter captura y muestra diálogo en español; capas inferiores lanzan excepciones
+- **Consecuencia**: Logs detallados para developer, diálogo amigable para usuario
 
 ### ADR-006: Strict TDD
 - **Estado**: Aceptado
 - **Contexto**: Proyecto con especificaciones detalladas
-- **Decision**: Red-Green-Refactor obligatorio para toda funcionalidad
-- **Consecuencia**: 82 archivos de test, cobertura ~58% (sin contar JavaFX no testeable)
+- **Decisión**: Red-Green-Refactor obligatorio para toda funcionalidad
+- **Consecuencia**: 103 archivos de test, cobertura ~58% (sin contar JavaFX no testeable)
 
 ### ADR-007: Fotos de Factura en Directorio Aparte
 - **Estado**: Aceptado
 - **Contexto**: Necesitamos adjuntar facturas de compra sin mezclar con fotos de productos
-- **Decision**: Subdirectorio `purchase-invoices/` bajo el directorio base de la app, manejado por PhotoUtils con metodos dedicados (`copyInvoiceImage`, `getInvoicePhotosDir`, `ensureInvoiceDir`)
-- **Consecuencia**: Separacion limpia de archivos de productos y facturas, misma logica de UUID-based naming y eliminacion
+- **Decisión**: Subdirectorio `purchase-invoices/` bajo el directorio base de la app, manejado por PhotoUtils con métodos dedicados (`copyInvoiceImage`, `getInvoicePhotosDir`, `ensureInvoiceDir`)
+- **Consecuencia**: Separación limpia de archivos de productos y facturas, misma lógica de UUID-based naming y eliminación
 
 ### ADR-008: Register Sessions Groundwork
 - **Estado**: Aceptado (groundwork)
-- **Contexto**: Se necesita sistema de caja (apertura/cierre) para pedidos ya y local fisico
-- **Decision**: Crear tabla `register_sessions` con campos pre-cargados para apertura/cierre futuro (expected_cash, actual_cash, close_date, status OPEN/CLOSED), pero sin implementar la logica de apertura/cierre aun
-- **Consecuencia**: La tabla y sus indices estan listos; el model/repository/controller/presenter/FXML se implementaran cuando se active la funcionalidad de caja
+- **Contexto**: Se necesita sistema de caja (apertura/cierre) para pedidos ya y local físico
+- **Decisión**: Crear tabla `register_sessions` con campos pre-cargados para apertura/cierre futuro (expected_cash, actual_cash, close_date, status OPEN/CLOSED), pero sin implementar la lógica de apertura/cierre aún
+- **Consecuencia**: La tabla y sus índices están listos; el model/repository/controller/presenter/FXML se implementarán cuando se active la funcionalidad de caja
 
 ## Build System
 
-- **Maven** para compilacion, dependencias y empaquetado
+- **Maven** para compilación, dependencias y empaquetado
 - **jpackage** (perfil `-Pjpackage`) genera un `.exe` standalone para Windows
-- El instalador se produce en `dist/installer/` y no requiere pre-instalacion de Java
-- La aplicacion se puede desplegar en un pendrive USB y ejecutar directamente
+- El instalador se produce en `dist/installer/` y no requiere pre-instalación de Java
+- La aplicación se puede desplegar en un pendrive USB y ejecutar directamente
 
-- **Codigo**: Ingles (clases, metodos, variables, comentarios)
-- **UI**: Espanol (labels, dialogos, mensajes de error)
-- **Testing**: Tests en ingles, mensajes de assertion en ingles
-- **Commits**: Conventional Commits en ingles
+- **Código**: Inglés (clases, métodos, variables, comentarios)
+- **UI**: Español (labels, diálogos, mensajes de error)
+- **Testing**: Tests en inglés, mensajes de assertion en inglés
+- **Commits**: Conventional Commits en inglés
 - **Moneda**: Formato ARS con CurrencyFormatter
 - **Fechas**: DD/MM/YYYY con DateUtils
 - **SQL**: Nombres de tabla/columna en lowercase con snake_case
@@ -503,6 +511,6 @@ PurchaseController.deleteInvoicePhoto()
 
 - **OS**: Windows 10/11 (build con classifier `win` para JavaFX)
 - **Java**: JDK 17+ (LTS)
-- **RAM**: 256 MB minimo
-- **Disco**: 50 MB para la aplicacion + tamano de la BD
-- **Pantalla**: 1024x768 minimo (disenado para 1100x680)
+- **RAM**: 256 MB mínimo
+- **Disco**: 50 MB para la aplicación + tamaño de la BD
+- **Pantalla**: 1024x768 mínimo (diseñado para 1100x680)
