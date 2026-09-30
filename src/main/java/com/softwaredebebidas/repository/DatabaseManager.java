@@ -324,6 +324,10 @@ public class DatabaseManager {
               // Migration v15: convert sale_date and purchase_date from dd/MM/yyyy to YYYY-MM-DD (ISO-8601)
               runMigration(stmt, "UPDATE sales SET sale_date = substr(sale_date,7,4) || '-' || substr(sale_date,4,2) || '-' || substr(sale_date,1,2) WHERE sale_date LIKE '__/__/____'");
               runMigration(stmt, "UPDATE purchases SET purchase_date = substr(purchase_date,7,4) || '-' || substr(purchase_date,4,2) || '-' || substr(purchase_date,1,2) WHERE purchase_date LIKE '__/__/____'");
+              // Migration v16: split payments. No backfill: a sale without sale_payments rows
+              // is paid entirely by sales.payment_method.
+              runMigration(stmt, "CREATE TABLE IF NOT EXISTS sale_payments (id INTEGER PRIMARY KEY AUTOINCREMENT, sale_id INTEGER NOT NULL, payment_method TEXT NOT NULL CHECK (payment_method IN ('CASH','CREDIT_CARD','DEBIT_CARD','TRANSFER')), amount REAL NOT NULL CHECK (amount > 0), FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE)");
+              runMigration(stmt, "CREATE INDEX IF NOT EXISTS idx_sale_payments_sale ON sale_payments(sale_id)");
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize schema", e);
         }

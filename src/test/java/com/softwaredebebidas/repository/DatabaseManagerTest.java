@@ -459,4 +459,47 @@ class DatabaseManagerTest {
             }
         }
     }
+
+    // --- Migration v16: sale_payments ---
+
+    @Test
+    void salePaymentsTableExistsAndInitSchemaTwiceIsHarmless() throws SQLException {
+        dbManager.initSchema();
+        dbManager.initSchema();
+        assertThat(getTableNames()).contains("sale_payments");
+    }
+
+    @Test
+    void salePaymentsRejectsNonPositiveAmount() throws SQLException {
+        long saleId = insertMixedSale();
+        try (Statement st = dbManager.getConnection().createStatement()) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> st.executeUpdate(
+                    "INSERT INTO sale_payments (sale_id, payment_method, amount) VALUES (" + saleId + ", 'CASH', 0)"))
+                    .isInstanceOf(SQLException.class);
+        }
+    }
+
+    @Test
+    void salePaymentsRowsCascadeWhenSaleDeleted() throws SQLException {
+        long saleId = insertMixedSale();
+        try (Statement st = dbManager.getConnection().createStatement()) {
+            st.executeUpdate("INSERT INTO sale_payments (sale_id, payment_method, amount) VALUES (" + saleId + ", 'CASH', 10)");
+            st.executeUpdate("DELETE FROM sales WHERE id = " + saleId);
+            try (ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM sale_payments")) {
+                rs.next();
+                assertThat(rs.getInt(1)).isZero();
+            }
+        }
+    }
+
+    private long insertMixedSale() throws SQLException {
+        try (Statement st = dbManager.getConnection().createStatement()) {
+            st.executeUpdate("INSERT INTO sales (sale_date, channel, payment_method, total_amount) "
+                    + "VALUES ('2026-07-22', 'IN', 'MIXED', 100)");
+            try (ResultSet rs = st.executeQuery("SELECT last_insert_rowid()")) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
 }

@@ -111,7 +111,11 @@ public class HomeController implements Refreshable {
         colChannel.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
                 formatChannel(data.getValue().getChannel())
         ));
-        colPayment.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getPaymentMethod()));
+        colPayment.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(formatPayment(data.getValue().getPaymentMethod())));
+    }
+
+    static String formatPayment(String paymentMethod) {
+        return paymentMethod == null ? "" : SaleHistoryController.formatPaymentMethod(paymentMethod);
     }
 
     static String formatChannel(String channel) {

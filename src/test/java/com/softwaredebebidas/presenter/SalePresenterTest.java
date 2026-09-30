@@ -336,4 +336,53 @@ class SalePresenterTest {
         product.setActive(true);
         return product;
     }
+
+    // --- split payment ---
+
+    @Test
+    void completeSaleCopiesSplitDataToSaleAndClearsAfterwards() {
+        when(inventoryService.validateStock(1L, 1)).thenReturn(true);
+        when(salesService.createSale(any(), anyList())).thenReturn(true);
+        when(salesService.generateReceipt(any(), anyList())).thenReturn("receipt");
+
+        Product product = createProduct(1L, "Pepsi 500ml");
+        product.setSalePrice(550.0);
+        presenter.addToCart(product, 1);
+        presenter.setSplitPayment("TRANSFER", 200.0);
+
+        presenter.completeSale();
+
+        org.mockito.ArgumentCaptor<com.softwaredebebidas.model.Sale> captor =
+                org.mockito.ArgumentCaptor.forClass(com.softwaredebebidas.model.Sale.class);
+        verify(salesService).createSale(captor.capture(), anyList());
+        assertThat(captor.getValue().getSplitSecondMethod()).isEqualTo("TRANSFER");
+        assertThat(captor.getValue().getSplitFirstAmount()).isEqualTo(200.0);
+
+        // the next sale must not inherit the split request
+        presenter.addToCart(product, 1);
+        presenter.completeSale();
+        verify(salesService, times(2)).createSale(captor.capture(), anyList());
+        assertThat(captor.getValue().getSplitSecondMethod()).isNull();
+        assertThat(captor.getValue().getSplitFirstAmount()).isNull();
+    }
+
+    @Test
+    void completeSaleAfterClearSplitPaymentLeavesSplitDataNull() {
+        when(inventoryService.validateStock(1L, 1)).thenReturn(true);
+        when(salesService.createSale(any(), anyList())).thenReturn(true);
+        when(salesService.generateReceipt(any(), anyList())).thenReturn("receipt");
+
+        Product product = createProduct(1L, "Pepsi 500ml");
+        product.setSalePrice(550.0);
+        presenter.addToCart(product, 1);
+        presenter.setSplitPayment("TRANSFER", 200.0);
+        presenter.clearSplitPayment();
+
+        presenter.completeSale();
+
+        org.mockito.ArgumentCaptor<com.softwaredebebidas.model.Sale> captor =
+                org.mockito.ArgumentCaptor.forClass(com.softwaredebebidas.model.Sale.class);
+        verify(salesService).createSale(captor.capture(), anyList());
+        assertThat(captor.getValue().getSplitSecondMethod()).isNull();
+    }
 }

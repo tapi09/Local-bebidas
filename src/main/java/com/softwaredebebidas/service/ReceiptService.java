@@ -3,6 +3,7 @@ package com.softwaredebebidas.service;
 import com.softwaredebebidas.model.Product;
 import com.softwaredebebidas.model.Sale;
 import com.softwaredebebidas.model.SaleItem;
+import com.softwaredebebidas.model.SalePayment;
 import com.softwaredebebidas.repository.ProductRepository;
 import com.softwaredebebidas.util.DateUtils;
 
@@ -37,7 +38,19 @@ public class ReceiptService {
         receipt.append(DIVIDER).append("\n");
         receipt.append("Fecha: ").append(DateUtils.toDisplay(sale.getSaleDate())).append("\n");
         receipt.append("Canal: ").append(formatChannel(sale.getChannel())).append("\n");
-        receipt.append("Pago: ").append(formatPaymentMethod(sale.getPaymentMethod())).append("\n");
+        if (sale.getPayments() != null && sale.getPayments().size() > 1) {
+            StringBuilder legs = new StringBuilder();
+            for (SalePayment payment : sale.getPayments()) {
+                if (legs.length() > 0) {
+                    legs.append(" + ");
+                }
+                legs.append(formatPaymentMethod(payment.getPaymentMethod()))
+                        .append(String.format(" $%,.2f", payment.getAmount()));
+            }
+            receipt.append("Pago: ").append(legs).append("\n");
+        } else {
+            receipt.append("Pago: ").append(formatPaymentMethod(sale.getPaymentMethod())).append("\n");
+        }
         receipt.append("--------------------------------\n");
 
         boolean hasDiscounts = false;

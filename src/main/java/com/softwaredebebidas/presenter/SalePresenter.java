@@ -31,6 +31,8 @@ public class SalePresenter {
     private Long selectedCustomerId;
     private double saleDiscount;
     private String saleDiscountType = "NONE";
+    private String splitSecondMethod;
+    private Double splitFirstAmount;
 
     public SalePresenter(SalesService salesService,
                          InventoryService inventoryService,
@@ -363,6 +365,8 @@ public class SalePresenter {
         sale.setCustomerId(selectedCustomerId);
         sale.setDiscount(saleDiscount);
         sale.setDiscountType(saleDiscountType);
+        sale.setSplitSecondMethod(splitSecondMethod);
+        sale.setSplitFirstAmount(splitFirstAmount);
 
         List<SaleItem> itemsCopy = new ArrayList<>(cartItems);
 
@@ -391,5 +395,24 @@ public class SalePresenter {
         selectedCustomerId = null;
         saleDiscount = 0;
         saleDiscountType = "NONE";
+        clearSplitPayment();
+    }
+
+    /**
+     * Requests a split payment for the next sale: {@code firstAmount} is paid with the
+     * current payment method and the remainder with {@code secondMethod}. The remainder
+     * is computed at persist time from the rounded sale total.
+     */
+    public void setSplitPayment(String secondMethod, Double firstAmount) {
+        this.splitSecondMethod = secondMethod;
+        this.splitFirstAmount = firstAmount;
+    }
+
+    /**
+     * Clears any split payment request (default: not split).
+     */
+    public void clearSplitPayment() {
+        this.splitSecondMethod = null;
+        this.splitFirstAmount = null;
     }
 }

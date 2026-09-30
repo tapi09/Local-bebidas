@@ -36,4 +36,17 @@ class HomeControllerTest {
     void formatSaleDateReturnsEmptyForBlank() {
         assertThat(HomeController.formatSaleDate("  ")).isEmpty();
     }
+
+    // --- formatPayment ---
+
+    @Test
+    void formatPaymentUsesFriendlyLabels() {
+        assertThat(HomeController.formatPayment("CASH")).isEqualTo("Efectivo");
+        assertThat(HomeController.formatPayment("MIXED")).isEqualTo("Mixto");
+    }
+
+    @Test
+    void formatPaymentReturnsEmptyForNull() {
+        assertThat(HomeController.formatPayment(null)).isEmpty();
+    }
 }

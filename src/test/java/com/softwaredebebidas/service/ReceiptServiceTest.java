@@ -282,4 +282,32 @@ class ReceiptServiceTest {
         product.setSubcategoryName(subcategoryName);
         return product;
     }
+
+    @Test
+    void generateReceiptShowsBothMethodsForSplitPayment() throws SQLException {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(createProduct("Coca-Cola 500ml")));
+
+        Sale sale = createSale("IN", "MIXED");
+        sale.setPayments(Arrays.asList(
+                new com.softwaredebebidas.model.SalePayment("CASH", 3000.0),
+                new com.softwaredebebidas.model.SalePayment("TRANSFER", 2000.0)));
+        SaleItem item = createSaleItem(1L, 1, 5000.0, 5000.0);
+
+        String receipt = receiptService.generateReceipt(sale, Collections.singletonList(item));
+
+        assertThat(receipt).contains("Pago: Efectivo " + String.format("$%,.2f", 3000.0)
+                + " + Transferencia " + String.format("$%,.2f", 2000.0));
+    }
+
+    @Test
+    void generateReceiptSingleMethodLineUnchanged() throws SQLException {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(createProduct("Coca-Cola 500ml")));
+
+        Sale sale = createSale("IN", "CASH");
+        SaleItem item = createSaleItem(1L, 1, 600.0, 600.0);
+
+        String receipt = receiptService.generateReceipt(sale, Collections.singletonList(item));
+
+        assertThat(receipt).contains("Pago: Efectivo\n");
+    }
 }

@@ -2,6 +2,7 @@ package com.softwaredebebidas.repository;
 
 import com.softwaredebebidas.model.Sale;
 import com.softwaredebebidas.model.SaleItem;
+import com.softwaredebebidas.model.SalePayment;
 import com.softwaredebebidas.service.SalesService;
 
 import java.sql.*;
@@ -60,6 +61,13 @@ public class SaleRepository {
         // discount is a percentage of the subtotal, a FIXED one is a flat amount.
         sale.setTotalAmount(round2(applySaleDiscount(total, sale)));
 
+        // Split payment: computed here from the ROUNDED total so both legs sum
+        // exactly to the persisted total. Validated before any INSERT.
+        boolean split = sale.getSplitSecondMethod() != null;
+        if (split) {
+            prepareSplitPayment(sale);
+        }
+
         long saleId;
         String saleSql = "INSERT INTO sales (sale_date, channel, payment_method, customer_id, discount, discount_type, total_amount) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -101,7 +109,49 @@ public class SaleRepository {
             ps.executeBatch();
         }
 
+        if (split) {
+            String paymentSql = "INSERT INTO sale_payments (sale_id, payment_method, amount) VALUES (?, ?, ?)";
+            try (PreparedStatement ps = conn.prepareStatement(paymentSql)) {
+                for (SalePayment payment : sale.getPayments()) {
+                    ps.setLong(1, saleId);
+                    ps.setString(2, payment.getPaymentMethod());
+                    ps.setDouble(3, payment.getAmount());
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+        }
+
         return saleId;
+    }
+
+    /**
+     * Validates a requested split payment and fills {@code sale.payments} with the
+     * two legs (the first paid with the sale's payment method, the second with the
+     * split's second method). Marks the sale as MIXED. Called after the total has
+     * been rounded and before any INSERT.
+     */
+    private void prepareSplitPayment(Sale sale) {
+        double total = sale.getTotalAmount();
+        String firstMethod = sale.getPaymentMethod();
+        String secondMethod = sale.getSplitSecondMethod();
+        if (total <= 0) {
+            throw new SalesService.ValidationException("No se puede dividir el pago de una venta de $0.");
+        }
+        if (firstMethod == null || firstMethod.equals(secondMethod)) {
+            throw new SalesService.ValidationException("Los dos medios de pago deben ser distintos.");
+        }
+        Double requested = sale.getSplitFirstAmount();
+        double first = requested == null ? 0 : round2(requested);
+        if (first <= 0 || first >= total) {
+            throw new SalesService.ValidationException("El monto del primer pago debe ser mayor a 0 y menor al total.");
+        }
+        double second = round2(total - first);
+        List<SalePayment> payments = new ArrayList<>();
+        payments.add(new SalePayment(firstMethod, first));
+        payments.add(new SalePayment(secondMethod, second));
+        sale.setPayments(payments);
+        sale.setPaymentMethod("MIXED");
     }
 
     /**
