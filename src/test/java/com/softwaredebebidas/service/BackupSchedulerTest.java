@@ -77,7 +77,7 @@ class BackupSchedulerTest {
     @Test
     void backupRunsConcurrentlyWithSaleWithoutError(@TempDir Path tempDir) throws Exception {
         // Real backup service using a file-based DB so VACUUM INTO can run on a separate connection.
-        Path dbFile = tempDir.resolve("cocolatan.db");
+        Path dbFile = tempDir.resolve("software-bebidas.db");
         BackupService realBackup = new BackupService(dbFile, tempDir.resolve("backups"));
         BackupScheduler scheduler = new BackupScheduler(realBackup);
         scheduler.start(1, 2);

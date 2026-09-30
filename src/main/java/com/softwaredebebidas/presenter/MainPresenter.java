@@ -25,7 +25,6 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -35,7 +34,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javafx.scene.control.TextInputDialog;
 
 /**
  * Presenter for the main view. Handles sidebar navigation and content swapping.
@@ -103,6 +101,9 @@ public class MainPresenter {
     private Button btnUsuarios;
 
     @FXML
+    private Button btnNegocio;
+
+    @FXML
     private Button btnDarkMode;
 
     @FXML
@@ -110,7 +111,7 @@ public class MainPresenter {
 
     private boolean isDarkMode = false;
 
-    private String businessName = "Ruta 40 bebidas";
+    private String businessName = ConfigRepository.DEFAULT_BUSINESS_NAME;
 
     private final Map<String, ViewEntry> viewCache = new HashMap<>();
     private String activeButtonId;
@@ -201,6 +202,10 @@ public class MainPresenter {
                 btnUsuarios.setVisible(false);
                 btnUsuarios.setManaged(false);
             }
+            if (btnNegocio != null) {
+                btnNegocio.setVisible(false);
+                btnNegocio.setManaged(false);
+            }
         }
     }
 
@@ -266,6 +271,7 @@ public class MainPresenter {
             case "btnProveedores" -> "/fxml/supplier.fxml";
             case "btnCategorias" -> "/fxml/categories.fxml";
             case "btnUsuarios" -> "/fxml/user.fxml";
+            case "btnNegocio" -> "/fxml/business.fxml";
             default -> null;
         };
     }
@@ -282,6 +288,7 @@ public class MainPresenter {
             case "btnProveedores" -> "Proveedores";
             case "btnCategorias" -> "Categorías";
             case "btnUsuarios" -> "Usuarios";
+            case "btnNegocio" -> "Datos del negocio";
             default -> "";
         };
     }
@@ -367,6 +374,13 @@ public class MainPresenter {
         if (!checkAdminAccess()) return;
         setActiveButton("btnUsuarios");
         loadView("/fxml/user.fxml", "Usuarios");
+    }
+
+    @FXML
+    public void onNegocio() {
+        if (!checkAdminAccess()) return;
+        setActiveButton("btnNegocio");
+        loadView("/fxml/business.fxml", "Datos del negocio");
     }
 
     @FXML
@@ -488,7 +502,7 @@ public class MainPresenter {
 
     void loadBusinessName() {
         try {
-            businessName = configRepository().get("business_name").orElse("Ruta 40 bebidas");
+            businessName = configRepository().getBusinessName();
         } catch (Exception e) {
             LOGGER.log(Level.FINE, "Could not load business name", e);
         }
@@ -505,53 +519,48 @@ public class MainPresenter {
     }
 
     /**
-     * Shows the brand logo image in the sidebar when it is available, hiding
-     * the business-name label in that case. Keeps the label otherwise. Never
+     * Re-reads the business name and logo and updates the sidebar, the top bar and
+     * the window (title and icon) without a restart. Called after the
+     * "Datos del negocio" screen saves.
+     */
+    public void refreshBranding() {
+        loadBusinessName();
+        loadLogo();
+        SoftwareDeBebidasApp.applyBranding(businessName);
+    }
+
+    /**
+     * Shows the business logo in the sidebar when one is configured, hiding the
+     * business-name label in that case and showing the label otherwise. Never
      * throws.
      */
     void loadLogo() {
-        try {
-            Path path = LogoUtils.resolveLogoPath();
-            if (path != null && Files.isReadable(path) && sidebarLogoImage != null) {
-                Image image = new Image(path.toUri().toString());
-                if (!image.isError()) {
-                    sidebarLogoImage.setImage(image);
-                    sidebarLogoImage.setVisible(true);
-                    sidebarLogoImage.setManaged(true);
-                    if (sidebarLogoLabel != null) {
-                        sidebarLogoLabel.setVisible(false);
-                        sidebarLogoLabel.setManaged(false);
-                    }
-                    return;
-                }
+        Image image = LogoUtils.loadLogoImage();
+        if (image != null && sidebarLogoImage != null) {
+            sidebarLogoImage.setImage(image);
+            sidebarLogoImage.setVisible(true);
+            sidebarLogoImage.setManaged(true);
+            if (sidebarLogoLabel != null) {
+                sidebarLogoLabel.setVisible(false);
+                sidebarLogoLabel.setManaged(false);
             }
-        } catch (Exception e) {
-            LOGGER.log(Level.FINE, "Could not load sidebar logo", e);
+            return;
         }
         if (sidebarLogoImage != null) {
+            sidebarLogoImage.setImage(null);
             sidebarLogoImage.setVisible(false);
             sidebarLogoImage.setManaged(false);
         }
+        if (sidebarLogoLabel != null) {
+            sidebarLogoLabel.setVisible(true);
+            sidebarLogoLabel.setManaged(true);
+        }
     }
 
+    /** Top-bar title shortcut: opens the same "Datos del negocio" screen as the sidebar. */
     @FXML
     void onEditBusinessName() {
-        TextInputDialog dialog = new TextInputDialog(businessName);
-        dialog.setTitle("Editar Nombre del Negocio");
-        dialog.setHeaderText("Ingrese el nombre del negocio:");
-        dialog.setContentText("Nombre:");
-        dialog.showAndWait().ifPresent(newName -> {
-            String trimmed = newName.trim();
-            if (!trimmed.isEmpty() && !trimmed.equals(businessName)) {
-                try {
-                    configRepository().set("business_name", trimmed);
-                    businessName = trimmed;
-                    applyBusinessName();
-                } catch (SQLException e) {
-                    LOGGER.log(Level.WARNING, "Could not save business name", e);
-                }
-            }
-        });
+        onNegocio();
     }
 
     void setConfigRepository(ConfigRepository configRepository) {
@@ -602,6 +611,7 @@ public class MainPresenter {
         if (btnProveedores != null) btnProveedores.getStyleClass().remove("sidebar-button-active");
         if (btnCategorias != null) btnCategorias.getStyleClass().remove("sidebar-button-active");
         if (btnUsuarios != null) btnUsuarios.getStyleClass().remove("sidebar-button-active");
+        if (btnNegocio != null) btnNegocio.getStyleClass().remove("sidebar-button-active");
 
         // Add highlight to selected button
         Button activeButton = getButtonById(buttonId);
@@ -623,6 +633,7 @@ public class MainPresenter {
             case "btnProveedores" -> btnProveedores;
             case "btnCategorias" -> btnCategorias;
             case "btnUsuarios" -> btnUsuarios;
+            case "btnNegocio" -> btnNegocio;
             default -> null;
         };
     }

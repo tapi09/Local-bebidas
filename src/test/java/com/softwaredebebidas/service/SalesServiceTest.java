@@ -290,8 +290,7 @@ class SalesServiceTest {
 
         String receipt = salesService.generateReceipt(sale, Collections.singletonList(item));
 
-        assertThat(receipt).contains("Ruta 40 bebidas");
-        
+        assertThat(receipt).contains("Mi negocio");
     }
 
     @Test

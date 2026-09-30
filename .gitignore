@@ -4,7 +4,7 @@ dependency-reduced-pom.xml
 
 # Local SQLite database (development data, not schema)
 softwaredebebidas.db
-cocolatan.db
+software-bebidas.db
 
 # User data (runtime photos/uploads)
 data/product-photos/

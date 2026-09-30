@@ -27,7 +27,7 @@
                     <Insets left="8" bottom="8"/>
                 </padding>
                 <ImageView fx:id="sidebarLogoImage" styleClass="sidebar-logo-image" fitHeight="52" preserveRatio="true" visible="false"/>
-                <Label fx:id="sidebarLogoLabel" text="Ruta 40 bebidas" styleClass="sidebar-logo"/>
+                <Label fx:id="sidebarLogoLabel" text="Mi negocio" styleClass="sidebar-logo"/>
                 
             </VBox>
             <Separator styleClass="sidebar-separator"/>
@@ -48,6 +48,7 @@
                     <Button text="Categorías" fx:id="btnCategorias" onAction="#onCategorias" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
                     <Button text="Reportes" fx:id="btnReportes" onAction="#onReportes" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
                     <Button text="Usuarios" fx:id="btnUsuarios" onAction="#onUsuarios" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
+                    <Button text="Datos del negocio" fx:id="btnNegocio" onAction="#onNegocio" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
                     <Button text="Exportar Respaldo" onAction="#onExportBackup" styleClass="sidebar-button" maxWidth="1.7976931348623157E308"/>
                 </VBox>
             </ScrollPane>
@@ -85,7 +86,7 @@
                 <padding>
                     <Insets top="8" right="20" bottom="8" left="20"/>
                 </padding>
-                <Label fx:id="topBarTitleLabel" text="Ruta 40 bebidas" styleClass="top-bar-title" HBox.hgrow="ALWAYS" onMouseClicked="#onEditBusinessName" style="-fx-cursor: hand;"/>
+                <Label fx:id="topBarTitleLabel" text="Mi negocio" styleClass="top-bar-title" HBox.hgrow="ALWAYS" onMouseClicked="#onEditBusinessName" style="-fx-cursor: hand;"/>
                 <HBox HBox.hgrow="ALWAYS"/>
                 <Label fx:id="dateTimeLabel" styleClass="top-bar-datetime"/>
             </HBox>

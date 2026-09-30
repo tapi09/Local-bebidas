@@ -89,4 +89,24 @@ class ConfigRepositoryTest {
 
         assertThat(repository.getBackupExportDir()).contains("C:\\second");
     }
+
+    @Test
+    void getBusinessNameReturnsGenericDefaultOnFreshDatabase() throws SQLException {
+        assertThat(repository.getBusinessName()).isEqualTo("Mi negocio");
+        assertThat(ConfigRepository.DEFAULT_BUSINESS_NAME).isEqualTo("Mi negocio");
+    }
+
+    @Test
+    void setBusinessNamePersistsTrimmedValue() throws SQLException {
+        repository.setBusinessName("  Distribuidora Norte  ");
+
+        assertThat(repository.getBusinessName()).isEqualTo("Distribuidora Norte");
+    }
+
+    @Test
+    void getBusinessNameFallsBackToDefaultWhenBlank() throws SQLException {
+        repository.set(ConfigRepository.KEY_BUSINESS_NAME, "   ");
+
+        assertThat(repository.getBusinessName()).isEqualTo("Mi negocio");
+    }
 }

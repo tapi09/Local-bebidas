@@ -3,15 +3,19 @@ package com.softwaredebebidas.util;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LogoUtilsTest {
+
+    private static final byte[] PNG_MAGIC = {(byte) 0x89, 'P', 'N', 'G'};
 
     @TempDir
     Path tempDir;
@@ -24,94 +28,93 @@ class LogoUtilsTest {
     }
 
     @Test
-    void resolveLogoPathPrefersDataDirLogoOverLegacy() throws Exception {
-        Path dataLogo = Files.createDirectories(tempDir.resolve("logo"))
-                .resolve("logo.png");
+    void resolveLogoPathReturnsDataDirLogoWhenPresent() throws Exception {
+        Path dataLogo = Files.createDirectories(tempDir.resolve("logo")).resolve("logo.png");
         Files.write(dataLogo, new byte[]{1});
-        Path legacyLogo = Files.createDirectories(tempDir.resolve("legacy").resolve("logo"))
-                .resolve("logo.png");
-        Files.write(legacyLogo, new byte[]{2});
 
-        Path result = LogoUtils.resolveLogoPath(tempDir, legacyLogo);
-
-        assertThat(result).isEqualTo(dataLogo);
+        assertThat(LogoUtils.resolveLogoPath(tempDir)).isEqualTo(dataLogo);
     }
 
     @Test
-    void resolveLogoPathFallsBackToLegacyWhenDataDirMissing() throws Exception {
-        Path legacyLogo = Files.createDirectories(tempDir.resolve("legacy").resolve("logo"))
-                .resolve("logo.png");
-        Files.write(legacyLogo, new byte[]{3});
-
-        Path result = LogoUtils.resolveLogoPath(tempDir, legacyLogo);
-
-        assertThat(result).isEqualTo(legacyLogo);
+    void resolveLogoPathReturnsNullWhenThereIsNoLogo() {
+        assertThat(LogoUtils.resolveLogoPath(tempDir)).isNull();
     }
 
     @Test
-    void resolveLogoPathReturnsNullWhenNeitherExists() {
-        Path missingLegacy = tempDir.resolve("nonexistent").resolve("logo.png");
+    void saveLogoStoresPngAtTheLogoLocation() throws Exception {
+        Path source = writeImage(tempDir.resolve("origen.png"), "png", 20, 10);
 
-        Path result = LogoUtils.resolveLogoPath(tempDir, missingLegacy);
+        LogoUtils.saveLogo(tempDir, source);
 
-        assertThat(result).isNull();
-    }
-
-    @Test
-    void ensureLogoCopiesBundledStreamWhenMissing() throws Exception {
-        byte[] pngBytes = "fake-png-bytes".getBytes(StandardCharsets.UTF_8);
-        InputStream bundled = new ByteArrayInputStream(pngBytes);
-
-        boolean result = LogoUtils.ensureLogo(tempDir, bundled);
-
-        assertThat(result).isTrue();
         Path target = LogoUtils.logoPathFor(tempDir);
-        assertThat(Files.exists(target)).isTrue();
-        assertThat(Files.readAllBytes(target)).containsExactly(pngBytes);
+        assertThat(target).exists();
+        assertThat(Files.readAllBytes(target)).startsWith(PNG_MAGIC);
     }
 
     @Test
-    void ensureLogoOverwritesWhenBundledDiffers() throws Exception {
-        Path target = Files.createDirectories(tempDir.resolve("logo"))
-                .resolve("logo.png");
-        byte[] existing = "already-present".getBytes(StandardCharsets.UTF_8);
-        Files.write(target, existing);
-        byte[] newBytes = "updated-logo".getBytes(StandardCharsets.UTF_8);
-        InputStream bundled = new ByteArrayInputStream(newBytes);
+    void saveLogoNormalizesJpgToPng() throws Exception {
+        Path source = writeImage(tempDir.resolve("origen.jpg"), "jpg", 20, 10);
 
-        boolean result = LogoUtils.ensureLogo(tempDir, bundled);
+        LogoUtils.saveLogo(tempDir, source);
 
-        assertThat(result).isTrue();
-        assertThat(Files.readAllBytes(target)).containsExactly(newBytes);
+        Path target = LogoUtils.logoPathFor(tempDir);
+        assertThat(Files.readAllBytes(target)).startsWith(PNG_MAGIC);
+        BufferedImage image = ImageIO.read(target.toFile());
+        assertThat(image.getWidth()).isEqualTo(20);
+        assertThat(image.getHeight()).isEqualTo(10);
     }
 
     @Test
-    void ensureLogoKeepsIdenticalFileWhenBundledMatches() throws Exception {
-        Path target = Files.createDirectories(tempDir.resolve("logo"))
-                .resolve("logo.png");
-        byte[] existing = "same-logo".getBytes(StandardCharsets.UTF_8);
-        Files.write(target, existing);
-        InputStream bundled = new ByteArrayInputStream(existing);
+    void saveLogoReplacesThePreviousLogo() throws Exception {
+        LogoUtils.saveLogo(tempDir, writeImage(tempDir.resolve("a.png"), "png", 20, 10));
+        Path second = writeImage(tempDir.resolve("b.png"), "png", 40, 30);
 
-        boolean result = LogoUtils.ensureLogo(tempDir, bundled);
+        LogoUtils.saveLogo(tempDir, second);
 
-        assertThat(result).isTrue();
-        assertThat(Files.readAllBytes(target)).containsExactly(existing);
+        BufferedImage stored = ImageIO.read(LogoUtils.logoPathFor(tempDir).toFile());
+        assertThat(stored.getWidth()).isEqualTo(40);
     }
 
     @Test
-    void ensureLogoReturnsFalseWhenBundledStreamMissing() {
-        boolean result = LogoUtils.ensureLogo(tempDir, null);
+    void saveLogoRejectsFilesThatAreNotImagesAndKeepsTheCurrentLogo() throws Exception {
+        LogoUtils.saveLogo(tempDir, writeImage(tempDir.resolve("a.png"), "png", 20, 10));
+        byte[] before = Files.readAllBytes(LogoUtils.logoPathFor(tempDir));
+        Path notAnImage = tempDir.resolve("texto.png");
+        Files.write(notAnImage, "no soy una imagen".getBytes(StandardCharsets.UTF_8));
 
-        assertThat(result).isFalse();
-        assertThat(Files.exists(LogoUtils.logoPathFor(tempDir))).isFalse();
+        assertThatThrownBy(() -> LogoUtils.saveLogo(tempDir, notAnImage))
+                .isInstanceOf(IOException.class);
+
+        assertThat(Files.readAllBytes(LogoUtils.logoPathFor(tempDir))).containsExactly(before);
     }
 
     @Test
-    void bundledLogoStreamProvidesBundledIconResource() throws Exception {
-        InputStream stream = LogoUtils.bundledLogoStream();
+    void removeLogoDeletesTheStoredLogo() throws Exception {
+        LogoUtils.saveLogo(tempDir, writeImage(tempDir.resolve("a.png"), "png", 20, 10));
 
-        assertThat(stream).isNotNull();
-        assertThat(stream.read()).isNotEqualTo(-1);
+        LogoUtils.removeLogo(tempDir);
+
+        assertThat(LogoUtils.logoPathFor(tempDir)).doesNotExist();
+        assertThat(LogoUtils.resolveLogoPath(tempDir)).isNull();
+    }
+
+    @Test
+    void removeLogoIsANoOpWhenThereIsNoLogo() throws Exception {
+        LogoUtils.removeLogo(tempDir);
+
+        assertThat(LogoUtils.logoPathFor(tempDir)).doesNotExist();
+    }
+
+    @Test
+    void theApplicationNeverBundlesABrandLogo() {
+        assertThat(LogoUtils.class.getResource("/icons/logo.png")).isNull();
+        assertThat(LogoUtils.class.getResource("/icons/logo_secundario_gpt.png")).isNull();
+        assertThat(LogoUtils.class.getResource("/icons/softwaredebebidas.png")).isNotNull();
+    }
+
+    private static Path writeImage(Path target, String format, int width, int height) throws IOException {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        ImageIO.write(image, format, target.toFile());
+        return target;
     }
 }

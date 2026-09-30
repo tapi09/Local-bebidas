@@ -69,7 +69,7 @@ public class SaleHistoryController implements Refreshable {
         InventoryService inventoryService = new InventoryService(stockMovementRepo, productRepo);
         SalesService salesService = new SalesService(
                 saleRepo, stockMovementRepo, productRepo, inventoryService,
-                new ReceiptService(productRepo), dbManager
+                new ReceiptService(productRepo, new com.softwaredebebidas.repository.ConfigRepository(dbManager)), dbManager
         );
         presenter = new SaleHistoryPresenter(dbManager, saleRepo, salesService);
 

@@ -47,6 +47,7 @@ class MainPresenterTest {
     private Button btnProveedores;
     private Button btnCategorias;
     private Button btnUsuarios;
+    private Button btnNegocio;
 
     @SuppressWarnings("unchecked")
     private final ObservableMap<KeyCombination, Runnable> accelerators = mock(ObservableMap.class);
@@ -79,6 +80,7 @@ class MainPresenterTest {
         btnProveedores = new Button("Proveedores");
         btnCategorias = new Button("Categorías");
         btnUsuarios = new Button("Usuarios");
+        btnNegocio = new Button("Datos del negocio");
         scene = mock(Scene.class);
         when(scene.getAccelerators()).thenReturn(accelerators);
 
@@ -107,6 +109,7 @@ class MainPresenterTest {
         setField(presenter, "btnProveedores", btnProveedores);
         setField(presenter, "btnCategorias", btnCategorias);
         setField(presenter, "btnUsuarios", btnUsuarios);
+        setField(presenter, "btnNegocio", btnNegocio);
     }
 
     @AfterEach
@@ -251,6 +254,61 @@ class MainPresenterTest {
 
         assertThat(btnUsuarios.isVisible()).isFalse();
         assertThat(btnUsuarios.isManaged()).isFalse();
+    }
+
+    @Test
+    void onNegocioSetsActiveButtonAndLoadsBusinessSettings() {
+        presenter.onNegocio();
+
+        assertThat(btnNegocio.getStyleClass()).contains("sidebar-button-active");
+        assertThat(contentArea.getChildren()).isNotEmpty();
+    }
+
+    @Test
+    void configureForRoleHidesDatosDelNegocioForCajero() throws Exception {
+        UserRepository cajeroRepo = mock(UserRepository.class);
+        User cajero = new User();
+        cajero.setUsername("cajero");
+        cajero.setPasswordHash(AuthService.hashPassword("cajero123"));
+        cajero.setRole("CAJERO");
+        cajero.setDisplayName("Cajero");
+        when(cajeroRepo.findByUsername("cajero")).thenReturn(Optional.of(cajero));
+        AuthService.initialize(cajeroRepo);
+        AuthService.getInstance().login("cajero", "cajero123");
+
+        presenter.configureForRole();
+
+        assertThat(btnNegocio.isVisible()).isFalse();
+        assertThat(btnNegocio.isManaged()).isFalse();
+    }
+
+    @Test
+    void loadBusinessNameShowsTheConfiguredNameInSidebarAndTopBar() throws Exception {
+        ConfigRepository configRepository = mock(ConfigRepository.class);
+        when(configRepository.getBusinessName()).thenReturn("Mi negocio");
+        presenter.setConfigRepository(configRepository);
+        Label sidebar = new Label();
+        Label topBar = new Label();
+        setField(presenter, "sidebarLogoLabel", sidebar);
+        setField(presenter, "topBarTitleLabel", topBar);
+
+        presenter.loadBusinessName();
+
+        assertThat(sidebar.getText()).isEqualTo("Mi negocio");
+        assertThat(topBar.getText()).isEqualTo("Mi negocio");
+    }
+
+    @Test
+    void refreshBrandingReloadsTheNameFromConfig() throws Exception {
+        ConfigRepository configRepository = mock(ConfigRepository.class);
+        when(configRepository.getBusinessName()).thenReturn("Nombre nuevo");
+        presenter.setConfigRepository(configRepository);
+        Label topBar = new Label("Nombre viejo");
+        setField(presenter, "topBarTitleLabel", topBar);
+
+        presenter.refreshBranding();
+
+        assertThat(topBar.getText()).isEqualTo("Nombre nuevo");
     }
 
     @Test

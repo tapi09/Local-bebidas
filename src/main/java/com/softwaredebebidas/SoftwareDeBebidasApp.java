@@ -9,12 +9,17 @@ import com.softwaredebebidas.service.AuthService;
 import com.softwaredebebidas.service.BackupScheduler;
 import com.softwaredebebidas.service.BackupService;
 import com.softwaredebebidas.util.AlertService;
+import com.softwaredebebidas.util.AppDataDir;
 import com.softwaredebebidas.util.LoggingConfig;
 import com.softwaredebebidas.util.LogoUtils;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.image.Image;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -38,12 +43,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Main JavaFX Application entry point for Software de bebidas / Central de Bebidas.
+ * Main JavaFX Application entry point for Software de Bebidas.
  * Initializes the database, seeds default admin, shows login, then main view.
  */
 public class SoftwareDeBebidasApp extends Application {
 
     private static final Logger LOGGER = Logger.getLogger(SoftwareDeBebidasApp.class.getName());
+
+    private static final String APP_NAME = "Software de Bebidas";
 
     /** Bounds how long the crash-path shutdown hook may spend exporting a backup. */
     static final long SHUTDOWN_EXPORT_TIMEOUT_SECONDS = 5;
@@ -59,7 +66,7 @@ public class SoftwareDeBebidasApp extends Application {
     private static BackupService backupService;
     private static Path exportDir;
     private static Stage primaryStage;
-    private static String businessName = "Ruta 40 bebidas";
+    private static String businessName = ConfigRepository.DEFAULT_BUSINESS_NAME;
     private BackupScheduler backupScheduler;
 
     /**
@@ -75,9 +82,9 @@ public class SoftwareDeBebidasApp extends Application {
     public void start(Stage stage) {
         SoftwareDeBebidasApp.primaryStage = stage;
 
-        // Resolve data directories under %APPDATA%/Cocolatan/
-        Path appDataDir = Path.of(System.getenv("APPDATA"), "Cocolatan");
-        Path dbPath = appDataDir.resolve("cocolatan.db");
+        // Resolve data directories under %APPDATA%/software-bebidas/
+        Path appDataDir = AppDataDir.getBaseDir();
+        Path dbPath = AppDataDir.databaseFile(appDataDir);
         Path logDir = appDataDir.resolve("logs");
         Path exportDirPath = appDataDir.resolve("exports");
         Path backupDir = appDataDir.resolve("backups");
@@ -102,19 +109,22 @@ public class SoftwareDeBebidasApp extends Application {
         // data or cause "database is locked" errors).
         if (!acquireInstanceLock(appDataDir)) {
             AlertService.showErrorDialog(
-                    "Software de bebidas ya está abierto",
+                    "Software de Bebidas ya está abierto",
                     "El programa ya se encuentra en ejecución. Cierre la ventana "
                             + "abierta y vuelva a intentarlo."
             );
             return;
         }
 
-        // Seed the bundled logo into the data directory on first run, so the
-        // installed app reads the logo from where the current one lives and
-        // replacing that file updates it in-place.
-        LogoUtils.ensureLogo();
-
         installWindowIcon(stage);
+
+        // Nothing was found in the data dir: never silently start on an empty
+        // database. Let the user create a new one or import a previous install.
+        if (AppDataDir.needsSetup(appDataDir) && !resolveFirstStart(appDataDir)) {
+            releaseInstanceLock();
+            Platform.exit();
+            return;
+        }
 
         LoggingConfig.init(logDir.toString());
 
@@ -186,19 +196,58 @@ public class SoftwareDeBebidasApp extends Application {
     }
 
     /**
-     * Attempts to take an exclusive lock on {@code <appDataDir>/softwaredebebidas.lock}.
+     * Asks how to proceed when the data directory has no database.
+     *
+     * @return true to continue startup (new or imported data), false to exit
+     */
+    private boolean resolveFirstStart(Path appDataDir) {
+        ButtonType create = new ButtonType("Crear base nueva", ButtonBar.ButtonData.YES);
+        ButtonType importData = new ButtonType("Importar datos…", ButtonBar.ButtonData.OTHER);
+        ButtonType exit = new ButtonType("Salir", ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
+                "No se encontraron datos en " + appDataDir + ". Podés crear una base nueva "
+                        + "o importar los datos de una instalación anterior.",
+                create, importData, exit);
+        alert.setTitle(APP_NAME);
+        alert.setHeaderText("No se encontraron datos");
+        ButtonType choice = alert.showAndWait().orElse(exit);
+        if (choice == create) {
+            return true;
+        }
+        if (choice != importData) {
+            return false;
+        }
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Elegí la carpeta de la instalación anterior");
+        java.io.File chosen = chooser.showDialog(primaryStage);
+        if (chosen == null) {
+            return false;
+        }
+        try {
+            AppDataDir.importFrom(chosen.toPath(), appDataDir);
+            return true;
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Failed to import data", e);
+            AlertService.showErrorDialog("Error",
+                    "No se pudieron importar los datos. La carpeta debe contener un único archivo .db.");
+            return false;
+        }
+    }
+
+    /**
+     * Attempts to take an exclusive lock on {@code <appDataDir>/software-bebidas.lock}.
      * <p>
      * A {@link FileLock} is held for as long as this object keeps its channel
      * open. The OS drops the lock automatically when the process exits (even
      * after a crash), so no stale lock file can block a later launch. {@code
      * tryLock} never blocks: it returns {@code null} when another process owns
-     * the lock, which means Software de bebidas is already running.
+     * the lock, which means Software de Bebidas is already running.
      *
      * @return true when this instance owns the lock and may proceed
      */
     private boolean acquireInstanceLock(Path appDataDir) {
         try {
-            Path lockPath = appDataDir.resolve("cocolatan.lock");
+            Path lockPath = AppDataDir.lockFile(appDataDir);
             instanceLockChannel = FileChannel.open(
                     lockPath,
                     StandardOpenOption.CREATE,
@@ -206,7 +255,7 @@ public class SoftwareDeBebidasApp extends Application {
             );
             instanceLock = instanceLockChannel.tryLock();
             if (instanceLock == null) {
-                LOGGER.warning("Another Software de bebidas instance already holds the lock; refusing to start");
+                LOGGER.warning("Another Software de Bebidas instance already holds the lock; refusing to start");
                 instanceLockChannel.close();
                 instanceLockChannel = null;
                 return false;
@@ -223,29 +272,37 @@ public class SoftwareDeBebidasApp extends Application {
     }
 
     /**
-     * Sets the window icon preferring the data-directory logo, falling back to
-     * the classpath brand tile. Never crashes when neither is available.
+     * Sets the window icon preferring the business logo from the data directory,
+     * falling back to the classpath app icon. Replaces any icon set earlier, so it
+     * can be called again after the logo changes. Never crashes when neither is
+     * available.
      */
     private static void installWindowIcon(Stage stage) {
-        try {
-            Path logoPath = LogoUtils.resolveLogoPath();
-            if (logoPath != null && Files.isReadable(logoPath)) {
-                Image image = new Image(logoPath.toUri().toString());
-                if (!image.isError()) {
-                    stage.getIcons().add(image);
-                    return;
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.FINE, "Could not load window icon from data directory", e);
+        Image logo = LogoUtils.loadLogoImage();
+        if (logo != null) {
+            stage.getIcons().setAll(logo);
+            return;
         }
         try (InputStream iconStream = SoftwareDeBebidasApp.class.getResourceAsStream("/icons/softwaredebebidas.png")) {
             if (iconStream != null) {
-                stage.getIcons().add(new Image(iconStream));
+                stage.getIcons().setAll(new Image(iconStream));
             }
         } catch (Exception e) {
             LOGGER.log(Level.FINE, "Could not load window icon", e);
         }
+    }
+
+    /**
+     * Applies a changed business name and logo to the running window (title and
+     * icon) without a restart. No-op before the window exists.
+     */
+    public static void applyBranding(String newBusinessName) {
+        businessName = newBusinessName;
+        if (primaryStage == null) {
+            return;
+        }
+        installWindowIcon(primaryStage);
+        primaryStage.setTitle(businessName + " - " + APP_NAME);
     }
 
     private void seedDefaultAdmin() {
@@ -269,7 +326,7 @@ public class SoftwareDeBebidasApp extends Application {
     private static void loadBusinessName() {
         try {
             ConfigRepository configRepo = new ConfigRepository(databaseManager);
-            businessName = configRepo.get("business_name").orElse("Ruta 40 bebidas");
+            businessName = configRepo.getBusinessName();
         } catch (Exception e) {
             LOGGER.log(Level.FINE, "Could not load business name, using default", e);
         }
@@ -299,7 +356,7 @@ public class SoftwareDeBebidasApp extends Application {
 
             Scene scene = new Scene(root, 1100, 680);
             scene.getStylesheets().add("/styles.css");
-            primaryStage.setTitle(businessName + " - Central de Bebidas");
+            primaryStage.setTitle(businessName + " - " + APP_NAME);
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(900);
             primaryStage.setMinHeight(540);

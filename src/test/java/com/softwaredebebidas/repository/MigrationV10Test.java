@@ -31,7 +31,7 @@ class MigrationV10Test {
         ConfigRepository configRepo = new ConfigRepository(dbManager);
         Optional<String> value = configRepo.get("business_name");
         assertThat(value).isPresent();
-        assertThat(value.get()).isEqualTo("Ruta 40 bebidas");
+        assertThat(value.get()).isEqualTo("Mi negocio");
     }
 
     @Test
@@ -42,7 +42,7 @@ class MigrationV10Test {
         ConfigRepository configRepo = new ConfigRepository(dbManager);
         Optional<String> value = configRepo.get("business_name");
         assertThat(value).isPresent();
-        assertThat(value.get()).isEqualTo("Ruta 40 bebidas");
+        assertThat(value.get()).isEqualTo("Mi negocio");
     }
 
     @Test

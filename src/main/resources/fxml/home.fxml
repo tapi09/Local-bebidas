@@ -23,7 +23,7 @@
     <!-- Header Section -->
     <VBox spacing="2">
         <Label text="Panel de Control" styleClass="title-label"/>
-        <Label text="Bienvenido al Sistema Kiosco POS — Central de Bebidas" styleClass="subtitle-label"/>
+        <Label text="Bienvenido a Software de Bebidas" styleClass="subtitle-label"/>
     </VBox>
 
     <!-- Summary KPI Cards Grid (3x2) -->

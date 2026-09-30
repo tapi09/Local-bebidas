@@ -19,7 +19,7 @@
         </padding>
 
         <ImageView fx:id="loginLogoImage" styleClass="login-logo-image" fitHeight="88" preserveRatio="true" visible="false"/>
-        <Label fx:id="loginLogoLabel" text="Ruta 40 bebidas" styleClass="login-logo"/>
+        <Label fx:id="loginLogoLabel" text="Mi negocio" styleClass="login-logo"/>
         
         <Label text="Iniciar Sesión" styleClass="login-title"/>
 

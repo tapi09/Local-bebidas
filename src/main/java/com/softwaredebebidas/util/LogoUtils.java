@@ -1,41 +1,38 @@
 package com.softwaredebebidas.util;
 
+import javafx.scene.image.Image;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Utility for locating and seeding the brand logo.
+ * Utility for locating, storing and loading the business logo.
  * <p>
- * The installed app reads the logo from the app's data directory
- * ({@code %APPDATA%/Cocolatan/logo/logo.png}), which is synced from the bundled
- * classpath resource on startup: the bundled logo replaces the data-dir file
- * in-place whenever it is missing or differs. Uploading a new bundled logo
- * therefore puts it exactly where the current one is.
+ * The logo is chosen by the owner from the "Datos del negocio" screen and lives at
+ * {@code <data dir>/logo/logo.png}. Any supported image (PNG, JPG, GIF, BMP) is
+ * normalized to PNG when stored. The application ships no logo of its own and never
+ * writes or overwrites this file on its own: when it does not exist the UI shows the
+ * business name instead.
  */
 public final class LogoUtils {
 
     private static final Logger LOGGER = Logger.getLogger(LogoUtils.class.getName());
 
-    private static final String LOGO_RESOURCE = "/icons/logo.png";
-    private static final String LEGACY_LOGO_DIR = "data";
-
     private LogoUtils() {
     }
 
     public static Path getBaseDir() {
-        String appData = System.getenv("APPDATA");
-        if (appData != null && !appData.isBlank()) {
-            return Path.of(appData, "Cocolatan");
-        }
-        return Paths.get("data");
+        return AppDataDir.getBaseDir();
     }
 
-    static Path logoPathFor(Path baseDir) {
+    public static Path logoPathFor(Path baseDir) {
         return baseDir.resolve("logo").resolve("logo.png");
     }
 
@@ -43,51 +40,70 @@ public final class LogoUtils {
         return logoPathFor(getBaseDir());
     }
 
-    static Path resolveLogoPath(Path baseDir, Path legacyLogo) {
-        Path dataLogo = logoPathFor(baseDir);
-        if (Files.exists(dataLogo)) {
-            return dataLogo;
-        }
-        if (Files.exists(legacyLogo)) {
-            return legacyLogo;
-        }
-        return null;
+    /** Returns the stored logo under {@code baseDir}, or {@code null} when there is none. */
+    public static Path resolveLogoPath(Path baseDir) {
+        Path logo = logoPathFor(baseDir);
+        return Files.exists(logo) ? logo : null;
     }
 
+    /** Returns the stored logo, or {@code null} when none has been chosen. */
     public static Path resolveLogoPath() {
-        return resolveLogoPath(getBaseDir(), Path.of(LEGACY_LOGO_DIR, "logo", "logo.png"));
+        return resolveLogoPath(getBaseDir());
     }
 
-    public static InputStream bundledLogoStream() {
-        return LogoUtils.class.getResourceAsStream(LOGO_RESOURCE);
+    public static void saveLogo(Path source) throws IOException {
+        saveLogo(getBaseDir(), source);
     }
 
-    public static boolean ensureLogo() {
-        return ensureLogo(getBaseDir(), bundledLogoStream());
-    }
-
-    static boolean ensureLogo(Path baseDir, InputStream bundled) {
-        if (bundled == null) {
-            return false;
+    /**
+     * Decodes {@code source} and stores it as PNG at the logo location under
+     * {@code baseDir}, replacing any previous logo. The current logo is left
+     * untouched when the file cannot be decoded as an image.
+     *
+     * @throws IOException if the file is not a readable image or cannot be written
+     */
+    public static void saveLogo(Path baseDir, Path source) throws IOException {
+        BufferedImage image = ImageIO.read(source.toFile());
+        if (image == null) {
+            throw new IOException("Unsupported image format: " + source.getFileName());
         }
         Path target = logoPathFor(baseDir);
-        try (InputStream in = bundled) {
-            byte[] bundledBytes = in.readAllBytes();
-            boolean missing = !Files.exists(target);
-            boolean differs = !missing && !java.util.Arrays.equals(Files.readAllBytes(target), bundledBytes);
-            if (missing || differs) {
-                Files.createDirectories(target.getParent());
-                Files.write(target, bundledBytes);
+        Files.createDirectories(target.getParent());
+        Path staging = target.resolveSibling("logo.png.tmp");
+        try {
+            if (!ImageIO.write(image, "png", staging.toFile())) {
+                throw new IOException("Could not encode logo as PNG");
             }
-            return Files.exists(target);
-        } catch (IOException | RuntimeException e) {
-            LOGGER.log(Level.FINE, "Could not ensure logo at " + target, e);
-            return false;
+            Files.move(staging, target, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(staging);
         }
     }
 
-    public static java.io.File resolveLogoFile() {
-        Path path = resolveLogoPath();
-        return path == null ? null : path.toFile();
+    public static void removeLogo() throws IOException {
+        removeLogo(getBaseDir());
+    }
+
+    public static void removeLogo(Path baseDir) throws IOException {
+        Files.deleteIfExists(logoPathFor(baseDir));
+    }
+
+    /**
+     * Loads the stored logo as a JavaFX image, or returns {@code null} when there is
+     * no logo or it cannot be decoded. Reads the bytes directly so a logo replaced
+     * while the app runs is never served from a cache. Never throws.
+     */
+    public static Image loadLogoImage() {
+        try {
+            Path path = resolveLogoPath();
+            if (path == null || !Files.isReadable(path)) {
+                return null;
+            }
+            Image image = new Image(new ByteArrayInputStream(Files.readAllBytes(path)));
+            return image.isError() ? null : image;
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "Could not load logo", e);
+            return null;
+        }
     }
 }

@@ -146,7 +146,7 @@ public class SaleController implements Refreshable {
                         stockMovementRepo,
                         productRepo,
                         inventoryService,
-                        new ReceiptService(productRepo),
+                        new ReceiptService(productRepo, new com.softwaredebebidas.repository.ConfigRepository(dbManager)),
                         dbManager
                 ),
                 inventoryService,

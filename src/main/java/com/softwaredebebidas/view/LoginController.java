@@ -24,8 +24,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.util.StringConverter;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -74,8 +72,7 @@ public class LoginController {
         try {
             ConfigRepository configRepo = new ConfigRepository(
                     com.softwaredebebidas.SoftwareDeBebidasApp.getDatabaseManager());
-            String businessName = configRepo.get("business_name").orElse("Ruta 40 bebidas");
-            loginLogoLabel.setText(businessName);
+            loginLogoLabel.setText(configRepo.getBusinessName());
         } catch (Exception e) {
             LOGGER.log(Level.FINE, "Could not load business name", e);
         }
@@ -95,25 +92,18 @@ public class LoginController {
     }
 
     /**
-     * Shows the brand logo image when it is available, falling back to the
+     * Shows the business logo when one is configured, falling back to the
      * business-name label otherwise. Never throws.
      */
     private void loadLogo() {
-        try {
-            Path path = LogoUtils.resolveLogoPath();
-            if (path != null && Files.isReadable(path)) {
-                Image image = new Image(path.toUri().toString());
-                if (!image.isError()) {
-                    loginLogoImage.setImage(image);
-                    loginLogoImage.setVisible(true);
-                    loginLogoImage.setManaged(true);
-                    loginLogoLabel.setVisible(false);
-                    loginLogoLabel.setManaged(false);
-                    return;
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.FINE, "Could not load login logo", e);
+        Image image = LogoUtils.loadLogoImage();
+        if (image != null) {
+            loginLogoImage.setImage(image);
+            loginLogoImage.setVisible(true);
+            loginLogoImage.setManaged(true);
+            loginLogoLabel.setVisible(false);
+            loginLogoLabel.setManaged(false);
+            return;
         }
         loginLogoImage.setVisible(false);
         loginLogoImage.setManaged(false);

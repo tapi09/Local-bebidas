@@ -6,9 +6,15 @@ import java.sql.SQLException;
 import java.util.Optional;
 
 /**
- * Repository for the app_config key/value table (dark mode, etc.).
+ * Repository for the app_config key/value table (dark mode, business name, etc.).
  */
 public class ConfigRepository {
+
+    /** Config key storing the business name shown in the UI and on receipts. */
+    public static final String KEY_BUSINESS_NAME = "business_name";
+
+    /** Generic business name used until the owner configures their own. */
+    public static final String DEFAULT_BUSINESS_NAME = "Mi negocio";
 
     /** Config key storing the last directory used for backup export. */
     public static final String KEY_BACKUP_EXPORT_DIR = "backup_export_dir";
@@ -45,6 +51,24 @@ public class ConfigRepository {
             ps.setString(2, value);
             ps.executeUpdate();
         }
+    }
+
+    /**
+     * Returns the configured business name, or {@link #DEFAULT_BUSINESS_NAME}
+     * when none is stored or the stored value is blank.
+     */
+    public String getBusinessName() throws SQLException {
+        return get(KEY_BUSINESS_NAME)
+                .map(String::trim)
+                .filter(name -> !name.isEmpty())
+                .orElse(DEFAULT_BUSINESS_NAME);
+    }
+
+    /**
+     * Persists the business name (trimmed).
+     */
+    public void setBusinessName(String name) throws SQLException {
+        set(KEY_BUSINESS_NAME, name.trim());
     }
 
     /**

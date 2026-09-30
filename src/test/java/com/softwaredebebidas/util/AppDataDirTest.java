@@ -1,132 +1,108 @@
 package com.softwaredebebidas.util;
 
-import com.softwaredebebidas.model.Product;
-import com.softwaredebebidas.repository.DatabaseManager;
-import com.softwaredebebidas.repository.ProductRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.SQLException;
+import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AppDataDirTest {
 
-    @Test
-    void migratesLegacyDirectoryWhenTargetIsMissing(@TempDir Path root) throws IOException {
-        Path legacy = Files.createDirectories(root.resolve(AppDataDir.LEGACY_DIR_NAME));
-        Files.writeString(legacy.resolve(AppDataDir.LEGACY_DB_FILE), "db-bytes");
-        Files.writeString(legacy.resolve(AppDataDir.LEGACY_DB_FILE + "-wal"), "wal-bytes");
-        Files.writeString(legacy.resolve(AppDataDir.LEGACY_LOCK_FILE), "");
-        Files.createDirectories(legacy.resolve("backups"));
-        Files.writeString(legacy.resolve("backups").resolve("old_backup.db"), "backup");
-        Files.createDirectories(legacy.resolve("product-photos"));
-        Files.writeString(legacy.resolve("product-photos").resolve("a.jpg"), "photo");
-
-        Path result = AppDataDir.migrateLegacy(root);
-
-        Path target = root.resolve(AppDataDir.DIR_NAME);
-        assertThat(result).isEqualTo(target);
-        assertThat(target.resolve(AppDataDir.DB_FILE)).hasContent("db-bytes");
-        assertThat(target.resolve(AppDataDir.DB_FILE + "-wal")).hasContent("wal-bytes");
-        assertThat(target.resolve("backups").resolve("old_backup.db")).hasContent("backup");
-        assertThat(target.resolve("product-photos").resolve("a.jpg")).hasContent("photo");
-        assertThat(target.resolve(AppDataDir.LEGACY_DB_FILE)).doesNotExist();
-        assertThat(target.resolve(AppDataDir.LEGACY_LOCK_FILE)).doesNotExist();
-        // The legacy directory is kept untouched as a safety copy.
-        assertThat(legacy.resolve(AppDataDir.LEGACY_DB_FILE)).hasContent("db-bytes");
-        assertThat(root.resolve(AppDataDir.DIR_NAME + AppDataDir.STAGING_SUFFIX)).doesNotExist();
+    @AfterEach
+    void resetInitializedDir() {
+        AppDataDir.reset();
     }
 
     @Test
-    void keepsExistingTargetAndIgnoresLegacy(@TempDir Path root) throws IOException {
-        Path legacy = Files.createDirectories(root.resolve(AppDataDir.LEGACY_DIR_NAME));
-        Files.writeString(legacy.resolve(AppDataDir.LEGACY_DB_FILE), "old");
-        Path target = Files.createDirectories(root.resolve(AppDataDir.DIR_NAME));
-        Files.writeString(target.resolve(AppDataDir.DB_FILE), "current");
-
-        Path result = AppDataDir.migrateLegacy(root);
-
-        assertThat(result).isEqualTo(target);
-        assertThat(target.resolve(AppDataDir.DB_FILE)).hasContent("current");
+    void namesAreTheGenericProductNames() {
+        assertThat(AppDataDir.DIR_NAME).isEqualTo("software-bebidas");
+        assertThat(AppDataDir.DB_FILE).isEqualTo("software-bebidas.db");
+        assertThat(AppDataDir.LOCK_FILE).isEqualTo("software-bebidas.lock");
     }
 
     @Test
-    void freshInstallUsesTargetWithoutCreatingLegacy(@TempDir Path root) {
-        Path result = AppDataDir.migrateLegacy(root);
+    void defaultDirLivesUnderAppDataWhenSet() {
+        Path result = AppDataDir.defaultDir("C:/Users/x/AppData/Roaming");
+
+        assertThat(result).isEqualTo(Path.of("C:/Users/x/AppData/Roaming", "software-bebidas"));
+    }
+
+    @Test
+    void defaultDirFallsBackToLocalDataFolderWhenAppDataIsUnset() {
+        assertThat(AppDataDir.defaultDir(null)).isEqualTo(Paths.get("data"));
+        assertThat(AppDataDir.defaultDir("  ")).isEqualTo(Paths.get("data"));
+    }
+
+    @Test
+    void initializeMakesTheResolvedDirTheSingleSourceOfTruth(@TempDir Path root) {
+        Path result = AppDataDir.initialize(root);
 
         assertThat(result).isEqualTo(root.resolve(AppDataDir.DIR_NAME));
-        assertThat(root.resolve(AppDataDir.LEGACY_DIR_NAME)).doesNotExist();
+        assertThat(AppDataDir.getBaseDir()).isEqualTo(result);
     }
 
     @Test
-    void discardsStaleStagingDirectoryFromInterruptedMigration(@TempDir Path root) throws IOException {
-        Path legacy = Files.createDirectories(root.resolve(AppDataDir.LEGACY_DIR_NAME));
-        Files.writeString(legacy.resolve(AppDataDir.LEGACY_DB_FILE), "db-bytes");
-        Path staging = Files.createDirectories(root.resolve(AppDataDir.DIR_NAME + AppDataDir.STAGING_SUFFIX));
-        Files.writeString(staging.resolve("partial.tmp"), "junk");
-
-        Path result = AppDataDir.migrateLegacy(root);
-
-        assertThat(result.resolve(AppDataDir.DB_FILE)).hasContent("db-bytes");
-        assertThat(result.resolve("partial.tmp")).doesNotExist();
-        assertThat(staging).doesNotExist();
+    void databaseAndLockFilesLiveInsideTheDataDir(@TempDir Path dir) {
+        assertThat(AppDataDir.databaseFile(dir)).isEqualTo(dir.resolve("software-bebidas.db"));
+        assertThat(AppDataDir.lockFile(dir)).isEqualTo(dir.resolve("software-bebidas.lock"));
     }
 
     @Test
-    void fallsBackToLegacyDirectoryWhenCopyFails(@TempDir Path root) throws IOException {
-        Path legacy = Files.createDirectories(root.resolve(AppDataDir.LEGACY_DIR_NAME));
-        Files.writeString(legacy.resolve(AppDataDir.LEGACY_DB_FILE), "db-bytes");
+    void needsSetupUntilTheDatabaseFileExists(@TempDir Path dir) throws IOException {
+        assertThat(AppDataDir.needsSetup(dir)).isTrue();
 
-        Path result = AppDataDir.migrateLegacy(root, (from, to) -> {
-            throw new IOException("disk full");
-        });
+        Files.writeString(AppDataDir.databaseFile(dir), "x");
 
-        assertThat(result).isEqualTo(legacy);
-        assertThat(root.resolve(AppDataDir.DIR_NAME)).doesNotExist();
-        assertThat(root.resolve(AppDataDir.DIR_NAME + AppDataDir.STAGING_SUFFIX)).doesNotExist();
-        assertThat(AppDataDir.databaseFile(result)).isEqualTo(legacy.resolve(AppDataDir.LEGACY_DB_FILE));
+        assertThat(AppDataDir.needsSetup(dir)).isFalse();
     }
 
     @Test
-    void databaseFilePrefersCurrentNameAndFallsBackToLegacy(@TempDir Path dir) throws IOException {
-        assertThat(AppDataDir.databaseFile(dir)).isEqualTo(dir.resolve(AppDataDir.DB_FILE));
+    void importFromCopiesTheTreeRenamesTheDbAndSkipsLocks(@TempDir Path src, @TempDir Path dest)
+            throws IOException {
+        Files.writeString(src.resolve("old-name.db"), "data");
+        Files.writeString(src.resolve("old-name.lock"), "lock");
+        Files.createDirectories(src.resolve("photos"));
+        Files.writeString(src.resolve("photos/a.png"), "img");
 
-        Files.writeString(dir.resolve(AppDataDir.LEGACY_DB_FILE), "old");
-        assertThat(AppDataDir.databaseFile(dir)).isEqualTo(dir.resolve(AppDataDir.LEGACY_DB_FILE));
+        AppDataDir.importFrom(src, dest);
 
-        Files.writeString(dir.resolve(AppDataDir.DB_FILE), "new");
-        assertThat(AppDataDir.databaseFile(dir)).isEqualTo(dir.resolve(AppDataDir.DB_FILE));
+        assertThat(Files.readString(AppDataDir.databaseFile(dest))).isEqualTo("data");
+        assertThat(dest.resolve("old-name.db")).doesNotExist();
+        assertThat(dest.resolve("old-name.lock")).doesNotExist();
+        assertThat(Files.readString(dest.resolve("photos/a.png"))).isEqualTo("img");
+        assertThat(src.resolve("old-name.db")).exists();
+        assertThat(src.resolve("old-name.lock")).exists();
     }
 
     @Test
-    void upgradedInstallationKeepsItsRealDatabaseData(@TempDir Path root) throws SQLException {
-        // Simulates an existing 1.0.3 installation writing to the legacy location.
-        Path legacyDb = root.resolve(AppDataDir.LEGACY_DIR_NAME).resolve(AppDataDir.LEGACY_DB_FILE);
-        legacyDb.getParent().toFile().mkdirs();
-        DatabaseManager oldInstall = DatabaseManager.createFromFile(legacyDb.toString());
-        Product product = new Product();
-        product.setName("Producto existente");
-        product.setCategoryName("Gaseosas");
-        product.setPresentation("Botella");
-        product.setCostPrice(100.0);
-        product.setSalePrice(200.0);
-        product.setMinStock(5);
-        product.setActive(true);
-        new ProductRepository(oldInstall).save(product);
-        oldInstall.close();
+    void importFromRenamesTheSqliteCompanionFilesWithTheDb(@TempDir Path src, @TempDir Path dest)
+            throws IOException {
+        Files.writeString(src.resolve("old-name.db"), "data");
+        Files.writeString(src.resolve("old-name.db-wal"), "wal");
+        Files.writeString(src.resolve("old-name.db-shm"), "shm");
 
-        // First start of the upgraded version.
-        Path dataDir = AppDataDir.migrateLegacy(root);
-        DatabaseManager upgraded = DatabaseManager.createFromFile(AppDataDir.databaseFile(dataDir).toString());
+        AppDataDir.importFrom(src, dest);
 
-        assertThat(dataDir).isEqualTo(root.resolve(AppDataDir.DIR_NAME));
-        assertThat(new ProductRepository(upgraded).findAllActive())
-                .extracting(Product::getName)
-                .contains("Producto existente");
-        upgraded.close();
+        String db = AppDataDir.databaseFile(dest).toString();
+        assertThat(Files.readString(Path.of(db + "-wal"))).isEqualTo("wal");
+        assertThat(Files.readString(Path.of(db + "-shm"))).isEqualTo("shm");
+        assertThat(dest.resolve("old-name.db-wal")).doesNotExist();
+    }
+
+    @Test
+    void importFromRejectsAFolderWithoutExactlyOneDb(@TempDir Path src, @TempDir Path dest)
+            throws IOException {
+        assertThatThrownBy(() -> AppDataDir.importFrom(src, dest)).isInstanceOf(IOException.class);
+
+        Files.writeString(src.resolve("a.db"), "1");
+        Files.writeString(src.resolve("b.db"), "2");
+        assertThatThrownBy(() -> AppDataDir.importFrom(src, dest)).isInstanceOf(IOException.class);
+        assertThat(AppDataDir.needsSetup(dest)).isTrue();
     }
 }

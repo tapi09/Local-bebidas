@@ -9,7 +9,7 @@ import java.util.UUID;
 
 /**
  * Utility for managing product photos stored relative to the app's data directory.
- * Photos live in {@code %APPDATA%/Cocolatan/product-photos/} co-located with DB and logs.
+ * Photos live in {@code %APPDATA%/software-bebidas/product-photos/} co-located with DB and logs.
  */
 public class PhotoUtils {
 
@@ -17,11 +17,7 @@ public class PhotoUtils {
     }
 
     public static Path getBaseDir() {
-        String appData = System.getenv("APPDATA");
-        if (appData != null && !appData.isBlank()) {
-            return Path.of(appData, "Cocolatan");
-        }
-        return Paths.get("data");
+        return AppDataDir.getBaseDir();
     }
 
     public static Path getPhotosDir() {

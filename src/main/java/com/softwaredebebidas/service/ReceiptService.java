@@ -4,6 +4,7 @@ import com.softwaredebebidas.model.Product;
 import com.softwaredebebidas.model.Sale;
 import com.softwaredebebidas.model.SaleItem;
 import com.softwaredebebidas.model.SalePayment;
+import com.softwaredebebidas.repository.ConfigRepository;
 import com.softwaredebebidas.repository.ProductRepository;
 import com.softwaredebebidas.util.DateUtils;
 
@@ -15,13 +16,34 @@ import java.util.List;
  */
 public class ReceiptService {
 
-    private static final String STORE_NAME = "Ruta 40 bebidas";
     private static final String DIVIDER = "================================";
 
     private final ProductRepository productRepository;
+    private final ConfigRepository configRepository;
 
     public ReceiptService(ProductRepository productRepository) {
+        this(productRepository, null);
+    }
+
+    /**
+     * @param configRepository source of the configured business name printed in
+     *                         the receipt header; when {@code null} or unreadable
+     *                         the generic default name is used
+     */
+    public ReceiptService(ProductRepository productRepository, ConfigRepository configRepository) {
         this.productRepository = productRepository;
+        this.configRepository = configRepository;
+    }
+
+    private String storeName() {
+        if (configRepository == null) {
+            return ConfigRepository.DEFAULT_BUSINESS_NAME;
+        }
+        try {
+            return configRepository.getBusinessName();
+        } catch (Exception e) {
+            return ConfigRepository.DEFAULT_BUSINESS_NAME;
+        }
     }
 
     /**
@@ -34,7 +56,7 @@ public class ReceiptService {
     public String generateReceipt(Sale sale, List<SaleItem> items) {
         StringBuilder receipt = new StringBuilder();
         receipt.append(DIVIDER).append("\n");
-        receipt.append("      ").append(STORE_NAME).append("\n");
+        receipt.append("      ").append(storeName()).append("\n");
         receipt.append(DIVIDER).append("\n");
         receipt.append("Fecha: ").append(DateUtils.toDisplay(sale.getSaleDate())).append("\n");
         receipt.append("Canal: ").append(formatChannel(sale.getChannel())).append("\n");

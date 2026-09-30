@@ -3,6 +3,7 @@ package com.softwaredebebidas.service;
 import com.softwaredebebidas.model.Product;
 import com.softwaredebebidas.model.Sale;
 import com.softwaredebebidas.model.SaleItem;
+import com.softwaredebebidas.repository.ConfigRepository;
 import com.softwaredebebidas.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +19,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,8 +44,33 @@ class ReceiptServiceTest {
 
         String receipt = receiptService.generateReceipt(sale, Collections.singletonList(item));
 
-        assertThat(receipt).contains("Ruta 40 bebidas");
-        
+        assertThat(receipt).contains("Mi negocio");
+    }
+
+    @Test
+    void generateReceiptUsesConfiguredBusinessName() throws SQLException {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(createProduct("Coca-Cola 500ml")));
+        ConfigRepository configRepository = mock(ConfigRepository.class);
+        when(configRepository.getBusinessName()).thenReturn("Distribuidora Norte");
+        receiptService = new ReceiptService(productRepository, configRepository);
+
+        String receipt = receiptService.generateReceipt(createSale("IN", "CASH"),
+                Collections.singletonList(createSaleItem(1L, 1, 600.0, 600.0)));
+
+        assertThat(receipt).contains("Distribuidora Norte").doesNotContain("Mi negocio");
+    }
+
+    @Test
+    void generateReceiptFallsBackToDefaultNameWhenConfigFails() throws SQLException {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(createProduct("Coca-Cola 500ml")));
+        ConfigRepository configRepository = mock(ConfigRepository.class);
+        when(configRepository.getBusinessName()).thenThrow(new SQLException("DB down"));
+        receiptService = new ReceiptService(productRepository, configRepository);
+
+        String receipt = receiptService.generateReceipt(createSale("IN", "CASH"),
+                Collections.singletonList(createSaleItem(1L, 1, 600.0, 600.0)));
+
+        assertThat(receipt).contains("Mi negocio");
     }
 
     @Test

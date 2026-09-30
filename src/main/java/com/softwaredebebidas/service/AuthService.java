@@ -9,21 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class AuthService {
-
-    private static final Logger LOGGER = Logger.getLogger(AuthService.class.getName());
-
-    /**
-     * Legacy factory-default provider master key from older versions that seeded
-     * it into every fresh database. This value is NEVER seeded into new databases;
-     * it is kept only so installs that were created with it can be detected at
-     * startup and warned to rotate. Its plaintext presence here is not a risk
-     * because it is never written to any fresh database.
-     */
-    private static final String LEGACY_DEFAULT_MASTER_KEY = "cocolatan-master-2026";
 
     private static final String MASTER_RESET_HASH_KEY = "master_reset_hash";
 
@@ -48,38 +35,6 @@ public class AuthService {
 
     public static void initialize(UserRepository userRepository, ConfigRepository configRepository) {
         instance = new AuthService(userRepository, configRepository);
-        instance.warnIfLegacyMasterKeyInUse();
-    }
-
-    /**
-     * Logs a clear warning when the stored master reset hash is still the legacy
-     * factory default. This only happens on databases that were created by an old
-     * version that seeded the default key; the hash is never written to fresh
-     * databases. Best-effort: login must never be blocked by this check.
-     */
-    private void warnIfLegacyMasterKeyInUse() {
-        if (isUsingLegacyMasterKey()) {
-            LOGGER.log(Level.WARNING,
-                    "The stored master reset key is the legacy factory default and must be rotated. "
-                            + "Configure a new key in the Users screen before relying on password recovery.");
-        }
-    }
-
-    /**
-     * Returns whether the stored master reset hash equals the legacy factory
-     * default key. False when recovery is not configured or the key was rotated.
-     */
-    public boolean isUsingLegacyMasterKey() {
-        if (configRepository == null) {
-            return false;
-        }
-        try {
-            return configRepository.get(MASTER_RESET_HASH_KEY)
-                    .map(stored -> verifyPassword(LEGACY_DEFAULT_MASTER_KEY, stored))
-                    .orElse(false);
-        } catch (SQLException e) {
-            return false;
-        }
     }
 
     public static AuthService getInstance() {

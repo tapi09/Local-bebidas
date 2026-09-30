@@ -1,59 +1,42 @@
 package com.softwaredebebidas.util;
 
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.List;
+import java.util.stream.Stream;
 
 /**
- * Resolves the application data directory ({@code %APPDATA%/SoftwareDeBebidas})
- * and migrates data left by installations up to 1.0.3, which used a different
- * directory and database file name.
+ * Single source of truth for the application data directory
+ * ({@code %APPDATA%/software-bebidas}) and the well-known file names inside it.
  *
- * <p>The migration copies the legacy directory into a staging directory and then
- * renames it atomically, so an interrupted copy never leaves a half-populated data
- * directory behind. The legacy directory is never modified or deleted: it stays as
- * a safety copy. If the copy fails, the application keeps running on the legacy
- * directory so the store can keep operating with its existing data.</p>
+ * <p>Database, lock file, backups, exports, logs, logo and photos all resolve their
+ * location from {@link #getBaseDir()}. When {@code APPDATA} is not set (tests,
+ * tooling, non-Windows hosts) the base directory falls back to a local {@code data}
+ * folder.</p>
  */
 public final class AppDataDir {
 
-    private static final Logger LOGGER = Logger.getLogger(AppDataDir.class.getName());
+    public static final String DIR_NAME = "software-bebidas";
+    public static final String DB_FILE = "software-bebidas.db";
+    public static final String LOCK_FILE = "software-bebidas.lock";
 
-    public static final String DIR_NAME = "SoftwareDeBebidas";
-    public static final String DB_FILE = "softwaredebebidas.db";
-    public static final String LOCK_FILE = "softwaredebebidas.lock";
-
-    // Names used by installations up to 1.0.3; referenced only to migrate them.
-    static final String LEGACY_DIR_NAME = "Cocolatan";
-    static final String LEGACY_DB_FILE = "cocolatan.db";
-    static final String LEGACY_LOCK_FILE = "cocolatan.lock";
-
-    static final String STAGING_SUFFIX = ".migrating";
+    private static final String FALLBACK_DIR = "data";
 
     private static volatile Path current;
-
-    /** Copies a directory tree; replaceable in tests to simulate I/O failures. */
-    @FunctionalInterface
-    interface TreeCopier {
-        void copy(Path from, Path to) throws IOException;
-    }
 
     private AppDataDir() {
     }
 
     /**
-     * Resolves the data directory under {@code appDataRoot}, migrating legacy data
-     * first when needed, and makes it the directory returned by {@link #getBaseDir()}.
+     * Resolves the data directory under {@code appDataRoot} and makes it the
+     * directory returned by {@link #getBaseDir()}.
      */
     public static Path initialize(Path appDataRoot) {
-        current = migrateLegacy(appDataRoot);
+        current = appDataRoot.resolve(DIR_NAME);
         return current;
     }
 
@@ -63,107 +46,80 @@ public final class AppDataDir {
      */
     public static Path getBaseDir() {
         Path dir = current;
-        if (dir != null) {
-            return dir;
-        }
-        String appData = System.getenv("APPDATA");
+        return dir != null ? dir : defaultDir(System.getenv("APPDATA"));
+    }
+
+    static Path defaultDir(String appData) {
         if (appData != null && !appData.isBlank()) {
             return Path.of(appData, DIR_NAME);
         }
-        return Paths.get("data");
+        return Paths.get(FALLBACK_DIR);
     }
 
-    /**
-     * Returns the database file inside {@code dataDir}: the current name, unless only
-     * a legacy database exists there (fallback after a failed migration).
-     */
     public static Path databaseFile(Path dataDir) {
-        Path db = dataDir.resolve(DB_FILE);
-        Path legacyDb = dataDir.resolve(LEGACY_DB_FILE);
-        if (!Files.exists(db) && Files.exists(legacyDb)) {
-            return legacyDb;
-        }
-        return db;
+        return dataDir.resolve(DB_FILE);
     }
 
-    static Path migrateLegacy(Path appDataRoot) {
-        return migrateLegacy(appDataRoot, AppDataDir::copyTree);
+    public static Path lockFile(Path dataDir) {
+        return dataDir.resolve(LOCK_FILE);
     }
 
-    static Path migrateLegacy(Path appDataRoot, TreeCopier copier) {
-        Path target = appDataRoot.resolve(DIR_NAME);
-        Path legacy = appDataRoot.resolve(LEGACY_DIR_NAME);
-        if (Files.exists(target) || !Files.isDirectory(legacy)) {
-            return target;
-        }
+    /** True when no database exists yet in {@code baseDir} (first start). */
+    public static boolean needsSetup(Path baseDir) {
+        return !Files.exists(databaseFile(baseDir));
+    }
 
-        Path staging = appDataRoot.resolve(DIR_NAME + STAGING_SUFFIX);
-        try {
-            deleteTree(staging);
-            copier.copy(legacy, staging);
-            Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE);
-            LOGGER.info("Migrated application data from " + legacy + " to " + target
-                    + "; the previous directory is kept as a safety copy");
-            return target;
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Could not migrate application data from " + legacy
-                    + "; continuing with the existing directory", e);
-            try {
-                deleteTree(staging);
-            } catch (IOException cleanup) {
-                LOGGER.log(Level.WARNING, "Could not remove staging directory " + staging, cleanup);
+    /**
+     * Copies a previous installation folder into {@code baseDir}, skipping lock files,
+     * and stores its single {@code .db} file under the current database name. The
+     * source is never modified.
+     */
+    public static void importFrom(Path sourceDir, Path baseDir) throws IOException {
+        Path sourceDb;
+        try (Stream<Path> top = Files.list(sourceDir)) {
+            List<Path> dbs = top.filter(p -> p.getFileName().toString().endsWith(".db")).toList();
+            if (dbs.size() != 1) {
+                throw new IOException("Expected exactly one .db file in " + sourceDir + " but found " + dbs.size());
             }
-            return legacy;
+            sourceDb = dbs.get(0);
+        }
+        try (Stream<Path> tree = Files.walk(sourceDir)) {
+            for (Path from : (Iterable<Path>) tree::iterator) {
+                if (from.getFileName().toString().endsWith(".lock")) {
+                    continue;
+                }
+                Path to = importTarget(from, sourceDb, baseDir, sourceDir);
+                if (Files.isDirectory(from)) {
+                    Files.createDirectories(to);
+                } else {
+                    Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
         }
     }
 
     /**
-     * Copies {@code from} into {@code to}, renaming the top-level legacy database
-     * files (including SQLite -wal/-shm/-journal companions) and skipping the
-     * legacy single-instance lock file.
+     * Maps a source file to its destination. The database and its SQLite companion
+     * files (WAL, shared memory, rollback journal) take the current database name, so
+     * transactions still in the WAL are not lost.
      */
-    private static void copyTree(Path from, Path to) throws IOException {
-        Files.walkFileTree(from, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                Files.createDirectories(to.resolve(from.relativize(dir).toString()));
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Path relative = from.relativize(file);
-                String name = file.getFileName().toString();
-                boolean topLevel = relative.getNameCount() == 1;
-                if (topLevel && name.equals(LEGACY_LOCK_FILE)) {
-                    return FileVisitResult.CONTINUE;
+    private static Path importTarget(Path from, Path sourceDb, Path baseDir, Path sourceDir) {
+        if (from.getParent() != null && from.getParent().equals(sourceDir)) {
+            String name = from.getFileName().toString();
+            String dbName = sourceDb.getFileName().toString();
+            for (String suffix : new String[] {"", "-wal", "-shm", "-journal"}) {
+                if (name.equals(dbName + suffix)) {
+                    return baseDir.resolve(DB_FILE + suffix);
                 }
-                Path destination = to.resolve(relative.toString());
-                if (topLevel && name.startsWith(LEGACY_DB_FILE)) {
-                    destination = to.resolve(DB_FILE + name.substring(LEGACY_DB_FILE.length()));
-                }
-                Files.copy(file, destination, StandardCopyOption.COPY_ATTRIBUTES);
-                return FileVisitResult.CONTINUE;
             }
-        });
+        }
+        return baseDir.resolve(sourceDir.relativize(from).toString());
     }
 
-    private static void deleteTree(Path root) throws IOException {
-        if (!Files.exists(root)) {
-            return;
-        }
-        Files.walkFileTree(root, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
+    /** Test hook: forgets the initialized directory. */
+    static void reset() {
+        current = null;
     }
 }
